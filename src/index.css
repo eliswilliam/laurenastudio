@@ -2,103 +2,128 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Laurena Studio - SaaS Design System
+   Cores neutras quentes com destaque roxo
+   All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    /* Warm, sophisticated palette inspired by the design */
-    --background: 36 44% 96%;
-    --foreground: 0 0% 18%;
+    /* Laurena Studio Brand Palette
+       Primary  #C15F3C → hsl(16 53% 50%)   – Terracotta
+       Cloudy   #B1ADA1 → hsl(45  9% 66%)   – Warm grey
+       Pampas   #F4F3EE → hsl(50 21% 95%)   – Cream background
+       White    #FFFFFF → hsl( 0  0% 100%)  – Pure white
+    */
 
-    --card: 33 40% 94%;
-    --card-foreground: 0 0% 18%;
+    --background: 50 21% 95%;          /* Pampas */
+    --foreground: 16 35% 12%;          /* Dark warm brown */
 
-    --popover: 36 44% 96%;
-    --popover-foreground: 0 0% 18%;
+    --card: 0 0% 100%;                 /* White */
+    --card-foreground: 16 35% 12%;
 
-    --primary: 0 0% 18%;
-    --primary-foreground: 36 44% 96%;
+    --popover: 0 0% 100%;              /* White */
+    --popover-foreground: 16 35% 12%;
 
-    --secondary: 25 30% 70%;
-    --secondary-foreground: 0 0% 18%;
+    --primary: 16 53% 50%;             /* #C15F3C – Terracotta */
+    --primary-foreground: 0 0% 100%;   /* White */
 
-    --muted: 33 30% 88%;
-    --muted-foreground: 0 0% 40%;
+    --secondary: 45 12% 89%;           /* Pampas darker */
+    --secondary-foreground: 16 35% 12%;
 
-    --accent: 140 20% 50%;
-    --accent-foreground: 36 44% 96%;
+    --muted: 45 10% 90%;
+    --muted-foreground: 45 9% 44%;     /* Cloudy darkened */
+
+    --accent: 16 53% 94%;              /* Very light terracotta tint */
+    --accent-foreground: 16 53% 38%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 36 44% 96%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 33 25% 85%;
-    --input: 33 25% 85%;
-    --ring: 0 0% 18%;
+    --border: 45 9% 82%;               /* Warm light grey */
+    --input: 45 9% 82%;
+    --ring: 16 53% 50%;                /* Terracotta */
 
-    --radius: 1rem;
+    --radius: 0.75rem;
 
-    /* Custom design tokens */
-    --tag-financing: 210 50% 75%;
-    --tag-lifestyle: 140 20% 70%;
-    --tag-community: 25 35% 60%;
-    --tag-wellness: 280 30% 75%;
-    --tag-travel: 195 50% 70%;
-    --tag-creativity: 330 40% 75%;
-    --tag-growth: 50 45% 70%;
+    --chart-1: 16 53% 50%;             /* Terracotta */
+    --chart-2: 38 80% 55%;             /* Amber */
+    --chart-3: 140 40% 48%;            /* Sage green */
+    --chart-4: 210 65% 52%;            /* Blue */
+    --chart-5: 340 60% 55%;            /* Dusty rose */
 
-    /* Polish design tokens */
-    --cream: 40 40% 90%;
-    --cream-foreground: 0 0% 18%;
-    --surface-elevated: 36 44% 98%;
-    --shadow-soft: 0 0% 0%;
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Sidebar – dark warm brown */
+    --sidebar-background: 15 30% 11%;
+    --sidebar-foreground: 45 9% 65%;   /* Cloudy */
+    --sidebar-primary: 16 53% 55%;     /* Terracotta (slightly lighter) */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 15 25% 18%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 15 20% 18%;
+    --sidebar-ring: 16 53% 50%;
+
+    --surface-elevated: 0 0% 100%;
+    --shadow-soft: 16 35% 12%;
+    --success: 142 72% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 100% 52%;
+    --info-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 36 44% 96%;
+    --background: 15 20% 8%;           /* Very dark warm brown */
+    --foreground: 50 21% 92%;          /* Pampas light */
 
-    --card: 0 0% 14%;
-    --card-foreground: 36 44% 96%;
+    --card: 15 20% 11%;
+    --card-foreground: 50 21% 92%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 36 44% 96%;
+    --popover: 15 20% 11%;
+    --popover-foreground: 50 21% 92%;
 
-    --primary: 36 44% 96%;
-    --primary-foreground: 0 0% 18%;
+    --primary: 16 58% 58%;             /* Terracotta – lighter for dark bg */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 25 15% 30%;
-    --secondary-foreground: 36 44% 96%;
+    --secondary: 15 15% 17%;
+    --secondary-foreground: 50 21% 92%;
 
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 15 15% 17%;
+    --muted-foreground: 45 9% 52%;
 
-    --accent: 140 20% 45%;
-    --accent-foreground: 36 44% 96%;
+    --accent: 16 40% 18%;
+    --accent-foreground: 16 58% 72%;
 
     --destructive: 0 62% 50%;
-    --destructive-foreground: 36 44% 96%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 36 44% 96%;
+    --border: 15 15% 18%;
+    --input: 15 15% 18%;
+    --ring: 16 58% 58%;
 
-    /* Dark mode tag colors */
-    --tag-financing: 210 40% 45%;
-    --tag-lifestyle: 140 20% 40%;
-    --tag-community: 25 30% 40%;
-    --tag-wellness: 280 25% 45%;
-    --tag-travel: 195 40% 45%;
-    --tag-creativity: 330 35% 45%;
-    --tag-growth: 50 40% 45%;
+    --chart-1: 16 58% 58%;
+    --chart-2: 38 80% 58%;
+    --chart-3: 140 40% 52%;
+    --chart-4: 210 65% 58%;
+    --chart-5: 340 60% 58%;
 
-    /* Dark mode polish tokens */
-    --cream: 40 20% 25%;
-    --cream-foreground: 36 44% 96%;
-    --surface-elevated: 0 0% 16%;
-    --shadow-soft: 0 0% 0%;
+    --sidebar-background: 15 25% 6%;
+    --sidebar-foreground: 45 9% 60%;
+    --sidebar-primary: 16 58% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 15 20% 13%;
+    --sidebar-accent-foreground: 50 21% 92%;
+    --sidebar-border: 15 18% 13%;
+    --sidebar-ring: 16 58% 58%;
+
+    --surface-elevated: 15 20% 13%;
+    --shadow-soft: 15 25% 4%;
+    --success: 142 72% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 45%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 100% 48%;
+    --info-foreground: 0 0% 100%;
   }
 }
 
@@ -116,7 +141,7 @@ All colors MUST be HSL.
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif tracking-tight;
+    @apply font-sans font-semibold tracking-tight;
   }
 }
 

@@ -1,0 +1,22 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/.pytest_cache/
+backend/*.egg-info/
+
+# Node/Frontend
+node_modules/
+dist/
+.vite/
+
+# Git / editor
+.git/
+.gitignore
+.vscode/
+*.md
+
+# Env files (injected at runtime via docker-compose env_file)
+# backend/.env   ← keep; docker-compose references it

@@ -1,6 +1,14 @@
+import ssl as _ssl
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 from app.core.config import settings
+
+# asyncpg supports ?ssl=require in the URL natively.
+# For Azure PostgreSQL, also ensure ssl_context is provided for strict verification.
+_connect_args: dict = {}
+if "azure" in settings.DATABASE_URL.lower() or "ssl" in settings.DATABASE_URL.lower():
+    _connect_args["ssl"] = _ssl.create_default_context()
 
 engine = create_async_engine(
     settings.DATABASE_URL,
@@ -8,6 +16,7 @@ engine = create_async_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
+    connect_args=_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(

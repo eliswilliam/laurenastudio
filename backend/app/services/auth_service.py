@@ -2,7 +2,7 @@
 auth_service.py
 All business logic for authentication and user account management.
 """
-import secrets
+import random
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -29,8 +29,10 @@ from app.schemas.auth import (
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
+    VerifyResetCodeRequest,
+    VerifyResetCodeResponse,
 )
-from app.schemas.user import UserRead
+from app.schemas.user import UserRead, UserUpdateRequest
 from app.schemas.workspace import WorkspaceRead
 
 
@@ -155,93 +157,155 @@ async def login_user(db: AsyncSession, payload: LoginRequest) -> AuthResponse:
 
 # ── Forgot password ───────────────────────────────────────────────────────────
 
+_RESET_CODE_EXPIRY_MINUTES = 10  # 6-digit code valid for 10 minutes
+
+
+def _make_token(user_id: str, code: str) -> str:
+    """Composite token stored in DB: '{user_id}:{code}'. Preserves unique constraint."""
+    return f"{user_id}:{code}"
+
+
 async def forgot_password(db: AsyncSession, email: str) -> ForgotPasswordResponse:
+    from app.services.email_service import send_password_reset_code
+
     user = await _get_user_by_email(db, email)
 
-    # Always return success to prevent email enumeration
-    if not user:
-        return ForgotPasswordResponse(
-            message="If this email is registered you will receive reset instructions."
-        )
+    # Always return the same message to prevent e-mail enumeration
+    generic_msg = "Se este e-mail estiver cadastrado, você receberá um código de recuperação."
 
-    # Invalidate previous active tokens for this user
+    if not user:
+        return ForgotPasswordResponse(message=generic_msg)
+
+    # Invalidate previous active codes for this user
     result = await db.execute(
         select(PasswordReset).where(
             PasswordReset.user_id == user.id,
             PasswordReset.used == False,  # noqa: E712
         )
     )
-    for old_token in result.scalars().all():
-        old_token.used = True
+    for old in result.scalars().all():
+        old.used = True
 
-    # Create new token
-    raw_token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.RESET_TOKEN_EXPIRE_MINUTES
-    )
+    # Generate a random 6-digit code
+    code = str(random.randint(100000, 999999))
+    token = _make_token(user.id, code)
+
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=_RESET_CODE_EXPIRY_MINUTES)
     reset_record = PasswordReset(
         id=str(uuid.uuid4()),
         user_id=user.id,
-        token=raw_token,
+        token=token,
         expires_at=expires_at,
         used=False,
     )
     db.add(reset_record)
     await db.commit()
 
-    # In production: send email here (e.g. via SendGrid / Azure Communication Services)
-    # For now, return the token in the response so it can be tested directly.
-    return ForgotPasswordResponse(
-        message="Reset token generated. Check your email (token returned for testing).",
-        reset_token=raw_token,
-    )
+    # Send the 6-digit code via Gmail SMTP (non-blocking)
+    await send_password_reset_code(to_email=user.email, code=code)
+
+    return ForgotPasswordResponse(message=generic_msg)
 
 
-# ── Reset password ────────────────────────────────────────────────────────────
+# ── Verify reset code ─────────────────────────────────────────────────────────
 
-async def reset_password(db: AsyncSession, payload: ResetPasswordRequest) -> MessageResponse:
-    # 1. Look up the token record
+async def _lookup_reset_record(
+    db: AsyncSession, email: str, code: str
+) -> tuple[User, PasswordReset]:
+    """Find and validate a password-reset record by (email, code)."""
+    user = await _get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Código inválido ou expirado.",
+        )
+
+    token = _make_token(user.id, code)
     result = await db.execute(
-        select(PasswordReset).where(PasswordReset.token == payload.token)
+        select(PasswordReset).where(
+            PasswordReset.token == token,
+            PasswordReset.used == False,  # noqa: E712
+        )
     )
     record = result.scalars().first()
 
     if not record:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid reset token.",
+            detail="Código inválido ou expirado.",
         )
 
-    # 2. Already used?
-    if record.used:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset token has already been used.",
-        )
-
-    # 3. Expired?
     if record.is_expired:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset token has expired.",
+            detail="Código expirado. Solicite um novo código.",
         )
 
-    # 4. Update password
-    user = await _get_user_by_id(db, record.user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found.",
-        )
+    return user, record
 
+
+async def verify_reset_code(
+    db: AsyncSession, payload: VerifyResetCodeRequest
+) -> VerifyResetCodeResponse:
+    await _lookup_reset_record(db, payload.email, payload.code)
+    return VerifyResetCodeResponse(valid=True, message="Código válido.")
+
+
+# ── Reset password ────────────────────────────────────────────────────────────
+
+async def reset_password(db: AsyncSession, payload: ResetPasswordRequest) -> MessageResponse:
+    user, record = await _lookup_reset_record(db, payload.email, payload.code)
+
+    # Update password with secure hash
     user.password_hash = hash_password(payload.new_password)
 
-    # 5. Invalidate token
+    # Invalidate the used code
     record.used = True
 
     await db.commit()
 
-    return MessageResponse(message="Password updated successfully.")
+    return MessageResponse(message="Senha atualizada com sucesso.")
+
+
+# ── Update user profile ───────────────────────────────────────────────────────
+
+async def update_user_profile(
+    db: AsyncSession, user: User, payload: UserUpdateRequest
+) -> UserRead:
+    # Optional password change — requires current_password verification
+    if payload.new_password:
+        if not payload.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A senha atual é obrigatória para alterar a senha.",
+            )
+        if not user.password_hash or not verify_password(
+            payload.current_password, user.password_hash
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Senha atual incorreta.",
+            )
+        if len(payload.new_password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A nova senha deve ter pelo menos 8 caracteres.",
+            )
+        user.password_hash = hash_password(payload.new_password)
+
+    # Update profile fields (only if provided)
+    if payload.full_name is not None:
+        user.full_name = payload.full_name
+    if payload.phone is not None:
+        user.phone = payload.phone
+    if payload.bio is not None:
+        user.bio = payload.bio
+    if payload.avatar_url is not None:
+        user.avatar_url = payload.avatar_url
+
+    await db.commit()
+    await db.refresh(user)
+    return UserRead.model_validate(user)
 
 
 # ── Get current user (used by JWT dependency) ─────────────────────────────────

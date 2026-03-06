@@ -13,6 +13,8 @@ export interface UserRead {
   full_name?: string | null;
   avatar_url?: string | null;
   google_id?: string | null;
+  phone?: string | null;
+  bio?: string | null;
 }
 
 export interface WorkspaceRead {
@@ -36,11 +38,24 @@ export interface AuthResponse {
 
 export interface ForgotPasswordResponse {
   message: string;
-  reset_token?: string; // returned for testing
+}
+
+export interface VerifyResetCodeResponse {
+  valid: boolean;
+  message: string;
 }
 
 export interface MessageResponse {
   message: string;
+}
+
+export interface UserUpdateRequest {
+  full_name?: string | null;
+  phone?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  new_password?: string | null;
+  current_password?: string | null;
 }
 
 // ── API calls ──────────────────────────────────────────────────────────────
@@ -69,18 +84,29 @@ export async function apiLogin(
 export async function apiForgotPassword(
   email: string
 ): Promise<ForgotPasswordResponse> {
-  const res = await api.post<ForgotPasswordResponse>('/auth/forgot-password', {
+  const res = await api.post<ForgotPasswordResponse>('/auth/forgot-password', { email });
+  return res.data;
+}
+
+export async function apiVerifyResetCode(
+  email: string,
+  code: string
+): Promise<VerifyResetCodeResponse> {
+  const res = await api.post<VerifyResetCodeResponse>('/auth/verify-reset-code', {
     email,
+    code,
   });
   return res.data;
 }
 
 export async function apiResetPassword(
-  token: string,
+  email: string,
+  code: string,
   new_password: string
 ): Promise<MessageResponse> {
   const res = await api.post<MessageResponse>('/auth/reset-password', {
-    token,
+    email,
+    code,
     new_password,
   });
   return res.data;
@@ -88,6 +114,11 @@ export async function apiResetPassword(
 
 export async function apiMe(): Promise<UserRead> {
   const res = await api.get<UserRead>('/auth/me');
+  return res.data;
+}
+
+export async function apiUpdateProfile(data: UserUpdateRequest): Promise<UserRead> {
+  const res = await api.put<UserRead>('/auth/me', data);
   return res.data;
 }
 

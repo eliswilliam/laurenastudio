@@ -18,5 +18,6 @@ dist/
 .vscode/
 *.md
 
-# Env files (injected at runtime via docker-compose env_file)
-# backend/.env   ← keep; docker-compose references it
+# Env files (injected at runtime via docker-compose/Azure env vars)
+backend/.env
+backend/.env.*

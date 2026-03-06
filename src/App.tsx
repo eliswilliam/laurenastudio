@@ -10,7 +10,9 @@ import AppLayout from "./components/layout/AppLayout";
 // Auth pages
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
-import EsqueciSenha from "./pages/EsqueciSenha";import AuthCallback from './pages/AuthCallback';
+import EsqueciSenha from "./pages/EsqueciSenha";
+import RedefinirSenha from "./pages/RedefinirSenha";
+import AuthCallback from './pages/AuthCallback';
 import EscolherPlano from './pages/EscolherPlano';
 import CheckoutSucesso from './pages/CheckoutSucesso';
 // App pages
@@ -47,6 +49,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
           <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/escolher-plano" element={<EscolherPlano />} />
           <Route path="/checkout/sucesso" element={<CheckoutSucesso />} />

@@ -28,8 +28,14 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class VerifyResetCodeRequest(BaseModel):
+    email: EmailStr
+    code: str  # 6-digit code sent by email
+
+
 class ResetPasswordRequest(BaseModel):
-    token: str
+    email: EmailStr
+    code: str  # 6-digit code sent by email
     new_password: str
 
     @field_validator("new_password")
@@ -56,8 +62,11 @@ class AuthResponse(BaseModel):
 
 class ForgotPasswordResponse(BaseModel):
     message: str
-    # Returned only in non-production to simplify testing
-    reset_token: str | None = None
+
+
+class VerifyResetCodeResponse(BaseModel):
+    valid: bool
+    message: str
 
 
 class MessageResponse(BaseModel):

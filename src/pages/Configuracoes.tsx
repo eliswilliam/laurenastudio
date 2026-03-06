@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Settings,
   User,
@@ -11,6 +11,10 @@ import {
   Trash2,
   Check,
   ExternalLink,
+  Lock,
+  Eye,
+  EyeOff,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +32,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { apiMe, apiUpdateProfile } from '@/lib/authApi';
+import { useAuthStore } from '@/store/useAuthStore';
 
 const contasSociais = [
   { id: '1', plataforma: 'Instagram', nome: '@laurena.studio', conectada: true, cor: '#E1306C' },
@@ -40,17 +46,28 @@ const contasSociais = [
 
 export default function Configuracoes() {
   const { toast } = useToast();
+  const atualizarUsuario = useAuthStore((s) => s.atualizarUsuario);
+
+  // ── Profile state ─────────────────────────────────────────────────────────
+  const [carregandoPerfil, setCarregandoPerfil] = useState(true);
+  const [salvandoPerfil, setSalvandoPerfil] = useState(false);
 
   const [perfil, setPerfil] = useState({
-    nome: 'Maria Santos',
-    email: 'maria@laurenastudio.com',
-    cargo: 'Marketing Manager',
-    bio: 'Gestora de marketing digital com foco em conteúdo e redes sociais.',
-    telefone: '+55 11 99999-9999',
-    idioma: 'pt-BR',
-    fuso: 'America/Sao_Paulo',
+    nome: '',
+    email: '',
+    telefone: '',
+    bio: '',
+    avatarUrl: '',
   });
 
+  const [senha, setSenha] = useState({
+    atual: '',
+    nova: '',
+    confirmar: '',
+  });
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+
+  // ── Branding + notifications (local state, not persisted to DB yet) ───────
   const [branding, setBranding] = useState({
     corPrimaria: '#C15F3C',
     corSecundaria: '#B1ADA1',
@@ -68,6 +85,91 @@ export default function Configuracoes() {
     novoComentario: false,
     limiteUso: true,
   });
+
+  // ── Load real user on mount ───────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = await apiMe();
+        if (cancelled) return;
+        setPerfil({
+          nome: user.full_name ?? '',
+          email: user.email,
+          telefone: user.phone ?? '',
+          bio: user.bio ?? '',
+          avatarUrl: user.avatar_url ?? '',
+        });
+      } catch {
+        toast({
+          title: 'Erro ao carregar perfil',
+          description: 'Não foi possível carregar seus dados. Tente recarregar a página.',
+          variant: 'destructive',
+        });
+      } finally {
+        if (!cancelled) setCarregandoPerfil(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── Compute initials for avatar ───────────────────────────────────────────
+  const initials = perfil.nome
+    ? perfil.nome
+        .split(' ')
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+    : perfil.email.slice(0, 2).toUpperCase();
+
+  // ── Save profile ──────────────────────────────────────────────────────────
+  const handleSalvarPerfil = async () => {
+    // Validate password change if requested
+    if (senha.nova) {
+      if (!senha.atual) {
+        toast({ title: 'Informe a senha atual', variant: 'destructive' });
+        return;
+      }
+      if (senha.nova.length < 8) {
+        toast({ title: 'A nova senha deve ter pelo menos 8 caracteres', variant: 'destructive' });
+        return;
+      }
+      if (senha.nova !== senha.confirmar) {
+        toast({ title: 'As senhas não coincidem', variant: 'destructive' });
+        return;
+      }
+    }
+
+    setSalvandoPerfil(true);
+    try {
+      const updated = await apiUpdateProfile({
+        full_name: perfil.nome || null,
+        phone: perfil.telefone || null,
+        bio: perfil.bio || null,
+        avatar_url: perfil.avatarUrl || null,
+        ...(senha.nova
+          ? { current_password: senha.atual, new_password: senha.nova }
+          : {}),
+      });
+
+      // Update Zustand store so header/nav reflects new name
+      atualizarUsuario({ nome: updated.full_name ?? '', avatar: updated.avatar_url ?? undefined });
+
+      // Clear password fields
+      setSenha({ atual: '', nova: '', confirmar: '' });
+
+      toast({ title: 'Perfil atualizado', description: 'Suas informações foram salvas com sucesso.' });
+    } catch (err: unknown) {
+      toast({
+        title: 'Erro ao salvar',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSalvandoPerfil(false);
+    }
+  };
 
   const handleSalvar = (secao: string) => {
     toast({
@@ -108,101 +210,176 @@ export default function Configuracoes() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Perfil */}
+        {/* ── Perfil ── */}
         <TabsContent value="perfil" className="space-y-6">
           <Card className="rounded-xl">
             <CardHeader>
               <CardTitle className="text-base">Informações Pessoais</CardTitle>
-              <CardDescription>Atualize seus dados de perfil e preferências.</CardDescription>
+              <CardDescription>Atualize seus dados de perfil.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Avatar */}
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
-                  MS
+              {carregandoPerfil ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
-                <div>
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <Camera className="w-3.5 h-3.5" />
-                    Alterar foto
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1">JPG, PNG ou GIF. Máx 5MB.</p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  {/* Avatar */}
+                  <div className="flex items-center gap-4">
+                    {perfil.avatarUrl ? (
+                      <img
+                        src={perfil.avatarUrl}
+                        alt={perfil.nome}
+                        className="w-20 h-20 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
+                        {initials}
+                      </div>
+                    )}
+                    <div>
+                      <Button variant="outline" size="sm" className="gap-1.5">
+                        <Camera className="w-3.5 h-3.5" />
+                        Alterar foto
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1">JPG, PNG ou GIF. Máx 5MB.</p>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome completo</Label>
-                  <Input
-                    value={perfil.nome}
-                    onChange={(e) => setPerfil({ ...perfil, nome: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>E-mail</Label>
-                  <Input
-                    type="email"
-                    value={perfil.email}
-                    onChange={(e) => setPerfil({ ...perfil, email: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cargo</Label>
-                  <Input
-                    value={perfil.cargo}
-                    onChange={(e) => setPerfil({ ...perfil, cargo: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input
-                    value={perfil.telefone}
-                    onChange={(e) => setPerfil({ ...perfil, telefone: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Bio</Label>
-                <Textarea
-                  value={perfil.bio}
-                  onChange={(e) => setPerfil({ ...perfil, bio: e.target.value })}
-                  rows={3}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Idioma</Label>
-                  <Select value={perfil.idioma} onValueChange={(v) => setPerfil({ ...perfil, idioma: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
-                      <SelectItem value="en-US">English (US)</SelectItem>
-                      <SelectItem value="es">Español</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Fuso horário</Label>
-                  <Select value={perfil.fuso} onValueChange={(v) => setPerfil({ ...perfil, fuso: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="America/Sao_Paulo">São Paulo (GMT-3)</SelectItem>
-                      <SelectItem value="America/Manaus">Manaus (GMT-4)</SelectItem>
-                      <SelectItem value="America/Bahia">Bahia (GMT-3)</SelectItem>
-                      <SelectItem value="America/Recife">Recife (GMT-3)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nome completo</Label>
+                      <Input
+                        value={perfil.nome}
+                        onChange={(e) => setPerfil({ ...perfil, nome: e.target.value })}
+                        placeholder="Seu nome"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>E-mail</Label>
+                      <Input
+                        type="email"
+                        value={perfil.email}
+                        readOnly
+                        disabled
+                        className="bg-muted/50 cursor-not-allowed"
+                        title="O e-mail não pode ser alterado aqui."
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Telefone</Label>
+                      <Input
+                        value={perfil.telefone}
+                        onChange={(e) => setPerfil({ ...perfil, telefone: e.target.value })}
+                        placeholder="+55 11 99999-9999"
+                      />
+                    </div>
+                  </div>
 
-              <div className="flex justify-end">
-                <Button onClick={() => handleSalvar('perfil')} className="gap-1.5">
-                  <Save className="w-4 h-4" />
-                  Salvar Perfil
-                </Button>
-              </div>
+                  <div className="space-y-2">
+                    <Label>Bio</Label>
+                    <Textarea
+                      value={perfil.bio}
+                      onChange={(e) => setPerfil({ ...perfil, bio: e.target.value })}
+                      rows={3}
+                      placeholder="Uma breve descrição sobre você..."
+                      maxLength={500}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">
+                      {perfil.bio.length}/500
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button onClick={handleSalvarPerfil} disabled={salvandoPerfil} className="gap-1.5">
+                      {salvandoPerfil ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      Salvar Perfil
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
+
+          {/* ── Alterar senha ── */}
+          {!carregandoPerfil && (
+            <Card className="rounded-xl">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Alterar Senha
+                </CardTitle>
+                <CardDescription>
+                  Preencha apenas se quiser alterar sua senha atual.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Senha atual</Label>
+                  <div className="relative">
+                    <Input
+                      type={mostrarSenha ? 'text' : 'password'}
+                      value={senha.atual}
+                      onChange={(e) => setSenha({ ...senha, atual: e.target.value })}
+                      placeholder="••••••••"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSenha(!mostrarSenha)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      tabIndex={-1}
+                    >
+                      {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nova senha</Label>
+                    <Input
+                      type={mostrarSenha ? 'text' : 'password'}
+                      value={senha.nova}
+                      onChange={(e) => setSenha({ ...senha, nova: e.target.value })}
+                      placeholder="Mínimo 8 caracteres"
+                      minLength={8}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Confirmar nova senha</Label>
+                    <Input
+                      type={mostrarSenha ? 'text' : 'password'}
+                      value={senha.confirmar}
+                      onChange={(e) => setSenha({ ...senha, confirmar: e.target.value })}
+                      placeholder="Repita a nova senha"
+                    />
+                    {senha.confirmar && senha.nova !== senha.confirmar && (
+                      <p className="text-xs text-destructive">As senhas não coincidem.</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleSalvarPerfil}
+                    disabled={salvandoPerfil || !senha.atual || !senha.nova || senha.nova !== senha.confirmar}
+                    variant="outline"
+                    className="gap-1.5"
+                  >
+                    {salvandoPerfil ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Lock className="w-4 h-4" />
+                    )}
+                    Alterar Senha
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Notificações */}
           <Card className="rounded-xl">
@@ -347,14 +524,8 @@ export default function Configuracoes() {
               <div className="border rounded-xl p-4 space-y-3">
                 <p className="text-xs text-muted-foreground font-medium">Preview da marca</p>
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-lg"
-                    style={{ backgroundColor: branding.corPrimaria }}
-                  />
-                  <div
-                    className="w-10 h-10 rounded-lg"
-                    style={{ backgroundColor: branding.corSecundaria }}
-                  />
+                  <div className="w-10 h-10 rounded-lg" style={{ backgroundColor: branding.corPrimaria }} />
+                  <div className="w-10 h-10 rounded-lg" style={{ backgroundColor: branding.corSecundaria }} />
                   <span style={{ fontFamily: branding.fonte }} className="font-semibold">
                     {branding.fonte}
                   </span>

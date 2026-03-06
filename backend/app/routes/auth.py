@@ -1,7 +1,7 @@
 """
 routes/auth.py
-Authentication endpoints: register, login, forgot-password, reset-password,
-Google OAuth (GET /google  →  GET /google/callback).
+Authentication endpoints: register, login, forgot-password, verify-reset-code,
+reset-password, Google OAuth (GET /google  →  GET /google/callback).
 A `get_current_user` dependency is also exposed for protecting other routes.
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -22,8 +22,10 @@ from app.schemas.auth import (
     MessageResponse,
     RegisterRequest,
     ResetPasswordRequest,
+    VerifyResetCodeRequest,
+    VerifyResetCodeResponse,
 )
-from app.schemas.user import UserRead
+from app.schemas.user import UserRead, UserUpdateRequest
 from app.services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -108,10 +110,10 @@ async def login(
 @router.post(
     "/forgot-password",
     response_model=ForgotPasswordResponse,
-    summary="Request a password reset token",
+    summary="Request a password reset code",
     description=(
-        "Generates a time-limited reset token (30 min). "
-        "In production the token is emailed; it is also returned in the response for testing."
+        "Generates a 6-digit time-limited code (10 min) and sends it "
+        "to the user's e-mail via Gmail SMTP."
     ),
 )
 async def forgot_password(
@@ -121,13 +123,27 @@ async def forgot_password(
     return await auth_service.forgot_password(db, payload.email)
 
 
+# ── POST /auth/verify-reset-code ──────────────────────────────────────────────
+
+@router.post(
+    "/verify-reset-code",
+    response_model=VerifyResetCodeResponse,
+    summary="Validate a 6-digit reset code without consuming it",
+)
+async def verify_reset_code(
+    payload: VerifyResetCodeRequest,
+    db: AsyncSession = Depends(get_db),
+) -> VerifyResetCodeResponse:
+    return await auth_service.verify_reset_code(db, payload)
+
+
 # ── POST /auth/reset-password ─────────────────────────────────────────────────
 
 @router.post(
     "/reset-password",
     response_model=MessageResponse,
-    summary="Reset password using a reset token",
-    description="Validates the token, hashes the new password, and invalidates the token.",
+    summary="Reset password using the 6-digit code",
+    description="Validates the code, hashes the new password, and invalidates the code.",
 )
 async def reset_password(
     payload: ResetPasswordRequest,
@@ -145,6 +161,21 @@ async def reset_password(
 )
 async def me(current_user=Depends(get_current_user)) -> UserRead:
     return UserRead.model_validate(current_user)
+
+
+# ── PUT /auth/me ──────────────────────────────────────────────────────────────
+
+@router.put(
+    "/me",
+    response_model=UserRead,
+    summary="Update current user profile",
+)
+async def update_me(
+    payload: UserUpdateRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserRead:
+    return await auth_service.update_user_profile(db, current_user, payload)
 
 # ── GET /auth/google ───────────────────────────────────────────────────────────
 

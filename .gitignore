@@ -48,3 +48,6 @@ ENV/
 
 # ── Stripe CLI ───────────────────────────────────────────────────────────────
 .stripe*
+
+# ── Azure webapp logs (downloaded for debugging) ────────────────────────────
+webapp-logs*/

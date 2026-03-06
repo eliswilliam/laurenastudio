@@ -183,10 +183,12 @@ jobs:
           retention-days: 1
 
   # ─────────────────────────────────────────
-  # JOB 2: Deploy (only runs if build-and-test succeeds)
+  # JOB 2: Push to ACR & trigger deploy
+  # Sitecontainers already configured to use :latest
+  # ACR webhook triggers web app restart on push
   # ─────────────────────────────────────────
   deploy:
-    name: "Push & Deploy to Azure"
+    name: "Push to ACR & Deploy"
     runs-on: ubuntu-latest
     needs: build-and-test
     environment: production
@@ -203,14 +205,12 @@ jobs:
           gunzip -c /tmp/images/frontend-image/frontend-image.tar.gz | docker load
           echo "Both images loaded successfully."
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Login to Azure Container Registry
+      - name: Login to ACR
         run: |
-          az acr login --name laurenastudio
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login \
+            ${{ env.REGISTRY }} \
+            --username "${{ secrets.ACR_USERNAME }}" \
+            --password-stdin
 
       - name: Tag and push images to ACR
         run: |
@@ -228,75 +228,34 @@ jobs:
           docker tag ${{ env.FRONTEND_IMAGE }}:$TAG \
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
 
-          # Push all
+          # Push all (push :latest last so ACR webhook triggers after both images are updated)
           docker push ${{ env.REGISTRY }}/${{ env.API_IMAGE }}:$TAG
           docker push ${{ env.REGISTRY }}/${{ env.API_IMAGE }}:latest
           docker push ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:$TAG
           docker push ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
 
           echo "All images pushed to ACR."
-
-      - name: Get Azure subscription ID
-        id: azure-info
-        run: |
-          SUB_ID=$(az account show --query id --output tsv)
-          echo "sub-id=$SUB_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Deploy API sitecontainer
-        run: |
-          TAG=${{ needs.build-and-test.outputs.image-tag }}
-          SUB_ID=${{ steps.azure-info.outputs.sub-id }}
-
-          az rest --method PUT \
-            --uri "/subscriptions/${SUB_ID}/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.Web/sites/${{ env.WEBAPP_NAME }}/sitecontainers/laurena-api?api-version=2024-04-01" \
-            --body "{
-              \"properties\": {
-                \"image\": \"${{ env.REGISTRY }}/${{ env.API_IMAGE }}:${TAG}\",
-                \"isMain\": false,
-                \"targetPort\": 8000,
-                \"authType\": \"SystemIdentity\"
-              }
-            }"
-
-          echo "API sitecontainer updated."
-
-      - name: Deploy Frontend sitecontainer
-        run: |
-          TAG=${{ needs.build-and-test.outputs.image-tag }}
-          SUB_ID=${{ steps.azure-info.outputs.sub-id }}
-
-          az rest --method PUT \
-            --uri "/subscriptions/${SUB_ID}/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.Web/sites/${{ env.WEBAPP_NAME }}/sitecontainers/laurena-frontend?api-version=2024-04-01" \
-            --body "{
-              \"properties\": {
-                \"image\": \"${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${TAG}\",
-                \"isMain\": true,
-                \"targetPort\": 8080,
-                \"authType\": \"SystemIdentity\"
-              }
-            }"
-
-          echo "Frontend sitecontainer updated."
+          echo "ACR webhook will trigger web app restart automatically."
 
       - name: Verify deployment
         run: |
-          echo "Waiting for containers to stabilize..."
-          sleep 30
+          echo "Waiting for ACR webhook to trigger restart and containers to stabilize..."
+          sleep 60
 
-          MAX_RETRIES=5
-          RETRY_INTERVAL=10
+          MAX_RETRIES=6
+          RETRY_INTERVAL=15
           SUCCESS=false
 
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Verification attempt $i/$MAX_RETRIES..."
             HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
               --max-time 20 \
-              https://studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net/health || echo "000")
+              https://studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net/ || echo "000")
 
-            echo "API health status: $HTTP_STATUS"
+            echo "Frontend status: $HTTP_STATUS"
 
             if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
-              echo "Deploy verified! API is responding."
+              echo "Deploy verified! App is responding."
               SUCCESS=true
               break
             fi
@@ -305,12 +264,6 @@ jobs:
           done
 
           if [ "$SUCCESS" = false ]; then
-            echo "Warning: API not responding yet after deployment. It may still be starting up."
+            echo "Warning: App not responding yet after deployment. It may still be starting up."
             echo "Check Azure Portal for container status."
           fi
-
-      - name: Azure logout
-        if: always()
-        run: |
-          az logout
-          echo "Azure logout complete."

@@ -250,32 +250,24 @@ jobs:
 
       - name: Restart App Service via SCM API
         run: |
-          echo "Triggering explicit container restart via SCM API..."
+          echo "Triggering explicit container restart via SCM docker/hook..."
 
           HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" \
             --max-time 60 \
             -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"action":"push"}' \
             -u "${{ secrets.WEBAPP_DEPLOY_USER }}:${{ secrets.WEBAPP_DEPLOY_PASSWORD }}" \
             "https://${{ env.SCM_HOST }}/docker/hook")
 
           echo "SCM docker/hook response: $HTTP_CODE"
 
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
-            echo "SCM restart failed. Trying /api/restart fallback..."
-            HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" \
-              --max-time 60 \
-              -X POST \
-              -u "${{ secrets.WEBAPP_DEPLOY_USER }}:${{ secrets.WEBAPP_DEPLOY_PASSWORD }}" \
-              "https://${{ env.SCM_HOST }}/api/restart")
-            echo "SCM /api/restart response: $HTTP_CODE"
-          fi
-
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
-            echo "ERROR: Could not restart App Service."
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Could not trigger container restart (HTTP $HTTP_CODE)."
             exit 1
           fi
 
-          echo "App Service restart triggered successfully."
+          echo "Container restart triggered successfully (HTTP $HTTP_CODE)."
 
       # ── Vérification du déploiement ────────────────────────────────────────
 

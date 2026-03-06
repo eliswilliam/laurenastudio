@@ -249,6 +249,9 @@ jobs:
       # Le restart force Azure à pull les nouvelles images :latest depuis ACR
 
       - name: Restart App Service via SCM API
+        env:
+          SCM_USER: ${{ secrets.WEBAPP_DEPLOY_USER }}
+          SCM_PASS: ${{ secrets.WEBAPP_DEPLOY_PASSWORD }}
         run: |
           echo "Triggering explicit container restart via SCM docker/hook..."
 
@@ -257,7 +260,7 @@ jobs:
             -X POST \
             -H "Content-Type: application/json" \
             -d '{"action":"push"}' \
-            -u "${{ secrets.WEBAPP_DEPLOY_USER }}:${{ secrets.WEBAPP_DEPLOY_PASSWORD }}" \
+            -u "${SCM_USER}:${SCM_PASS}" \
             "https://${{ env.SCM_HOST }}/docker/hook")
 
           echo "SCM docker/hook response: $HTTP_CODE"

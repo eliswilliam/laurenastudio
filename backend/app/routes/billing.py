@@ -21,6 +21,7 @@ from app.schemas.billing import (
     ChangePlanRequest,
     CheckoutSessionRequest,
     CheckoutSessionResponse,
+    CurrentSubscriptionResponse,
     CustomerPortalRequest,
     CustomerPortalResponse,
     PlanRead,
@@ -188,6 +189,24 @@ async def billing_status(
     db: AsyncSession = Depends(get_db),
 ) -> BillingStatusResponse:
     return await billing_service.get_billing_status(db, workspace_id)
+
+
+# ── GET /billing/current-subscription ────────────────────────────────────────
+
+@router.get(
+    "/current-subscription",
+    response_model=CurrentSubscriptionResponse,
+    summary="Get current subscription details",
+    description=(
+        "Returns plan_name, price, limits, current_period_end, status, "
+        "and current usage for the workspace."
+    ),
+)
+async def current_subscription(
+    workspace_id: str = Depends(get_workspace_id),
+    db: AsyncSession = Depends(get_db),
+) -> CurrentSubscriptionResponse:
+    return await billing_service.get_current_subscription(db, workspace_id)
 
 
 # ── GET /billing/usage ──────────────────────────────────────────────────────

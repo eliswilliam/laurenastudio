@@ -39,6 +39,9 @@ class Plan(Base):
     post_limit: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0
     )  # 0 = unlimited
+    workspace_limit: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1
+    )  # 0 = unlimited; starter=1, pro=3, business=0
 
     # ── Relationships ────────────────────────────────────────────────────────
     subscriptions: Mapped[list["Subscription"]] = relationship(  # noqa: F821

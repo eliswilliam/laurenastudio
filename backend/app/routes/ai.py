@@ -1,7 +1,10 @@
 """
 routes/ai.py
 AI generation endpoints — protected by active subscription + usage limits.
+Uses Google Gemini for real text and image generation, persists results to DB.
 """
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,8 +14,12 @@ from app.core.dependencies import (
     verify_active_subscription,
 )
 from app.db.session import get_db
+from app.models.ai_generation import AIGeneration
 from app.models.subscription import Subscription
 from app.schemas.ai import AIGenerateRequest, AIGenerateResponse
+from app.services.ai_service import generate_image, generate_text
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["AI Generation"])
 
@@ -44,13 +51,38 @@ async def generate(
         db, workspace_id, payload.resource_type, subscription
     )
 
-    # ── Placeholder for actual AI generation ─────────────────────────────
-    # In production, call OpenAI / Stable Diffusion / Runway API here.
-    generated_content = (
-        f"[AI-generated {payload.resource_type}] "
-        f"Prompt: '{payload.prompt[:100]}' — "
-        f"This is a placeholder. Integrate your AI provider here."
+    # ── Real AI generation via Google Gemini ─────────────────────────────
+    try:
+        if payload.resource_type == "text":
+            generated_content = await generate_text(
+                payload.prompt,
+                model=payload.model,
+                style=payload.style,
+            )
+        elif payload.resource_type in ("image", "video"):
+            generated_content = await generate_image(
+                payload.prompt,
+                model=payload.model,
+                style=payload.style,
+            )
+    except Exception as exc:
+        logger.exception("AI generation failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI generation failed: {exc}",
+        )
+
+    # ── Persist to database ──────────────────────────────────────────────
+    record = AIGeneration(
+        workspace_id=workspace_id,
+        resource_type=payload.resource_type,
+        prompt=payload.prompt,
+        content=generated_content,
+        model_used=payload.model,
+        style=payload.style,
     )
+    db.add(record)
+    await db.commit()
 
     # Map resource type to usage field
     field_map = {

@@ -26,6 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useAIStore } from '@/store/useAIStore';
 import { useToast } from '@/hooks/use-toast';
+import api from '@/lib/api';
 
 const tons = [
   { value: 'profissional', label: 'Profissional' },
@@ -53,22 +54,6 @@ const vozesMarca = [
   { value: 'minimalista', label: 'Minimalista' },
 ];
 
-// Conteúdos mock gerados
-const textoGeradoMock = `Transforme sua presença digital com estratégias que realmente funcionam!
-
-Sabemos que o mundo digital muda a cada segundo. Por isso, criamos uma abordagem única que combina criatividade, dados e inteligência artificial para entregar resultados extraordinários.
-
-- Aumente seu engajamento em até 300%
-- Crie conteúdo de alta performance em minutos
-- Automatize suas publicações com precisão
-
-Não fique para trás. O futuro do marketing digital já começou.
-
-#MarketingDigital #IA #Inovação #Resultados #Crescimento`;
-
-const imagemGeradaMock = 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=600&fit=crop';
-const videoGeradoMock = 'https://images.unsplash.com/photo-1536240478700-b869070f9279?w=600&h=400&fit=crop';
-
 export default function AIStudio() {
   const {
     prompt,
@@ -90,7 +75,7 @@ export default function AIStudio() {
   const { toast } = useToast();
   const [abaAtiva, setAbaAtiva] = useState('texto');
 
-  const handleGerar = () => {
+  const handleGerar = async () => {
     if (!prompt.trim()) {
       toast({ title: 'Atenção', description: 'Digite um prompt para gerar conteúdo.', variant: 'destructive' });
       return;
@@ -99,19 +84,36 @@ export default function AIStudio() {
     setGerando(true);
     setResultado(null);
 
-    // Simular geração de IA
-    setTimeout(() => {
-      const tipoAtual = abaAtiva as 'texto' | 'imagem' | 'video';
+    try {
+      const resourceType = abaAtiva as 'texto' | 'imagem' | 'video';
+      const typeMap: Record<string, string> = { texto: 'text', imagem: 'image', video: 'video' };
+
+      const { data } = await api.post('/ai/generate', {
+        resource_type: typeMap[resourceType],
+        prompt,
+        style: tom,
+      }, { timeout: 120000 });
+
+      const isImage = resourceType === 'imagem' || resourceType === 'video';
+
       setResultado({
         id: Date.now().toString(),
-        conteudo: tipoAtual === 'texto' ? textoGeradoMock : tipoAtual === 'imagem' ? imagemGeradaMock : videoGeradoMock,
-        tipo: tipoAtual,
-        urlPreview: tipoAtual !== 'texto' ? (tipoAtual === 'imagem' ? imagemGeradaMock : videoGeradoMock) : undefined,
+        conteudo: data.content,
+        tipo: resourceType,
+        urlPreview: isImage ? data.content : undefined,
         criadoEm: new Date().toISOString(),
       });
+
+      toast({ title: 'Conteúdo gerado!', description: data.message || 'Seu conteúdo foi criado com sucesso pela IA.' });
+    } catch (err: any) {
+      toast({
+        title: 'Erro na geração',
+        description: err.message || 'Falha ao gerar conteúdo. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
       setGerando(false);
-      toast({ title: 'Conteúdo gerado!', description: 'Seu conteúdo foi criado com sucesso pela IA.' });
-    }, 3000);
+    }
   };
 
   const handleCopiar = () => {

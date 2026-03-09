@@ -6,26 +6,26 @@ import {
   Send,
   Save,
   CalendarDays,
-  X,
+  Eye,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { socialIcons } from '@/components/shared/SocialIcons';
 import type { PlataformaSocial } from '@/lib/types';
 
 const plataformasDisponiveis: { value: PlataformaSocial; label: string; cor: string }[] = [
-  { value: 'instagram', label: 'Instagram', cor: 'bg-pink-500' },
-  { value: 'facebook', label: 'Facebook', cor: 'bg-blue-600' },
-  { value: 'twitter', label: 'Twitter/X', cor: 'bg-sky-500' },
-  { value: 'linkedin', label: 'LinkedIn', cor: 'bg-blue-700' },
-  { value: 'tiktok', label: 'TikTok', cor: 'bg-gray-900' },
-  { value: 'youtube', label: 'YouTube', cor: 'bg-red-600' },
+  { value: 'instagram', label: 'Instagram', cor: 'text-pink-500' },
+  { value: 'facebook', label: 'Facebook', cor: 'text-blue-600' },
+  { value: 'twitter', label: 'Twitter/X', cor: 'text-gray-900 dark:text-gray-100' },
+  { value: 'linkedin', label: 'LinkedIn', cor: 'text-blue-700' },
+  { value: 'tiktok', label: 'TikTok', cor: 'text-gray-900 dark:text-gray-100' },
+  { value: 'youtube', label: 'YouTube', cor: 'text-red-600' },
 ];
 
 export default function CriarPost() {
@@ -123,19 +123,22 @@ export default function CriarPost() {
               <CardTitle className="text-sm">Publicar em</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {plataformasDisponiveis.map((p) => (
-                <label
-                  key={p.value}
-                  className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
-                >
-                  <Checkbox
-                    checked={plataformas.includes(p.value)}
-                    onCheckedChange={() => togglePlataforma(p.value)}
-                  />
-                  <div className={`w-3 h-3 rounded-full ${p.cor}`} />
-                  <span className="text-sm font-medium">{p.label}</span>
-                </label>
-              ))}
+              {plataformasDisponiveis.map((p) => {
+                const Icon = socialIcons[p.value];
+                return (
+                  <label
+                    key={p.value}
+                    className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
+                  >
+                    <Checkbox
+                      checked={plataformas.includes(p.value)}
+                      onCheckedChange={() => togglePlataforma(p.value)}
+                    />
+                    {Icon && <Icon className={`w-5 h-5 ${p.cor}`} />}
+                    <span className="text-sm font-medium">{p.label}</span>
+                  </label>
+                );
+              })}
             </CardContent>
           </Card>
 
@@ -146,6 +149,18 @@ export default function CriarPost() {
                 <Send className="w-4 h-4" />
                 Publicar Agora
               </Button>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() =>
+                  navigate('/preview-post', {
+                    state: { titulo, conteudo, plataformas, imagens },
+                  })
+                }
+              >
+                <Eye className="w-4 h-4" />
+                Preview
+              </Button>
               <Button variant="outline" className="w-full gap-2" onClick={handleAgendar}>
                 <CalendarDays className="w-4 h-4" />
                 Agendar
@@ -154,33 +169,6 @@ export default function CriarPost() {
                 <Save className="w-4 h-4" />
                 Salvar Rascunho
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* Preview */}
-          <Card className="rounded-xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-muted/50 rounded-lg p-4 min-h-[100px]">
-                {conteudo ? (
-                  <p className="text-sm whitespace-pre-wrap">{conteudo.slice(0, 280)}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    O preview do seu post aparecerá aqui...
-                  </p>
-                )}
-              </div>
-              {plataformas.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {plataformas.map((p) => (
-                    <Badge key={p} variant="secondary" className="text-xs capitalize">
-                      {p}
-                    </Badge>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

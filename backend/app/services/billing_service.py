@@ -19,6 +19,7 @@ from app.schemas.billing import (
     ActivatePlanResponse,
     BillingStatusResponse,
     CancelSubscriptionResponse,
+    CurrentSubscriptionResponse,
     PlanRead,
     SubscriptionRead,
     SubscriptionWithPlan,
@@ -344,4 +345,39 @@ async def get_usage(
         image_remaining=_remaining(usage.image_used, plan.image_limit),
         video_remaining=_remaining(usage.video_used, plan.video_limit),
         posts_remaining=_remaining(usage.posts_used, plan.post_limit),
+    )
+
+
+# ── Get current subscription (simplified) ────────────────────────────────────
+
+async def get_current_subscription(
+    db: AsyncSession,
+    workspace_id: str,
+) -> CurrentSubscriptionResponse:
+    sub = await _get_subscription(db, workspace_id)
+
+    if not sub:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nenhuma assinatura encontrada para este workspace.",
+        )
+
+    plan = sub.plan
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Plano da assinatura não encontrado.",
+        )
+
+    usage = await _get_usage(db, workspace_id)
+    usage_read = UsageRead.model_validate(usage) if usage else None
+
+    return CurrentSubscriptionResponse(
+        plan_name=plan.name,
+        display_name=plan.display_name,
+        price=float(plan.price_brl),
+        status=sub.status,
+        current_period_end=sub.current_period_end.isoformat() if sub.current_period_end else None,
+        limits=PlanRead.model_validate(plan),
+        usage=usage_read,
     )

@@ -17,6 +17,8 @@ export interface Workspace {
   nome: string;
   logo?: string;
   membros: number;
+  owner_id?: string;
+  created_at?: string;
 }
 
 // Dashboard

@@ -21,6 +21,7 @@ class PlanRead(BaseModel):
     video_limit: int
     social_limit: int
     post_limit: int
+    workspace_limit: int
 
 
 # ── Subscription ──────────────────────────────────────────────────────────────
@@ -103,6 +104,18 @@ class BillingStatusResponse(BaseModel):
     subscription: SubscriptionWithPlan | None = None
     usage: UsageWithLimits | None = None
     is_active: bool
+
+
+# ── Current subscription (simplified view) ──────────────────────────────────
+
+class CurrentSubscriptionResponse(BaseModel):
+    plan_name: str
+    display_name: str
+    price: float
+    status: str
+    current_period_end: str | None = None
+    limits: PlanRead
+    usage: UsageRead | None = None
 
 
 # ── Stripe Checkout ──────────────────────────────────────────────────────────

@@ -25,6 +25,7 @@ import AdsAnalytics from "./pages/AdsAnalytics";
 import BibliotecaMidia from "./pages/BibliotecaMidia";
 import Pagamento from "./pages/Pagamento";
 import Configuracoes from "./pages/Configuracoes";
+import PreviewPost from "./pages/PreviewPost";
 import NotFound from "./pages/NotFound";
 
 // Legacy blog template pages
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/midia" element={<BibliotecaMidia />} />
             <Route path="/pagamento" element={<Pagamento />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
+            <Route path="/preview-post" element={<PreviewPost />} />
           </Route>
 
           {/* Home & Legacy blog template pages */}

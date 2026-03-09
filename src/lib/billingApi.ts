@@ -24,6 +24,7 @@ export interface PlanRead {
   video_limit: number;
   social_limit: number;
   post_limit: number;
+  workspace_limit: number;
 }
 
 export interface UsageRead {
@@ -112,5 +113,66 @@ export async function apiVerifySession(
   const res = await api.post<VerifySessionResponse>('/billing/verify-session', {
     session_id: sessionId,
   });
+  return res.data;
+}
+
+/** Get current subscription details */
+export interface CurrentSubscriptionResponse {
+  plan_name: string;
+  display_name: string;
+  price: number;
+  status: string;
+  current_period_end: string | null;
+  limits: PlanRead;
+  usage: UsageRead | null;
+}
+
+export async function apiCurrentSubscription(): Promise<CurrentSubscriptionResponse> {
+  const res = await api.get<CurrentSubscriptionResponse>('/billing/current-subscription');
+  return res.data;
+}
+
+// ── Workspace API ──────────────────────────────────────────────────────────
+
+export interface WorkspaceReadApi {
+  id: string;
+  name: string;
+  owner_id: string;
+  created_at: string;
+}
+
+export interface WorkspaceListResponse {
+  workspaces: WorkspaceReadApi[];
+  current_count: number;
+  workspace_limit: number;
+}
+
+export async function apiListWorkspaces(): Promise<WorkspaceListResponse> {
+  const res = await api.get<WorkspaceListResponse>('/workspaces');
+  return res.data;
+}
+
+export async function apiCreateWorkspace(name: string): Promise<WorkspaceReadApi> {
+  const res = await api.post<WorkspaceReadApi>('/workspaces/create', { name });
+  return res.data;
+}
+
+// ── Search API ─────────────────────────────────────────────────────────────
+
+export interface SearchResult {
+  type: string;
+  title: string;
+  description: string | null;
+  url: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  total: number;
+  results: Record<string, SearchResult[]>;
+}
+
+export async function apiGlobalSearch(q: string): Promise<SearchResponse> {
+  const res = await api.get<SearchResponse>('/search', { params: { q } });
   return res.data;
 }

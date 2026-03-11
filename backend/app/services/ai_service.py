@@ -43,30 +43,40 @@ def _get_client() -> genai.Client:
     return _client
 
 
-def _get_video_client() -> genai.Client:
-    """Client for Veo video generation.
+def _ensure_gcloud_credentials() -> None:
+    """Ensure GOOGLE_APPLICATION_CREDENTIALS is set for the Vertex AI SDK.
 
-    Strategy:
-    - If ADC file exists (local Docker): use Vertex AI with project/location
-    - Otherwise (Azure): use Google AI API with api_key
+    Priority:
+    1. Already set via env var (e.g. docker-compose volume mount)
+    2. ADC file exists at the default Docker path
+    3. GOOGLE_CREDENTIALS_JSON env var contains service account JSON (Azure)
     """
+    if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+        return
+
+    adc_path = "/root/.config/gcloud/application_default_credentials.json"
+    if os.path.exists(adc_path):
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = adc_path
+        return
+
+    creds_json = settings.GOOGLE_CREDENTIALS_JSON
+    if creds_json:
+        sa_path = "/tmp/gcloud_sa_key.json"
+        Path(sa_path).write_text(creds_json)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = sa_path
+        logger.info("Wrote service account key from GOOGLE_CREDENTIALS_JSON to %s", sa_path)
+
+
+def _get_video_client() -> genai.Client:
+    """Client for Veo video generation via Vertex AI (project/location + credentials)."""
     global _video_client
     if _video_client is None:
-        adc_path = "/root/.config/gcloud/application_default_credentials.json"
-        if os.path.exists(adc_path):
-            if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = adc_path
-            logger.info("Video client: using Vertex AI with ADC")
-            _video_client = genai.Client(
-                vertexai=True,
-                project=settings.GOOGLE_CLOUD_PROJECT,
-                location=settings.GOOGLE_CLOUD_LOCATION,
-            )
-        else:
-            logger.info("Video client: using Google AI API with api_key (no ADC)")
-            _video_client = genai.Client(
-                api_key=settings.GOOGLE_CLOUD_API_KEY,
-            )
+        _ensure_gcloud_credentials()
+        _video_client = genai.Client(
+            vertexai=True,
+            project=settings.GOOGLE_CLOUD_PROJECT,
+            location=settings.GOOGLE_CLOUD_LOCATION,
+        )
     return _video_client
 
 
@@ -203,7 +213,10 @@ def _sync_generate_video(prompt: str, *, style: str | None = None) -> str:
         number_of_videos=1,
         duration_seconds=8,
         person_generation="allow_all",
+        generate_audio=True,
     )
+
+    logger.info("Starting Veo 3.1 video generation: prompt=%s", full_prompt[:80])
 
     operation = client.models.generate_videos(
         model="veo-3.1-generate-001",
@@ -226,11 +239,13 @@ def _sync_generate_video(prompt: str, *, style: str | None = None) -> str:
 
     response = operation.result
     if not response:
-        raise RuntimeError("Video generation returned no result.")
+        logger.error("Veo returned done=True but result is None (content may have been filtered)")
+        raise RuntimeError("Video generation completed but returned no result. The content may have been filtered by safety policies. Try a different prompt.")
 
     generated_videos = response.generated_videos
     if not generated_videos:
-        raise RuntimeError("No videos were generated.")
+        logger.error("Veo returned result but generated_videos is empty")
+        raise RuntimeError("No videos were generated. Try a different prompt.")
 
     video = generated_videos[0]
     if not video.video or not video.video.video_bytes:

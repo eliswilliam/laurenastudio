@@ -27,6 +27,7 @@ services:
       GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
+      GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
 
   frontend:
     image: laurenastudio.azurecr.io/laurena-frontend:c36eee4

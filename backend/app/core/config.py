@@ -67,6 +67,8 @@ class Settings(BaseSettings):
     GOOGLE_CLOUD_API_KEY: str = ""
     GOOGLE_CLOUD_PROJECT: str = ""
     GOOGLE_CLOUD_LOCATION: str = "us-central1"
+    # Service account JSON for Vertex AI (used in Azure where no ADC file exists)
+    GOOGLE_CREDENTIALS_JSON: str = ""
 
     # ── Session (required by Starlette SessionMiddleware for OAuth flow) ─────
     SESSION_SECRET_KEY: str = "CHANGE-ME-session-secret-use-openssl-rand-hex-32"

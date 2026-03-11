@@ -1,14 +1,14 @@
 """
 services/ai_service.py
 Google Gemini AI integration — text + image + video generation.
-Uses google-genai SDK with vertexai=True and API key.
-Models:
-  - gemini-2.5-flash-image: text + image (response_modalities=["TEXT","IMAGE"])
-  - veo-3.1-generate-001: video generation via generate_videos()
+Uses google-genai SDK:
+  - Text/Image: vertexai=True with API key (gemini-2.5-flash-image)
+  - Video: vertexai=True with ADC + project/location (veo-3.1-generate-001)
 """
 import asyncio
 import base64
 import logging
+import os
 import time
 import uuid
 from functools import partial
@@ -44,13 +44,29 @@ def _get_client() -> genai.Client:
 
 
 def _get_video_client() -> genai.Client:
-    """Client for Veo video generation (api_key + vertexai, same auth as text/image)."""
+    """Client for Veo video generation.
+
+    Strategy:
+    - If ADC file exists (local Docker): use Vertex AI with project/location
+    - Otherwise (Azure): use Google AI API with api_key
+    """
     global _video_client
     if _video_client is None:
-        _video_client = genai.Client(
-            vertexai=True,
-            api_key=settings.GOOGLE_CLOUD_API_KEY,
-        )
+        adc_path = "/root/.config/gcloud/application_default_credentials.json"
+        if os.path.exists(adc_path):
+            if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = adc_path
+            logger.info("Video client: using Vertex AI with ADC")
+            _video_client = genai.Client(
+                vertexai=True,
+                project=settings.GOOGLE_CLOUD_PROJECT,
+                location=settings.GOOGLE_CLOUD_LOCATION,
+            )
+        else:
+            logger.info("Video client: using Google AI API with api_key (no ADC)")
+            _video_client = genai.Client(
+                api_key=settings.GOOGLE_CLOUD_API_KEY,
+            )
     return _video_client
 
 
@@ -187,7 +203,6 @@ def _sync_generate_video(prompt: str, *, style: str | None = None) -> str:
         number_of_videos=1,
         duration_seconds=8,
         person_generation="allow_all",
-        generate_audio=True,
     )
 
     operation = client.models.generate_videos(

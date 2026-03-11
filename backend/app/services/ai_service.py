@@ -30,6 +30,7 @@ VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
 
 _client: genai.Client | None = None
 _video_client: genai.Client | None = None
+_video_use_vertex: bool = False
 
 
 def _get_client() -> genai.Client:
@@ -68,15 +69,35 @@ def _ensure_gcloud_credentials() -> None:
 
 
 def _get_video_client() -> genai.Client:
-    """Client for Veo video generation via Vertex AI (project/location + credentials)."""
-    global _video_client
+    """Client for Veo video generation.
+
+    Strategy:
+    1. If ADC credentials available → Vertex AI with project/location (full features)
+    2. Else → Google AI with API key (same key as text/image, works on Azure)
+    """
+    global _video_client, _video_use_vertex
     if _video_client is None:
         _ensure_gcloud_credentials()
-        _video_client = genai.Client(
-            vertexai=True,
-            project=settings.GOOGLE_CLOUD_PROJECT,
-            location=settings.GOOGLE_CLOUD_LOCATION,
-        )
+
+        if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+            _video_client = genai.Client(
+                vertexai=True,
+                project=settings.GOOGLE_CLOUD_PROJECT,
+                location=settings.GOOGLE_CLOUD_LOCATION,
+            )
+            _video_use_vertex = True
+            logger.info("Video client: Vertex AI (ADC + project/location)")
+        elif settings.GOOGLE_CLOUD_API_KEY:
+            _video_client = genai.Client(
+                api_key=settings.GOOGLE_CLOUD_API_KEY,
+            )
+            _video_use_vertex = False
+            logger.info("Video client: Google AI (API key)")
+        else:
+            raise RuntimeError(
+                "No credentials for video generation. "
+                "Set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_CLOUD_API_KEY."
+            )
     return _video_client
 
 
@@ -208,13 +229,17 @@ def _sync_generate_video(prompt: str, *, style: str | None = None) -> str:
 
     source = types.GenerateVideosSource(prompt=full_prompt)
 
-    config = types.GenerateVideosConfig(
+    config_kwargs = dict(
         aspect_ratio="16:9",
         number_of_videos=1,
         duration_seconds=8,
         person_generation="allow_all",
-        generate_audio=True,
     )
+    # generate_audio is only supported on Vertex AI
+    if _video_use_vertex:
+        config_kwargs["generate_audio"] = True
+
+    config = types.GenerateVideosConfig(**config_kwargs)
 
     logger.info("Starting Veo 3.1 video generation: prompt=%s", full_prompt[:80])
 

@@ -124,8 +124,14 @@ export async function apiUpdateProfile(data: UserUpdateRequest): Promise<UserRea
 
 /**
  * Redirect the browser to the Google OAuth consent screen.
- * The backend will handle the callback and redirect back to /auth/callback.
  */
 export function redirectToGoogleLogin(): void {
   window.location.href = '/api/v1/auth/google';
+}
+
+/**
+ * Redirect the browser to the Facebook OAuth consent screen.
+ */
+export function redirectToFacebookLogin(): void {
+  window.location.href = '/api/v1/auth/facebook';
 }

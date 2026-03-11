@@ -1,12 +1,15 @@
 """
 services/ai_service.py
-Google Gemini AI integration — text + image generation.
+Google Gemini AI integration — text + image + video generation.
 Uses google-genai SDK with vertexai=True and API key.
-Model: gemini-2.5-flash-image with response_modalities=["TEXT","IMAGE"]
+Models:
+  - gemini-2.5-flash-image: text + image (response_modalities=["TEXT","IMAGE"])
+  - veo-3.1-generate-001: video generation via generate_videos()
 """
 import asyncio
 import base64
 import logging
+import time
 import uuid
 from functools import partial
 from pathlib import Path
@@ -18,14 +21,19 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Upload directory for generated images
+# Upload directories
 GENERATED_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "generated"
 GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 
+VIDEOS_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "videos"
+VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
+
 _client: genai.Client | None = None
+_video_client: genai.Client | None = None
 
 
 def _get_client() -> genai.Client:
+    """Client for Gemini text/image generation (api_key + vertexai)."""
     global _client
     if _client is None:
         _client = genai.Client(
@@ -33,6 +41,18 @@ def _get_client() -> genai.Client:
             api_key=settings.GOOGLE_CLOUD_API_KEY,
         )
     return _client
+
+
+def _get_video_client() -> genai.Client:
+    """Client for Veo video generation (project/location + ADC)."""
+    global _video_client
+    if _video_client is None:
+        _video_client = genai.Client(
+            vertexai=True,
+            project=settings.GOOGLE_CLOUD_PROJECT,
+            location=settings.GOOGLE_CLOUD_LOCATION,
+        )
+    return _video_client
 
 
 def _build_config(
@@ -146,3 +166,79 @@ async def generate_image(
         return text.strip()
 
     raise RuntimeError("Gemini did not return an image for the given prompt.")
+
+
+# ── Video generation (Veo 3.1) ─────────────────────────────────────────────
+
+
+def _sync_generate_video(prompt: str, *, style: str | None = None) -> str:
+    """Blocking call to Veo — generates a video, polls until done, saves to disk.
+    Returns the relative URL path to the saved video file.
+    """
+    client = _get_video_client()
+
+    full_prompt = prompt
+    if style:
+        full_prompt = f"{prompt}. Style: {style}"
+
+    source = types.GenerateVideosSource(prompt=full_prompt)
+
+    config = types.GenerateVideosConfig(
+        aspect_ratio="16:9",
+        number_of_videos=1,
+        duration_seconds=8,
+        person_generation="allow_all",
+        generate_audio=True,
+        resolution="720p",
+    )
+
+    operation = client.models.generate_videos(
+        model="veo-3.1-generate-001",
+        source=source,
+        config=config,
+    )
+
+    # Poll until done (max ~5 min)
+    max_wait = 300
+    elapsed = 0
+    poll_interval = 10
+    while not operation.done and elapsed < max_wait:
+        logger.info("Video not ready yet, polling in %ds... (%ds elapsed)", poll_interval, elapsed)
+        time.sleep(poll_interval)
+        elapsed += poll_interval
+        operation = client.operations.get(operation)
+
+    if not operation.done:
+        raise RuntimeError("Video generation timed out after 5 minutes.")
+
+    response = operation.result
+    if not response:
+        raise RuntimeError("Video generation returned no result.")
+
+    generated_videos = response.generated_videos
+    if not generated_videos:
+        raise RuntimeError("No videos were generated.")
+
+    video = generated_videos[0]
+    if not video.video or not video.video.video_bytes:
+        raise RuntimeError("Generated video has no data.")
+
+    video_bytes = video.video.video_bytes
+    filename = f"{uuid.uuid4().hex}.mp4"
+    filepath = VIDEOS_DIR / filename
+    filepath.write_bytes(video_bytes)
+    logger.info("Saved generated video: %s (%d bytes)", filename, len(video_bytes))
+    return f"/uploads/videos/{filename}"
+
+
+async def generate_video(
+    prompt: str,
+    *,
+    model: str | None = None,
+    style: str | None = None,
+) -> str:
+    """Generate a video via Veo 3.1. Returns relative URL to the saved file."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        None, partial(_sync_generate_video, prompt, style=style)
+    )

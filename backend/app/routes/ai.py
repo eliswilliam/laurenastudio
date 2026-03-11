@@ -17,7 +17,7 @@ from app.db.session import get_db
 from app.models.ai_generation import AIGeneration
 from app.models.subscription import Subscription
 from app.schemas.ai import AIGenerateRequest, AIGenerateResponse
-from app.services.ai_service import generate_image, generate_text
+from app.services.ai_service import generate_image, generate_text, generate_video
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,14 @@ async def generate(
                 model=payload.model,
                 style=payload.style,
             )
-        elif payload.resource_type in ("image", "video"):
+        elif payload.resource_type == "image":
             generated_content = await generate_image(
+                payload.prompt,
+                model=payload.model,
+                style=payload.style,
+            )
+        elif payload.resource_type == "video":
+            generated_content = await generate_video(
                 payload.prompt,
                 model=payload.model,
                 style=payload.style,

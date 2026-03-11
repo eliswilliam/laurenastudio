@@ -322,6 +322,118 @@ async def get_user_by_id(db: AsyncSession, user_id: str) -> User:
 
 # ── Google OAuth login / register ────────────────────────────────────────────
 
+async def facebook_oauth_login(db: AsyncSession, user_info: dict) -> AuthResponse:
+    """
+    Sign in or register a user via Facebook OAuth.
+    - If facebook_id already exists → update profile & login.
+    - If email matches existing user → link facebook_id & login.
+    - Otherwise → create new user + default workspace.
+    """
+    facebook_id: str = str(user_info["id"])
+    email: str | None = user_info.get("email")  # may be absent if user hid it
+    full_name: str | None = user_info.get("name")
+    avatar_url: str | None = (
+        user_info.get("picture", {}).get("data", {}).get("url")
+        if isinstance(user_info.get("picture"), dict)
+        else None
+    )
+
+    # 1. Lookup by facebook_id
+    result = await db.execute(select(User).where(User.facebook_id == facebook_id))
+    user = result.scalars().first()
+
+    workspace: Workspace | None = None
+
+    if not user:
+        # 2. Try to find existing user by email (link accounts)
+        if email:
+            user = await _get_user_by_email(db, email)
+        if user:
+            user.facebook_id = facebook_id
+            if full_name:
+                user.full_name = full_name
+            if avatar_url:
+                user.avatar_url = avatar_url
+        else:
+            # 3. Brand new user via Facebook
+            if not email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Facebook did not provide an email address. Please grant email permission.",
+                )
+            user = User(
+                id=str(uuid.uuid4()),
+                email=email,
+                facebook_id=facebook_id,
+                full_name=full_name,
+                avatar_url=avatar_url,
+                password_hash=None,
+                is_active=True,
+            )
+            db.add(user)
+            await db.flush()
+
+            given = email.split("@")[0]
+            workspace = Workspace(
+                id=str(uuid.uuid4()),
+                name=f"{given}'s Workspace",
+                owner_id=user.id,
+            )
+            db.add(workspace)
+            await db.flush()
+
+            membership = Membership(
+                id=str(uuid.uuid4()),
+                user_id=user.id,
+                workspace_id=workspace.id,
+                role="admin",
+            )
+            db.add(membership)
+    else:
+        # Update existing Facebook user profile
+        if full_name:
+            user.full_name = full_name
+        if avatar_url:
+            user.avatar_url = avatar_url
+
+    await db.commit()
+    await db.refresh(user)
+
+    if workspace is None:
+        result = await db.execute(
+            select(Workspace).where(Workspace.owner_id == user.id).limit(1)
+        )
+        workspace = result.scalars().first()
+
+    if workspace is None:
+        workspace = Workspace(
+            id=str(uuid.uuid4()),
+            name="My Workspace",
+            owner_id=user.id,
+        )
+        db.add(workspace)
+        membership = Membership(
+            id=str(uuid.uuid4()),
+            user_id=user.id,
+            workspace_id=workspace.id,
+            role="admin",
+        )
+        db.add(membership)
+        await db.commit()
+        await db.refresh(workspace)
+
+    tokens = TokenResponse(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+    return AuthResponse(
+        user=UserRead.model_validate(user),
+        workspace=WorkspaceRead.model_validate(workspace),
+        tokens=tokens,
+    )
+
+
 async def google_oauth_login(db: AsyncSession, user_info: dict) -> AuthResponse:
     """
     Sign in or register a user via Google OAuth.

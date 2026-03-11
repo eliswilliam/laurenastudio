@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToast } from '@/hooks/use-toast';
-import { apiRegister, redirectToGoogleLogin } from '@/lib/authApi';
+import { apiRegister, redirectToGoogleLogin, redirectToFacebookLogin } from '@/lib/authApi';
 import { useEffect } from 'react';
 
 export default function Registro() {
@@ -118,7 +118,7 @@ export default function Registro() {
 
           <Button
             variant="outline"
-            className="w-full h-11 gap-2 mb-4"
+            className="w-full h-11 gap-2 mb-3"
             onClick={() => redirectToGoogleLogin()}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -140,6 +140,17 @@ export default function Registro() {
               />
             </svg>
             Registrar com Google
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full h-11 gap-2 mb-4"
+            onClick={() => redirectToFacebookLogin()}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
+              <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.883v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+            </svg>
+            Registrar com Facebook
           </Button>
 
           <div className="relative my-6">

@@ -58,9 +58,15 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
 
+    # ── Facebook OAuth ────────────────────────────────────────────────────
+    FACEBOOK_APP_ID: str = ""
+    FACEBOOK_APP_SECRET: str = ""
+
     # ── Google Gemini AI (Vertex AI SDK) ──────────────────────────────
     GOOGLE_API_KEY: str = ""
     GOOGLE_CLOUD_API_KEY: str = ""
+    GOOGLE_CLOUD_PROJECT: str = ""
+    GOOGLE_CLOUD_LOCATION: str = "us-central1"
 
     # ── Session (required by Starlette SessionMiddleware for OAuth flow) ─────
     SESSION_SECRET_KEY: str = "CHANGE-ME-session-secret-use-openssl-rand-hex-32"

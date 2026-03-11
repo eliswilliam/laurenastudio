@@ -3,7 +3,7 @@
 
 services:
   api:
-    image: laurenastudio.azurecr.io/laurena-api:v6
+    image: laurenastudio.azurecr.io/laurena-api:c36eee4
     expose:
       - "8000"
     environment:
@@ -24,9 +24,12 @@ services:
       SMTP_USERNAME: ${SMTP_USERNAME}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
 
   frontend:
-    image: laurenastudio.azurecr.io/laurena-frontend:v6
+    image: laurenastudio.azurecr.io/laurena-frontend:c36eee4
     ports:
       - "8080:8080"
     depends_on:

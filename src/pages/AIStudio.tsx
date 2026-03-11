@@ -88,19 +88,22 @@ export default function AIStudio() {
       const resourceType = abaAtiva as 'texto' | 'imagem' | 'video';
       const typeMap: Record<string, string> = { texto: 'text', imagem: 'image', video: 'video' };
 
+      // Video generation takes longer (polling Veo)
+      const timeout = resourceType === 'video' ? 600000 : 120000;
+
       const { data } = await api.post('/ai/generate', {
         resource_type: typeMap[resourceType],
         prompt,
         style: tom,
-      }, { timeout: 120000 });
+      }, { timeout });
 
-      const isImage = resourceType === 'imagem' || resourceType === 'video';
+      const isMedia = resourceType === 'imagem' || resourceType === 'video';
 
       setResultado({
         id: Date.now().toString(),
         conteudo: data.content,
         tipo: resourceType,
-        urlPreview: isImage ? data.content : undefined,
+        urlPreview: isMedia ? data.content : undefined,
         criadoEm: new Date().toISOString(),
       });
 
@@ -172,7 +175,7 @@ export default function AIStudio() {
             </TabsContent>
             <TabsContent value="video" className="mt-4">
               <p className="text-sm text-muted-foreground">
-                Gere roteiros e thumbnails para vídeos.
+                Gere vídeos cinematográficos com IA generativa (Veo 3.1).
               </p>
             </TabsContent>
           </Tabs>
@@ -326,7 +329,9 @@ export default function AIStudio() {
                   <div className="text-center">
                     <p className="font-medium">Gerando conteúdo...</p>
                     <p className="text-sm text-muted-foreground">
-                      Nossa IA está criando algo incrível para você.
+                      {abaAtiva === 'video'
+                        ? 'Gerando vídeo com Veo 3.1... Isso pode levar alguns minutos.'
+                        : 'Nossa IA está criando algo incrível para você.'}
                     </p>
                   </div>
                 </div>
@@ -335,6 +340,28 @@ export default function AIStudio() {
                   {resultado.tipo === 'texto' ? (
                     <div className="bg-muted/50 rounded-xl p-6 whitespace-pre-wrap text-sm leading-relaxed border">
                       {resultado.conteudo}
+                    </div>
+                  ) : resultado.tipo === 'video' ? (
+                    <div className="space-y-4">
+                      <div className="rounded-xl overflow-hidden border bg-muted/30">
+                        <video
+                          src={resultado.urlPreview}
+                          controls
+                          className="w-full h-auto max-h-[500px]"
+                          autoPlay
+                          loop
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <a
+                          href={resultado.urlPreview}
+                          download
+                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                        >
+                          <Download className="w-4 h-4" />
+                          Baixar vídeo
+                        </a>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -345,11 +372,6 @@ export default function AIStudio() {
                           className="w-full h-auto max-h-96 object-cover"
                         />
                       </div>
-                      {resultado.tipo === 'video' && (
-                        <p className="text-sm text-muted-foreground italic text-center">
-                          Preview de thumbnail do vídeo gerado
-                        </p>
-                      )}
                     </div>
                   )}
 

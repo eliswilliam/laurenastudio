@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.google_oauth import oauth
+from app.core.facebook_oauth import oauth_facebook
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.schemas.auth import (
@@ -209,6 +210,56 @@ async def google_callback(
         auth_resp = await auth_service.google_oauth_login(db, dict(user_info))
 
         # Redirect to the React SPA callback route with tokens as query params
+        return RedirectResponse(
+            url=(
+                f"{settings.FRONTEND_URL}/auth/callback"
+                f"?access_token={auth_resp.tokens.access_token}"
+                f"&refresh_token={auth_resp.tokens.refresh_token or ''}"
+            )
+        )
+    except Exception as exc:
+        import urllib.parse
+        error_msg = urllib.parse.quote(str(exc))
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/login?error={error_msg}"
+        )
+
+
+# ── GET /auth/facebook ─────────────────────────────────────────────────────────────
+
+@router.get(
+    "/facebook",
+    summary="Initiate Facebook OAuth login",
+    description="Redirects the browser to Facebook's consent screen.",
+)
+async def facebook_login(request: Request):
+    redirect_uri = f"{settings.BACKEND_URL}/api/v1/auth/facebook/callback"
+    return await oauth_facebook.facebook.authorize_redirect(request, redirect_uri)
+
+
+# ── GET /auth/facebook/callback ──────────────────────────────────────────────────
+
+@router.get(
+    "/facebook/callback",
+    name="facebook_callback",
+    summary="Facebook OAuth callback",
+    description="Handles the redirect from Facebook, creates/updates the user, and returns JWT tokens via front-end redirect.",
+)
+async def facebook_callback(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        token = await oauth_facebook.facebook.authorize_access_token(request)
+        # Fetch user info from Graph API including email and picture
+        resp = await oauth_facebook.facebook.get(
+            "me",
+            token=token,
+            params={"fields": "id,name,email,picture.type(large)"},
+        )
+        user_info = resp.json()
+        auth_resp = await auth_service.facebook_oauth_login(db, user_info)
+
         return RedirectResponse(
             url=(
                 f"{settings.FRONTEND_URL}/auth/callback"

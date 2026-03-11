@@ -44,13 +44,12 @@ def _get_client() -> genai.Client:
 
 
 def _get_video_client() -> genai.Client:
-    """Client for Veo video generation (project/location + ADC)."""
+    """Client for Veo video generation (api_key + vertexai, same auth as text/image)."""
     global _video_client
     if _video_client is None:
         _video_client = genai.Client(
             vertexai=True,
-            project=settings.GOOGLE_CLOUD_PROJECT,
-            location=settings.GOOGLE_CLOUD_LOCATION,
+            api_key=settings.GOOGLE_CLOUD_API_KEY,
         )
     return _video_client
 
@@ -189,7 +188,6 @@ def _sync_generate_video(prompt: str, *, style: str | None = None) -> str:
         duration_seconds=8,
         person_generation="allow_all",
         generate_audio=True,
-        resolution="720p",
     )
 
     operation = client.models.generate_videos(

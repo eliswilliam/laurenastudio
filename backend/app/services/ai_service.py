@@ -65,6 +65,15 @@ def _ensure_gcloud_credentials() -> None:
 
     creds_json = settings.GOOGLE_CREDENTIALS_JSON
     if creds_json:
+        # Support base64-encoded JSON (avoids Azure mangling the JSON)
+        try:
+            decoded = base64.b64decode(creds_json).decode("utf-8")
+            import json
+            json.loads(decoded)  # validate it's real JSON
+            creds_json = decoded
+        except Exception:
+            pass  # assume it's already raw JSON
+
         sa_path = "/tmp/gcloud_sa_key.json"
         Path(sa_path).write_text(creds_json)
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = sa_path

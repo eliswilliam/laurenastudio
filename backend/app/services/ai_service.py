@@ -30,7 +30,6 @@ VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
 
 _client: genai.Client | None = None
 _video_client: genai.Client | None = None
-_video_use_vertex: bool = False
 
 
 def _get_client() -> genai.Client:
@@ -47,17 +46,21 @@ def _get_client() -> genai.Client:
 def _ensure_gcloud_credentials() -> None:
     """Ensure GOOGLE_APPLICATION_CREDENTIALS is set for the Vertex AI SDK.
 
+    Vertex AI video generation requires OAuth2 credentials (not API key).
     Priority:
     1. Already set via env var (e.g. docker-compose volume mount)
     2. ADC file exists at the default Docker path
-    3. GOOGLE_CREDENTIALS_JSON env var contains service account JSON (Azure)
+    3. GOOGLE_CREDENTIALS_JSON setting contains service account JSON (Azure)
     """
     if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        return
+        creds_path = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+        if os.path.exists(creds_path):
+            return
 
     adc_path = "/root/.config/gcloud/application_default_credentials.json"
     if os.path.exists(adc_path):
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = adc_path
+        logger.info("Using ADC credentials at %s", adc_path)
         return
 
     creds_json = settings.GOOGLE_CREDENTIALS_JSON
@@ -65,39 +68,28 @@ def _ensure_gcloud_credentials() -> None:
         sa_path = "/tmp/gcloud_sa_key.json"
         Path(sa_path).write_text(creds_json)
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = sa_path
-        logger.info("Wrote service account key from GOOGLE_CREDENTIALS_JSON to %s", sa_path)
+        logger.info("Wrote service account key from GOOGLE_CREDENTIALS_JSON → %s", sa_path)
+        return
+
+    raise RuntimeError(
+        "No credentials found for Vertex AI video generation. "
+        "Set GOOGLE_CREDENTIALS_JSON in Azure App Settings with your "
+        "Google Cloud service account JSON key."
+    )
 
 
 def _get_video_client() -> genai.Client:
-    """Client for Veo video generation.
-
-    Strategy:
-    1. If ADC credentials available → Vertex AI with project/location (full features)
-    2. Else → Google AI with API key (same key as text/image, works on Azure)
-    """
-    global _video_client, _video_use_vertex
+    """Client for Veo video generation via Vertex AI (requires service account)."""
+    global _video_client
     if _video_client is None:
         _ensure_gcloud_credentials()
-
-        if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-            _video_client = genai.Client(
-                vertexai=True,
-                project=settings.GOOGLE_CLOUD_PROJECT,
-                location=settings.GOOGLE_CLOUD_LOCATION,
-            )
-            _video_use_vertex = True
-            logger.info("Video client: Vertex AI (ADC + project/location)")
-        elif settings.GOOGLE_CLOUD_API_KEY:
-            _video_client = genai.Client(
-                api_key=settings.GOOGLE_CLOUD_API_KEY,
-            )
-            _video_use_vertex = False
-            logger.info("Video client: Google AI (API key)")
-        else:
-            raise RuntimeError(
-                "No credentials for video generation. "
-                "Set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_CLOUD_API_KEY."
-            )
+        _video_client = genai.Client(
+            vertexai=True,
+            project=settings.GOOGLE_CLOUD_PROJECT,
+            location=settings.GOOGLE_CLOUD_LOCATION,
+        )
+        logger.info("Video client: Vertex AI (project=%s, location=%s)",
+                     settings.GOOGLE_CLOUD_PROJECT, settings.GOOGLE_CLOUD_LOCATION)
     return _video_client
 
 
@@ -229,17 +221,13 @@ def _sync_generate_video(prompt: str, *, style: str | None = None) -> str:
 
     source = types.GenerateVideosSource(prompt=full_prompt)
 
-    config_kwargs = dict(
+    config = types.GenerateVideosConfig(
         aspect_ratio="16:9",
         number_of_videos=1,
         duration_seconds=8,
         person_generation="allow_all",
+        generate_audio=True,
     )
-    # generate_audio is only supported on Vertex AI
-    if _video_use_vertex:
-        config_kwargs["generate_audio"] = True
-
-    config = types.GenerateVideosConfig(**config_kwargs)
 
     logger.info("Starting Veo 3.1 video generation: prompt=%s", full_prompt[:80])
 

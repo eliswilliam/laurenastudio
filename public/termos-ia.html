@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Termos de Serviço de IA — Laurena Studio</title>
+  <link rel="icon" href="./android-chrome-192x192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bagel+Fat+One&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --terracotta: #C15F3C;
+      --terracotta-light: #f0e4dd;
+      --terracotta-dark: #9a3f20;
+      --pampas: #F4F3EE;
+      --cloudy: #B1ADA1;
+      --warm-brown: #46230e;
+      --warm-grey-light: #e8e5df;
+      --white: #FFFFFF;
+      --border: #d4cfc6;
+      --text-muted: #7a7168;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--pampas);
+      color: var(--warm-brown);
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand img { width: 32px; height: 32px; border-radius: 8px; }
+    .brand-name {
+      font-family: 'Bagel Fat One', cursive;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      color: var(--terracotta);
+    }
+    .topbar nav { display: flex; gap: 1.5rem; }
+    .topbar nav a {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .topbar nav a:hover, .topbar nav a.active { color: var(--terracotta); }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #C15F3C 0%, #9a3f20 100%);
+      color: var(--white);
+      padding: 3.5rem 1.5rem;
+      text-align: center;
+    }
+    .hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; margin-bottom: 0.75rem; color: #fff; }
+    .hero p { font-size: 1rem; color: rgba(255,255,255,0.88); max-width: 600px; margin: 0 auto; }
+    .hero .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 99px;
+      padding: 0.3rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+
+    /* ── REGION NOTICE ── */
+    .region-notice {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+    .region-box {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--terracotta);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+    }
+    .region-box h2 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--terracotta); text-transform: uppercase; letter-spacing: 0.04em; }
+    .region-box ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .region-box li { font-size: 0.9rem; color: var(--text-muted); padding-left: 1.25rem; position: relative; }
+    .region-box li::before { content: "→"; position: absolute; left: 0; color: var(--terracotta); font-weight: 700; }
+
+    /* ── MAIN LAYOUT ── */
+    .content-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+      display: flex;
+      gap: 2.5rem;
+      align-items: flex-start;
+    }
+
+    /* ── SIDEBAR TOC ── */
+    .toc {
+      width: 240px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 72px;
+    }
+    .toc-inner {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .toc h3 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .toc ol { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; counter-reset: toc; }
+    .toc li { counter-increment: toc; }
+    .toc a {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      line-height: 1.4;
+      padding: 0.3rem 0.5rem;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .toc a::before { content: counter(toc) "."; font-size: 0.7rem; color: var(--terracotta); font-weight: 700; flex-shrink: 0; }
+    .toc a:hover { background: var(--terracotta-light); color: var(--terracotta-dark); }
+
+    /* ── ARTICLE ── */
+    .article { flex: 1; min-width: 0; }
+
+    .meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .meta-bar .tag {
+      background: var(--terracotta-light);
+      color: var(--terracotta-dark);
+      border-radius: 99px;
+      padding: 0.2rem 0.75rem;
+      font-weight: 600;
+    }
+
+    section { margin-bottom: 2.5rem; }
+    section:last-child { margin-bottom: 0; }
+
+    .section-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem 2rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--warm-brown);
+      margin-bottom: 1rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 2px solid var(--terracotta-light);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2 .section-num {
+      width: 1.6rem; height: 1.6rem;
+      background: var(--terracotta);
+      color: var(--white);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--terracotta-dark);
+      margin: 1.25rem 0 0.6rem;
+    }
+    p { color: var(--text-muted); margin-bottom: 0.75rem; font-size: 0.935rem; }
+    p:last-child { margin-bottom: 0; }
+
+    ul, ol {
+      padding-left: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.935rem;
+    }
+    li { margin-bottom: 0.5rem; }
+    li::marker { color: var(--terracotta); }
+
+    .highlight-box {
+      background: var(--terracotta-light);
+      border-left: 3px solid var(--terracotta);
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      color: var(--terracotta-dark);
+      font-weight: 500;
+    }
+
+    .contact-card {
+      background: var(--pampas);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-top: 0.5rem;
+    }
+    .contact-card p { color: var(--warm-brown); font-size: 0.9rem; margin-bottom: 0.3rem; }
+    .contact-card a { color: var(--terracotta); text-decoration: none; font-weight: 500; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: linear-gradient(135deg, #C15F3C 0%, #9a3f20 100%);
+      color: rgba(255,255,255,0.9);
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.25rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.82rem;
+    }
+    .footer-links a {
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: #fff; }
+    .footer-sep { color: rgba(255,255,255,0.4); }
+    footer p { font-size: 0.78rem; color: rgba(255,255,255,0.65); margin-top: 0.5rem; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .toc { display: none; }
+      .section-card { padding: 1.25rem 1.25rem; }
+      h2 { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ TOP BAR ══ -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="brand">
+        <img src="./android-chrome-192x192.png" alt="Laurena Studio" />
+        <span class="brand-name">LAURENA</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ══ LEGAL NAV STRIP ══ -->
+  <style>
+    .legal-nav { background: var(--white); border-bottom: 1px solid var(--border); }
+    .legal-nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+    .legal-nav-inner::-webkit-scrollbar { display: none; }
+    .legal-nav a { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.65rem 1.1rem; font-size: 0.82rem; font-weight: 500; color: var(--text-muted); text-decoration: none; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }
+    .legal-nav a:hover { color: var(--terracotta); }
+    .legal-nav a.active { color: var(--terracotta); border-bottom-color: var(--terracotta); font-weight: 600; }
+  </style>
+  <nav class="legal-nav">
+    <div class="legal-nav-inner">
+      <a href="./privacidade.html">Privacidade</a>
+      <a href="./termos.html">Termos Gerais</a>
+      <a href="./termos-ia.html" class="active">Termos de IA</a>
+      <a href="/">← Voltar ao site</a>
+    </div>
+  </nav>
+
+  <!-- ══ HERO ══ -->
+  <div class="hero">
+    <span class="badge">Brasil · Versão 1.0</span>
+    <h1>Termos de Serviço de IA</h1>
+    <p>Saiba como a Laurena AI funciona, quais são os seus direitos e as regras de uso da nossa plataforma de inteligência artificial.</p>
+  </div>
+
+  <!-- ══ REGION NOTICE ══ -->
+  <div class="region-notice">
+    <div class="region-box">
+      <h2>Nossos Termos de IA variam conforme a sua região</h2>
+      <ul>
+        <li><strong>Brasil:</strong> estes Termos de Serviço da Laurena AI (Brasil) regem o uso dos nossos produtos e recursos de IA Generativa para usuários que residem no Brasil.</li>
+        <li><strong>União Europeia / Região Europeia:</strong> a versão adaptada à regulação europeia (GDPR / EU AI Act) regerá o uso para residentes na Região Europeia.</li>
+        <li><strong>Demais países:</strong> os Termos Gerais da Laurena AI regem o uso para usuários fora do Brasil e da Região Europeia.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══ LAYOUT ══ -->
+  <div class="content-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside class="toc">
+      <div class="toc-inner">
+        <h3>Índice</h3>
+        <ol>
+          <li><a href="#aplicacao">Aplicação dos Termos</a></li>
+          <li><a href="#seus-compromissos">Seus Compromissos</a></li>
+          <li><a href="#usos-aceitaveis">Usos Aceitáveis</a></li>
+          <li><a href="#comandos-conteudo">Comandos e Conteúdo</a></li>
+          <li><a href="#processamento-midia">Processamento de Mídia</a></li>
+          <li><a href="#informacoes-pessoais">Informações Pessoais</a></li>
+          <li><a href="#precisao">Precisão e Avisos</a></li>
+          <li><a href="#direitos-laurena">Direitos da Laurena</a></li>
+          <li><a href="#suspensao">Suspensão e Rescisão</a></li>
+          <li><a href="#limitacao">Limitação de Responsabilidade</a></li>
+          <li><a href="#conflitos">Resolução de Conflitos</a></li>
+          <li><a href="#atualizacoes">Atualizações destes Termos</a></li>
+          <li><a href="#contato">Como Falar Conosco</a></li>
+        </ol>
+      </div>
+    </aside>
+
+    <!-- ARTICLE -->
+    <article class="article">
+
+      <div class="meta-bar">
+        <span><span class="tag">Termos de IA – Brasil</span></span>
+        <span>Data de entrada em vigor: 12 de março de 2026</span>
+      </div>
+
+      <!-- 1 -->
+      <section id="aplicacao">
+        <div class="section-card">
+          <h2><span class="section-num">1</span>Aplicação destes Termos</h2>
+          <p>
+            Estes Termos de Serviço ("Termos") são aplicáveis quando você acessa e usa a <strong>Laurena AI</strong> e outros softwares, ferramentas, serviços, documentação, conteúdo, funcionalidades e recursos de IA generativa que disponibilizamos a você por meio de qualquer produto da <strong>Laurena Studio</strong> (coletivamente, "IAs").
+          </p>
+          <p>
+            Estes Termos constituem um acordo legalmente vinculativo entre você e a <strong>Laurena Inova Simples (I.S.)</strong> ("Laurena Studio", "nós", "nosso" ou "nos"), inscrita no CNPJ <strong>65.223.699/0001-02</strong>, com sede na Av. das Nações Unidas, Chácara Itaim, São Paulo – SP, CEP 04533-085.
+          </p>
+          <div class="highlight-box">
+            Ao usar as IAs, você concorda em se vincular a estes Termos, aos Termos Gerais de Uso da Laurena Studio e quaisquer outras políticas aplicáveis. Se não concordar, não utilize os serviços de IA.
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section id="seus-compromissos">
+        <div class="section-card">
+          <h2><span class="section-num">2</span>Seus Compromissos</h2>
+          <h3>Qualificação</h3>
+          <p>
+            Você não poderá acessar as IAs se tiver menos de <strong>13 anos</strong> (ou de outra idade mínima superior exigida pela legislação do seu país ou território), ou se não tiver permissão para receber nossos serviços ou software conforme as leis aplicáveis.
+          </p>
+          <p>
+            Usuários com idade entre 13 e 18 anos devem ter consentimento de um responsável legal para utilizar os recursos de IA da Laurena Studio, conforme determina o Marco Civil da Internet e a LGPD (Lei nº 13.709/2018).
+          </p>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section id="usos-aceitaveis">
+        <div class="section-card">
+          <h2><span class="section-num">3</span>Usos Aceitáveis</h2>
+          <p>Você <strong>não pode</strong> acessar, usar ou permitir que outras pessoas acessem ou usem as IAs de qualquer forma que possa:</p>
+          <ul>
+            <li>Ser ilegal (incluindo, mas não se limitando a, qualquer forma que promova, contribua ou incentive atividades ilegais ou ilícitas), incluindo conduta que descreva, incentive, apoie ou distribua materiais de abuso sexual infantil.</li>
+            <li>Gerar, promover ou facilitar conteúdo que possa prejudicar indivíduos, inclusive para incentivar automutilação, discriminação, bullying, humilhação e/ou outros danos emocionais.</li>
+            <li>Implementar técnicas subliminares, manipulativas ou enganosas para distorcer o comportamento do usuário ou explorar vulnerabilidades relacionadas à idade, deficiência ou situação socioeconômica.</li>
+            <li>Avaliar ou classificar indivíduos com base em comportamentos sociais ou características pessoais de forma prejudicial ou desproporcional.</li>
+            <li>Realizar policiamento preditivo ou avaliações de risco criminal com base em perfis ou traços de personalidade.</li>
+            <li>Realizar coleta indiscriminada de imagens faciais para criar bancos de dados de reconhecimento facial.</li>
+            <li>Realizar reconhecimento de emoções em ambientes de trabalho ou educacionais, exceto nos casos permitidos pela legislação aplicável.</li>
+            <li>Classificar pessoas com base em dados biométricos para inferir raça, opiniões políticas, filiação sindical, crenças religiosas/filosóficas, vida sexual ou orientação sexual.</li>
+            <li>Realizar identificação biométrica em tempo real em espaços públicos, exceto quando expressamente permitido por lei.</li>
+            <li>Gerar ou facilitar conteúdo adulto explícito (pornografia, bate-papo erótico, etc.).</li>
+            <li>Enganar ou ludibriar outras pessoas por meio de plágio, golpes, phishing, malware ou desinformação.</li>
+            <li>Violar os direitos de terceiros, incluindo propriedade intelectual e privacidade.</li>
+            <li>Solicitar orientação profissional (médica, psicológica, financeira ou jurídica) para uso em decisões que exijam profissional habilitado. Nenhuma resposta da IA deve ser interpretada como substituição de consulta profissional.</li>
+            <li>Burlar filtros, controles ou mecanismos de segurança ou privacidade.</li>
+            <li>Apresentar risco de morte ou lesão corporal a indivíduos (inclusive em relação a drogas ilegais, armas ou automutilação).</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section id="comandos-conteudo">
+        <div class="section-card">
+          <h2><span class="section-num">4</span>Comandos, Resultados e Outros Conteúdos</h2>
+          <h3>Direitos de Conteúdo</h3>
+          <p>
+            As IAs permitem que você forneça materiais para processamento — que podem incluir texto, documentos, imagens ou gravações, dependendo da integração (coletivamente, "Comandos"). Com base nesses Comandos e no feedback fornecido, as IAs geram respostas ("Saídas"). Em conjunto, Comandos, Saídas e Feedback constituem o "Conteúdo".
+          </p>
+          <p>
+            Você não pode fornecer Comandos nem usar as IAs de formas que infrinjam os direitos de terceiros, incluindo direitos de privacidade e de propriedade intelectual. Exceto conforme expressamente previsto nestes Termos, <strong>você retém todos os direitos sobre seus Comandos</strong>.
+          </p>
+          <p>
+            Ao usar nossa plataforma de criação de conteúdo — incluindo geração de posts, vídeos, textos para marketing e estratégias com IA — você declara que possui os direitos sobre os materiais que envia e que o uso não viola legislação ou direitos de terceiros.
+          </p>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section id="processamento-midia">
+        <div class="section-card">
+          <h2><span class="section-num">5</span>Processamento de Mídia</h2>
+          <p>
+            Dependendo do plano contratado e da sua localização, você pode interagir com as IAs fornecendo mídia (imagens, áudio, vídeo, etc.) para fins de edição, análise ou criação de conteúdo. Ao fornecer mídia, a tecnologia de IA transforma e representa o conteúdo em um modelo incorporado para entendê-lo e entregar o serviço solicitado.
+          </p>
+          <div class="highlight-box">
+            Ao fornecer mídia para processamento, você declara e garante que possui todas as permissões e consentimentos necessários das pessoas retratadas nesse conteúdo para realizar esse processamento.
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section id="informacoes-pessoais">
+        <div class="section-card">
+          <h2><span class="section-num">6</span>Informações Pessoais</h2>
+          <p>
+            Nossa <a href="./privacidade.html" style="color:var(--terracotta);font-weight:500;">Política de Privacidade</a> explica como processamos informações pessoais no contexto das IAs, incluindo como usamos suas interações para personalizar suas experiências e melhorar nossos serviços de IA, em conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>.
+          </p>
+          <p>
+            Quando você interage com as IAs, suas interações incluem o conteúdo trocado e informações contextuais que usamos para tornar as respostas mais relevantes (como preferências de estilo de conteúdo, nicho de atuação e perfil de criador).
+          </p>
+          <p>
+            Quando informações são compartilhadas com as IAs, elas podem ser retidas e utilizadas para melhorar o serviço. <strong>Não compartilhe informações que você não queira que a IA armazene</strong>, especialmente dados sensíveis.
+          </p>
+          <p>
+            A Laurena Studio poderá compartilhar determinadas informações com parceiros selecionados (como provedores de modelos de IA) para fornecer os serviços contratados. Ao utilizar as IAs, você nos autoriza a compartilhar dados para essa finalidade.
+          </p>
+          <p>
+            Em conformidade com a LGPD, você tem os seguintes direitos: <strong>acesso, retificação, portabilidade, anonimização, bloqueio ou eliminação</strong> de seus dados pessoais. Para exercer esses direitos, entre em contato pelo e-mail <a href="mailto:laurenastudio75@gmail.com" style="color:var(--terracotta);">laurenastudio75@gmail.com</a>.
+          </p>
+        </div>
+      </section>
+
+      <!-- 7 -->
+      <section id="precisao">
+        <div class="section-card">
+          <h2><span class="section-num">7</span>Precisão e Avisos sobre Conteúdo</h2>
+          <p>
+            A Laurena AI é uma tecnologia em constante aprimoramento. A precisão de qualquer conteúdo gerado — incluindo posts, legendas, roteiros e análises — <strong>não pode ser garantida</strong>. As saídas podem ocasionalmente conter erros ou informações desatualizadas.
+          </p>
+          <p>
+            Você não deve confiar nas saídas como orientação profissional (médica, jurídica, financeira ou psicológica) sem verificação qualificada. <strong>É sua responsabilidade revisar e aprovar todo conteúdo antes de publicar.</strong>
+          </p>
+          <p>
+            As IAs podem gerar conteúdo com base nos seus Comandos que você pode considerar não ideal. Ao usar a Laurena AI, você reconhece e assume a responsabilidade pelo uso e publicação do conteúdo gerado.
+          </p>
+        </div>
+      </section>
+
+      <!-- 8 -->
+      <section id="direitos-laurena">
+        <div class="section-card">
+          <h2><span class="section-num">8</span>Direitos da Laurena Studio</h2>
+          <h3>Uso do Conteúdo</h3>
+          <p>A Laurena Studio usa o Conteúdo e informações relacionadas, inclusive por meio de análise automatizada ou humana, para:</p>
+          <ul>
+            <li>Fornecer, manter e melhorar os serviços e recursos da plataforma.</li>
+            <li>Realizar pesquisa e desenvolvimento de novos recursos de IA.</li>
+            <li>Monitorar o uso das IAs quanto à conformidade com estes Termos e com a legislação vigente.</li>
+            <li>Remover conteúdo perigoso, discriminatório ou que viole estes Termos ou as leis aplicáveis.</li>
+            <li>Suspender ou remover contas que violem estes Termos.</li>
+          </ul>
+          <h3>Propriedade da Plataforma</h3>
+          <p>
+            A Laurena Studio mantém todos os direitos, a propriedade e a titularidade — inclusive direitos de propriedade intelectual — sobre a plataforma e as IAs. Estes Termos não concedem a você nenhum direito, título ou interesse sobre a plataforma além dos direitos de acesso e uso expressamente concedidos.
+          </p>
+          <h3>Materiais e Integrações de Terceiros</h3>
+          <p>
+            As IAs podem usar ou ser usadas em conexão com serviços, APIs e integrações de terceiros (como modelos de linguagem externos, APIs de redes sociais, etc.). A Laurena Studio não é responsável pelo conteúdo ou práticas desses terceiros, e você os usa por sua própria conta e risco.
+          </p>
+          <h3>Indenização</h3>
+          <p>
+            Você concorda em indenizar, defender e isentar de responsabilidade a Laurena Inova Simples (I.S.) e seus colaboradores, agentes e parceiros contra quaisquer reclamações, danos, custos e despesas (incluindo honorários advocatícios razoáveis) decorrentes de: (i) suas interações e instruções fornecidas às IAs; (ii) conteúdo gerado sob sua instrução que viole direitos de terceiros; (iii) uso da plataforma em desacordo com estes Termos; (iv) violação de leis ou regulamentos aplicáveis por parte sua.
+          </p>
+        </div>
+      </section>
+
+      <!-- 9 -->
+      <section id="suspensao">
+        <div class="section-card">
+          <h2><span class="section-num">9</span>Suspensão e Rescisão</h2>
+          <p>
+            Se determinarmos que você violou estes Termos ou outros termos e políticas aplicáveis, poderemos <strong>suspender ou desabilitar permanentemente</strong> seu acesso às IAs ou a outros serviços ou recursos da Laurena Studio, inclusive com exclusão de conta, quando formos obrigados a fazê-lo por motivos legais.
+          </p>
+          <p>
+            Em caso de rescisão, as Saídas geradas e salvas na sua conta antes da rescisão permanecerão sujeitas a estes Termos no que se refere a uso, propriedade e responsabilidade.
+          </p>
+        </div>
+      </section>
+
+      <!-- 10 -->
+      <section id="limitacao">
+        <div class="section-card">
+          <h2><span class="section-num">10</span>Precisão das Saídas e Limitação de Responsabilidade</h2>
+          <p>
+            A Laurena AI é uma tecnologia emergente em desenvolvimento contínuo. <strong>Não garantimos</strong> que ela sempre estará livre de erros, interrupções ou imperfeições. Você é responsável por verificar a precisão e a adequação das saídas.
+          </p>
+          <p>
+            Nada nestes Termos tem a intenção de excluir ou limitar nossa responsabilidade por morte, lesões corporais ou declarações fraudulentas causadas pela nossa negligência, ou de afetar seus direitos legais como consumidor conforme o Código de Defesa do Consumidor (Lei nº 8.078/1990).
+          </p>
+          <p>
+            Agindo com a devida diligência profissional, não aceitamos responsabilidade por: (i) perdas não causadas por nossa violação destes Termos; (ii) perdas não razoavelmente previsíveis no momento da contratação; (iii) eventos além do nosso controle razoável (força maior).
+          </p>
+        </div>
+      </section>
+
+      <!-- 11 -->
+      <section id="conflitos">
+        <div class="section-card">
+          <h2><span class="section-num">11</span>Resolução de Conflitos</h2>
+          <p>
+            Caso surja uma reclamação ou conflito relacionado ao seu uso das IAs como consumidor, fica eleito o foro da comarca de <strong>São Paulo – SP</strong> para dirimir quaisquer questões oriundas destes Termos, aplicando-se a legislação brasileira, incluindo o Código de Defesa do Consumidor e a LGPD.
+          </p>
+          <p>
+            Antes de recorrer ao Poder Judiciário, encorajamos a tentativa de solução amigável via e-mail em <a href="mailto:laurenastudio75@gmail.com" style="color:var(--terracotta);">laurenastudio75@gmail.com</a> ou por meio da plataforma <a href="https://consumidor.gov.br" target="_blank" rel="noopener noreferrer" style="color:var(--terracotta);">consumidor.gov.br</a>.
+          </p>
+        </div>
+      </section>
+
+      <!-- 12 -->
+      <section id="autonomia">
+        <div class="section-card">
+          <h2><span class="section-num">12</span>Autonomia das Cláusulas</h2>
+          <p>
+            Se uma parte destes Termos for considerada inexequível, ela deverá ser corrigida dentro do que for necessário para se tornar aplicável. Caso não seja possível, será removida e o restante permanecerá em pleno vigor e efeito.
+          </p>
+          <p>
+            A omissão da Laurena Studio em executar qualquer parte destes Termos não será considerada uma renúncia. Quaisquer alterações ou renúncias devem ser feitas por escrito.
+          </p>
+        </div>
+      </section>
+
+      <!-- 13 -->
+      <section id="atualizacoes">
+        <div class="section-card">
+          <h2><span class="section-num">13</span>Atualizações destes Termos</h2>
+          <p>
+            Trabalhamos constantemente para aperfeiçoar a Laurena Studio e desenvolver novos recursos de IA. Como resultado, pode ser necessário atualizar estes Termos periodicamente.
+          </p>
+          <p>
+            Salvo quando as alterações forem necessárias para cumprir obrigações legais, você receberá notificação prévia (por e-mail ou notificação na plataforma) antes que as alterações entrem em vigor, terá a oportunidade de analisá-las e, caso não concorde, poderá encerrar o uso antes da entrada em vigor dos novos Termos.
+          </p>
+        </div>
+      </section>
+
+      <!-- 14 -->
+      <section id="contato">
+        <div class="section-card">
+          <h2><span class="section-num">14</span>Como Falar Conosco</h2>
+          <p>Para dúvidas, solicitações ou exercício de direitos relacionados a estes Termos de IA, entre em contato:</p>
+          <div class="contact-card">
+            <p><strong>Laurena Inova Simples (I.S.)</strong></p>
+            <p>CNPJ: 65.223.699/0001-02</p>
+            <p>Av. das Nações Unidas, Chácara Itaim</p>
+            <p>São Paulo – SP, CEP 04533-085</p>
+            <p>E-mail: <a href="mailto:laurenastudio75@gmail.com">laurenastudio75@gmail.com</a></p>
+          </div>
+        </div>
+      </section>
+
+    </article>
+  </div>
+
+  <!-- ══ FOOTER ══ -->
+  <footer>
+    <div class="footer-links">
+      <a href="./privacidade.html">Privacidade</a>
+      <span class="footer-sep">·</span>
+      <a href="./termos.html">Termos Gerais</a>
+      <span class="footer-sep">·</span>
+      <a href="./termos-ia.html">Termos de IA</a>
+      <span class="footer-sep">·</span>
+      <a href="mailto:laurenastudio75@gmail.com">Contato</a>
+    </div>
+    <p>© 2026 Laurena Inova Simples (I.S.) · CNPJ 65.223.699/0001-02 · São Paulo – SP · Todos os direitos reservados.</p>
+    <p style="margin-top:0.25rem;">Português (Brasil)</p>
+  </footer>
+
+</body>
+</html>

@@ -305,8 +305,9 @@ const Index = () => {
             <div>
               <h3 className="font-semibold mb-4 text-sm">Legal</h3>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
-                <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacidade</Link></li>
-                <li><Link to="/terms" className="hover:text-primary transition-colors">Termos de Uso</Link></li>
+                <li><a href="/privacidade.html" className="hover:text-primary transition-colors">Privacidade</a></li>
+                <li><a href="/termos.html" className="hover:text-primary transition-colors">Termos Gerais</a></li>
+                <li><a href="/termos-ia.html" className="hover:text-primary transition-colors">Termos de IA</a></li>
               </ul>
             </div>
           </div>

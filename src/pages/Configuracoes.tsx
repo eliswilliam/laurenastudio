@@ -15,6 +15,8 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  AlertCircle,
+  Download,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -191,7 +193,7 @@ export default function Configuracoes() {
       </div>
 
       <Tabs defaultValue="perfil" className="space-y-6">
-        <TabsList className="grid w-full max-w-lg grid-cols-4">
+        <TabsList className="grid w-full max-w-2xl grid-cols-5">
           <TabsTrigger value="perfil" className="gap-1.5 text-xs sm:text-sm">
             <User className="w-3.5 h-3.5" />
             Perfil
@@ -207,6 +209,10 @@ export default function Configuracoes() {
           <TabsTrigger value="contas" className="gap-1.5 text-xs sm:text-sm">
             <Globe className="w-3.5 h-3.5" />
             Redes
+          </TabsTrigger>
+          <TabsTrigger value="privacidade" className="gap-1.5 text-xs sm:text-sm">
+            <Lock className="w-3.5 h-3.5" />
+            Privacidade
           </TabsTrigger>
         </TabsList>
 
@@ -668,6 +674,76 @@ export default function Configuracoes() {
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Privacidade e Exclusão de Dados ── */}
+        <TabsContent value="privacidade" className="space-y-6">
+          {/* Exclusão de Dados */}
+          <Card className="rounded-xl border-red-200 bg-red-50/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2 text-red-700">
+                <AlertCircle className="w-4 h-4" />
+                Exclusão de Dados (LGPD)
+              </CardTitle>
+              <CardDescription>
+                Solicite a exclusão permanente de todos os seus dados pessoais da plataforma.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-white p-4 rounded-lg border border-red-200">
+                <h4 className="text-sm font-semibold text-red-700 mb-2">⚠️ Atenção: Ação Irreversível</h4>
+                <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
+                  <li>Todos os seus dados serão permanentemente deletados</li>
+                  <li>Você será imediatamente desconectado</li>
+                  <li>Não é possível recuperar dados após a exclusão</li>
+                  <li>Conforme LGPD, removeremos em até 30 dias</li>
+                </ul>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Para solicitar a exclusão de sua conta e dados associados, clique no botão abaixo.
+                </p>
+                <a
+                  href="/api/v1/webhooks/delete-my-data"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Acessar Central de Exclusão de Dados
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Download de Dados */}
+          <Card className="rounded-xl">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Baixar Meus Dados
+              </CardTitle>
+              <CardDescription>
+                Solicite uma cópia de todos os seus dados pessoais em formato portável.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Você tem direito a receber uma cópia de seus dados conforme a LGPD. Clique abaixo para solicitar um arquivo contendo:
+              </p>
+              <ul className="text-sm space-y-2 ml-4 list-disc text-muted-foreground">
+                <li>Informações de perfil</li>
+                <li>Histórico de posts e conteúdo criado</li>
+                <li>Dados de interações na plataforma</li>
+                <li>Histórico de análises e campanhas</li>
+              </ul>
+              <Button variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                Solicitar Download dos Dados
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

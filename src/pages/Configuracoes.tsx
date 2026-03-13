@@ -50,6 +50,9 @@ export default function Configuracoes() {
   const { toast } = useToast();
   const atualizarUsuario = useAuthStore((s) => s.atualizarUsuario);
 
+  // ── State para dialogs/modals ─────────────────────────────────────────────
+  const [carregandoDeletion, setCarregandoDeletion] = useState(false);
+
   // ── Profile state ─────────────────────────────────────────────────────────
   const [carregandoPerfil, setCarregandoPerfil] = useState(true);
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
@@ -178,6 +181,69 @@ export default function Configuracoes() {
       title: 'Configurações salvas',
       description: `As configurações de ${secao} foram atualizadas com sucesso.`,
     });
+  };
+
+  // ── Open Delete Data Page (with JWT) ───────────────────────────────────────
+  const handleOpenDeleteDataPage = async () => {
+    setCarregandoDeletion(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        toast({
+          title: 'Você não está autenticado',
+          description: 'Por favor, faça login novamente.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Fetch pagina de deleção com JWT no header
+      const response = await fetch('/api/v1/webhooks/delete-my-data', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 401) {
+        toast({
+          title: 'Sessão expirada',
+          description: 'Seu token expirou. Faça login novamente.',
+          variant: 'destructive',
+        });
+        localStorage.removeItem('access_token');
+        setTimeout(() => window.location.href = '/login', 1500);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Erro ao carregar página de deleção: ${response.statusText}`);
+      }
+
+      // Abrir em nova aba com conteúdo HTML
+      const htmlContent = await response.text();
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+      } else {
+        toast({
+          title: 'Bloqueador de pop-ups ativo',
+          description: 'Permita pop-ups neste site para acessar a página de exclusão.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      toast({
+        title: 'Erro ao acessar página de exclusão',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCarregandoDeletion(false);
+    }
   };
 
   return (
@@ -706,15 +772,19 @@ export default function Configuracoes() {
                 <p className="text-sm text-muted-foreground">
                   Para solicitar a exclusão de sua conta e dados associados, clique no botão abaixo.
                 </p>
-                <a
-                  href="/api/v1/webhooks/delete-my-data"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                <Button
+                  onClick={handleOpenDeleteDataPage}
+                  disabled={carregandoDeletion}
+                  className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+                  size="sm"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  Acessar Central de Exclusão de Dados
-                </a>
+                  {carregandoDeletion ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  {carregandoDeletion ? 'Carregando...' : 'Acessar Central de Exclusão de Dados'}
+                </Button>
               </div>
             </CardContent>
           </Card>

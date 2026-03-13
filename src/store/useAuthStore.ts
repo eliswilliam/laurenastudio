@@ -3,28 +3,6 @@ import { persist } from 'zustand/middleware';
 import type { Usuario } from '@/lib/types';
 import { apiBillingStatus, type BillingStatusResponse } from '@/lib/billingApi';
 
-// ── Cleanup corrupted localStorage ──────────────────────────────────────
-function cleanCorruptedAuth() {
-  try {
-    const stored = localStorage.getItem('laurena-auth');
-    if (!stored) return; // No data, nothing to clean
-    
-    // Try to parse — if it fails, remove it
-    JSON.parse(stored);
-  } catch (error) {
-    console.warn('🔧 Limpando localStorage corrompido (laurena-auth)');
-    localStorage.removeItem('laurena-auth');
-    localStorage.removeItem('auth_token');
-    // Force hard refresh to reset
-    window.dispatchEvent(new Event('storage'));
-  }
-}
-
-// Run on module load
-if (typeof window !== 'undefined') {
-  cleanCorruptedAuth();
-}
-
 interface AuthState {
   usuario: Usuario | null;
   token: string | null;
@@ -41,7 +19,6 @@ interface AuthState {
   setCarregando: (carregando: boolean) => void;
   fetchBillingStatus: () => Promise<boolean>;
   setBillingStatus: (status: BillingStatusResponse) => void;
-  clearCache: () => void; // Clear all cached data
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -61,7 +38,6 @@ export const useAuthStore = create<AuthState>()(
       },
       logout: () => {
         localStorage.removeItem('auth_token');
-        localStorage.removeItem('laurena-auth');
         set({ usuario: null, token: null, isAutenticado: false, temPlanoAtivo: false, planoNome: null, billingStatus: null, billingChecked: false });
       },
       atualizarUsuario: (dados) =>
@@ -69,20 +45,6 @@ export const useAuthStore = create<AuthState>()(
           usuario: state.usuario ? { ...state.usuario, ...dados } : null,
         })),
       setCarregando: (carregando) => set({ isCarregando: carregando }),
-      clearCache: () => {
-        localStorage.removeItem('laurena-auth');
-        localStorage.removeItem('auth_token');
-        set({
-          usuario: null,
-          token: null,
-          isAutenticado: false,
-          isCarregando: false,
-          temPlanoAtivo: false,
-          planoNome: null,
-          billingStatus: null,
-          billingChecked: false,
-        });
-      },
       fetchBillingStatus: async () => {
         try {
           const status = await apiBillingStatus();
@@ -100,8 +62,7 @@ export const useAuthStore = create<AuthState>()(
             set({ usuario: { ...usuario, plano: planName as Usuario['plano'] } });
           }
           return isActive;
-        } catch (error) {
-          console.error('❌ Erro ao fetch billing status:', error);
+        } catch {
           set({ billingChecked: true, temPlanoAtivo: false, planoNome: null, billingStatus: null });
           return false;
         }

@@ -174,7 +174,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, []); // ← Fixed: empty dependency array instead of [state]
+  }, []); // Single mount/unmount
 
   return {
     ...state,

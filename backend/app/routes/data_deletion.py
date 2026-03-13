@@ -406,34 +406,53 @@ async def delete_my_data_page(
         </div>
 
         <script>
-            const token = localStorage.getItem('access_token');
+            // Obtém token de múltiplas fontes:
+            // 1. localStorage (se tab principal)
+            // 2. sessionStorage (backup)
+            // 3. Da tab principal via window.opener (se aberta com window.open)
+            let token = localStorage.getItem('access_token');
+            
+            if (!token && sessionStorage.getItem('access_token')) {
+                token = sessionStorage.getItem('access_token');
+            }
+            
+            if (!token && window.opener && window.opener.localStorage) {
+                try {
+                    token = window.opener.localStorage.getItem('access_token');
+                } catch (e) {
+                    console.log('Não foi possível acessar tab principal');
+                }
+            }
+            
+            // Também tenta obter dados do user da tab principal
+            let userStr = localStorage.getItem('user');
+            if (!userStr && window.opener && window.opener.localStorage) {
+                try {
+                    userStr = window.opener.localStorage.getItem('user');
+                    if (userStr) localStorage.setItem('user', userStr); // Cache local
+                } catch (e) {}
+            }
             
             if (!token) {
+                alert('Sessão expirada ou não autenticado. Faça login novamente.');
                 window.location.href = '/login';
+                throw new Error('Sem autenticação');
             }
             
             // Detectar automaticamente o provider de login
             function detectProvider() {
-                const user = localStorage.getItem('user');
-                let provider = 'Plataforma';
+                const user = localStorage.getItem('user') || userStr;
+                let provider = '🔐 Plataforma Laurena';
                 
                 if (user) {
                     try {
                         const userObj = JSON.parse(user);
-                        // Se tem google_id, foi via Google
-                        // Se tem facebook_id, foi via Facebook
-                        // Se tem apenas email/password, foi via Plataforma
                         if (userObj.provider === 'google' || userObj.google_id) {
                             provider = '🔤 Google';
                         } else if (userObj.provider === 'facebook' || userObj.facebook_id) {
                             provider = 'f Facebook';
-                        } else {
-                            provider = '🔐 Plataforma Laurena';
                         }
-                    } catch (e) {
-                        // Se erro no parse, assumir plataforma
-                        provider = '🔐 Plataforma Laurena';
-                    }
+                    } catch (e) {}
                 }
                 
                 return provider;
@@ -450,11 +469,18 @@ async def delete_my_data_page(
                 btn.textContent = '⏳ Processando exclusão...';
 
                 try {
+                    const authToken = token;
+                    if (!authToken) {
+                        alert('Sessão expirada. Faça login novamente.');
+                        window.location.href = '/login';
+                        return;
+                    }
+
                     const res = await fetch('/api/v1/webhooks/request-deletion', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + token,
+                            'Authorization': 'Bearer ' + authToken,
                         },
                         body: JSON.stringify({}),
                     });
@@ -462,10 +488,20 @@ async def delete_my_data_page(
                     const data = await res.json();
                     
                     if (res.ok) {
-                        // Clear local storage
-                        localStorage.removeItem('access_token');
-                        localStorage.removeItem('refresh_token');
-                        localStorage.removeItem('user');
+                        // Clear local and session storage
+                        ['access_token', 'refresh_token', 'user'].forEach(key => {
+                            localStorage.removeItem(key);
+                            sessionStorage.removeItem(key);
+                        });
+                        
+                        // Também limpar na tab principal se possível
+                        if (window.opener && window.opener.localStorage) {
+                            try {
+                                ['access_token', 'refresh_token', 'user'].forEach(key => {
+                                    window.opener.localStorage.removeItem(key);
+                                });
+                            } catch (e) {}
+                        }
                         
                         // Show success
                         document.body.innerHTML = `

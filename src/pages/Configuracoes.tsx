@@ -189,16 +189,20 @@ export default function Configuracoes() {
     try {
       const token = localStorage.getItem('access_token');
       
+      // Valida token
       if (!token) {
         toast({
           title: 'Você não está autenticado',
           description: 'Por favor, faça login novamente.',
           variant: 'destructive',
         });
+        setCarregandoDeletion(false);
         return;
       }
 
-      // Fetch pagina de deleção com JWT no header
+      console.log('🔍 Tentando acessar /delete-my-data com token...');
+      
+      // Fetch da página COM o header JWT
       const response = await fetch('/api/v1/webhooks/delete-my-data', {
         method: 'GET',
         headers: {
@@ -207,6 +211,9 @@ export default function Configuracoes() {
         },
       });
 
+      console.log('📊 Resposta:', response.status);
+
+      // Se 401, token expirou
       if (response.status === 401) {
         toast({
           title: 'Sessão expirada',
@@ -214,28 +221,38 @@ export default function Configuracoes() {
           variant: 'destructive',
         });
         localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
         setTimeout(() => window.location.href = '/login', 1500);
         return;
       }
 
+      // Se não 200, erro
       if (!response.ok) {
-        throw new Error(`Erro ao carregar página de deleção: ${response.statusText}`);
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
 
-      // Abrir em nova aba com conteúdo HTML
+      // Sucesso! Pega HTML e abre em nova aba
       const htmlContent = await response.text();
       const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(htmlContent);
-        newWindow.document.close();
-      } else {
+      
+      if (!newWindow) {
         toast({
           title: 'Bloqueador de pop-ups ativo',
           description: 'Permita pop-ups neste site para acessar a página de exclusão.',
           variant: 'destructive',
         });
+        return;
       }
+
+      // Escreve HTML na nova aba
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+      
+      console.log('✅ Página de exclusão aberta com sucesso!');
+      
     } catch (err) {
+      console.error('❌ Erro:', err);
       toast({
         title: 'Erro ao acessar página de exclusão',
         description: err instanceof Error ? err.message : 'Tente novamente.',

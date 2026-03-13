@@ -15,5 +15,5 @@ oauth_facebook.register(
     access_token_url="https://graph.facebook.com/v19.0/oauth/access_token",
     # Fetch user info (id, name, email, picture) from the Graph API
     api_base_url="https://graph.facebook.com/v19.0/",
-    client_kwargs={"scope": "public_profile,email"},
+    client_kwargs={"scope": "public_profile email"},
 )

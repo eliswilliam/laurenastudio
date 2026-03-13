@@ -174,7 +174,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []); // ← Fixed: empty dependency array instead of [state]
 
   return {
     ...state,

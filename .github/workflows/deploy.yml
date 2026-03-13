@@ -316,7 +316,7 @@ jobs:
           for i in $(seq 1 $MAX_RETRIES); do
             echo "API check $i/$MAX_RETRIES..."
             RESPONSE=$(curl --silent --max-time 15 \
-              "https://${{ env.APP_HOST }}/api/v1/health" || echo "FAIL")
+              "https://${{ env.APP_HOST }}/health" || echo "FAIL")
 
             echo "API response: $RESPONSE"
 

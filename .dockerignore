@@ -1,4 +1,6 @@
 # Python
+.venv/
+venv/
 backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
@@ -17,6 +19,10 @@ dist/
 .gitignore
 .vscode/
 *.md
+
+# Build artifacts
+*.tar
+*.tar.gz
 
 # Env files (injected at runtime via docker-compose/Azure env vars)
 backend/.env

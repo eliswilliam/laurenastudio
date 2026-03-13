@@ -3,7 +3,8 @@
 
 services:
   api:
-    image: laurenastudio.azurecr.io/laurena-api:c36eee4
+    # CI/CD pushes both :<sha> and :latest. App Service restart pulls :latest.
+    image: laurenastudio.azurecr.io/laurena-api:latest
     expose:
       - "8000"
     environment:
@@ -14,6 +15,8 @@ services:
       BACKEND_URL: ${BACKEND_URL}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
@@ -21,16 +24,20 @@ services:
       STRIPE_PRICE_ID_PRO: ${STRIPE_PRICE_ID_PRO}
       STRIPE_PRICE_ID_BUSINESS: ${STRIPE_PRICE_ID_BUSINESS}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
       SMTP_USERNAME: ${SMTP_USERNAME}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
       GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
       GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
 
   frontend:
-    image: laurenastudio.azurecr.io/laurena-frontend:c36eee4
+    image: laurenastudio.azurecr.io/laurena-frontend:latest
     ports:
       - "8080:8080"
     depends_on:

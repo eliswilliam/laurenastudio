@@ -4,7 +4,6 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 export default function DeleteMyData() {
   const [step, setStep] = useState<"form" | "done" | "error">("form");
   const [email, setEmail] = useState("");
-  const [provider, setProvider] = useState("google");
   const [loading, setLoading] = useState(false);
   const [confirmCode, setConfirmCode] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -15,10 +14,12 @@ export default function DeleteMyData() {
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/v1/webhooks/request-deletion", {
+      const formData = new FormData();
+      formData.append("email", email);
+      
+      const res = await fetch("/api/v1/webhooks/request-deletion-public", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, provider }),
+        body: formData,
       });
 
       const data = await res.json();

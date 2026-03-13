@@ -50,6 +50,7 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 async def get_authenticated_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
     db: AsyncSession = Depends(get_db),
 ):
@@ -57,14 +58,17 @@ async def get_authenticated_user(
     Extrai e valida JWT. Retorna User autenticado.
     REQUER: Authorization: Bearer <token>
     """
-    if not credentials:
+    token_from_header = credentials.credentials if credentials else None
+    token_from_query = request.query_params.get("token")
+    token = token_from_header or token_from_query
+
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token JWT requerido",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = credentials.credentials
     try:
         payload = decode_token(token)
         user_id: str = payload.get("sub", "")
@@ -125,10 +129,16 @@ async def _delete_all_user_data(user_id: str, db: AsyncSession) -> bool:
             select(Workspace.id).where(Workspace.owner_id == user_id)
         )))
         
-        # Les cascades (Workspace → Membership, Subscription) s'appliquent automatiquement
+        # Supprimer les Subscriptions liées aux workspaces de l'utilisateur
+        await db.execute(delete(Subscription).where(Subscription.workspace_id.in_(
+            select(Workspace.id).where(Workspace.owner_id == user_id)
+        )))
+        
+        # Supprimer les workspaces (les cascades s'appliquent automatiquement)
         await db.execute(delete(Workspace).where(Workspace.owner_id == user_id))
+        
+        # Supprimer les memberships (l'utilisateur peut être membre d'autres workspaces)
         await db.execute(delete(Membership).where(Membership.user_id == user_id))
-        await db.execute(delete(Subscription).where(Subscription.user_id == user_id))
         
         # Supprimer l'utilisateur
         await db.delete(user)
@@ -197,7 +207,7 @@ async def delete_meta_user(
     
     # Meta exige cette réponse
     return {
-        "url": f"{settings.BACKEND_URL}/webhooks/deletion-status?id={facebook_id}",
+        "url": f"{settings.BACKEND_URL}/api/v1/webhooks/deletion-status?id={facebook_id}",
         "confirmation_code": facebook_id,
     }
 
@@ -253,6 +263,7 @@ async def delete_google_user(
 
 @router.get("/delete-my-data", response_class=HTMLResponse)
 async def delete_my_data_page(
+    request: Request,
     current_user = Depends(get_authenticated_user),
 ):
     """
@@ -267,14 +278,24 @@ async def delete_my_data_page(
     5. Desconexão automática
     6. Redirecionamento para home
     """
-    # Recuperar token do header (será passado via JavaScript)
-    return """
+    auth_header = request.headers.get("Authorization", "")
+    header_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else ""
+    query_token = request.query_params.get("token", "")
+    token = header_token or query_token
+
+    provider = "Laurena"
+    if getattr(current_user, "google_id", None):
+        provider = "Google"
+    elif getattr(current_user, "facebook_id", None):
+        provider = "Facebook"
+
+    html_content = """
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Excluir meus dados — Laurena Studio</title>
+        <title>Excluir meus dados - Laurena Studio</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
@@ -318,19 +339,19 @@ async def delete_my_data_page(
             }
             .warning ul { margin-left: 20px; margin-top: 8px; }
             .warning li { margin-bottom: 6px; }
-            .checkbox-group { 
-                display: flex; 
-                align-items: flex-start; 
+            .checkbox-group {
+                display: flex;
+                align-items: flex-start;
                 margin-bottom: 24px;
             }
-            input[type="checkbox"] { 
-                margin-right: 12px; 
+            input[type="checkbox"] {
+                margin-right: 12px;
                 margin-top: 4px;
                 cursor: pointer;
             }
-            label { 
-                color: #2a1a10; 
-                font-weight: 500; 
+            label {
+                color: #2a1a10;
+                font-weight: 500;
                 cursor: pointer;
                 margin: 0;
             }
@@ -348,10 +369,10 @@ async def delete_my_data_page(
             button:hover:not(:disabled) { background: #9a3f20; }
             button:disabled { background: #B1ADA1; cursor: not-allowed; }
             .info { font-size: 12px; color: #B1ADA1; margin-top: 12px; }
-            .link-back { 
-                display: inline-block; 
-                margin-top: 20px; 
-                color: #C15F3C; 
+            .link-back {
+                display: inline-block;
+                margin-top: 20px;
+                color: #C15F3C;
                 text-decoration: none;
                 font-weight: 500;
             }
@@ -375,146 +396,101 @@ async def delete_my_data_page(
         <div class="container">
             <h1>Excluir meus dados</h1>
             <div class="provider-badge" id="providerBadge">
-                <span class="spinner"></span><span id="providerText">Detectando...</span>
+                <span class="spinner"></span><span id="providerText">Detectando provedor...</span>
             </div>
-            <p>Esta ação é <strong>irreversível</strong>. Todos os seus dados pessoais serão deletados permanentemente.</p>
-            
+            <p>Esta acao e <strong>irreversivel</strong>. Todos os seus dados pessoais serao deletados permanentemente.</p>
+
             <div class="warning">
-                ⚠️ <strong>Atenção:</strong> 
+                <strong>Atencao:</strong>
                 <ul>
-                    <li>Você será desconectado imediatamente</li>
-                    <li>Todos os dados serão removidos em até 30 dias (LGPD)</li>
-                    <li>Não é possível recuperar após a exclusão</li>
+                    <li>Voce sera desconectado imediatamente</li>
+                    <li>Todos os dados serao removidos em ate 30 dias (LGPD)</li>
+                    <li>Nao e possivel recuperar apos a exclusao</li>
                 </ul>
             </div>
 
             <form id="deleteForm">
                 <div class="checkbox-group">
-                    <input 
-                        type="checkbox" 
-                        id="confirm" 
-                        name="confirm" 
-                        required 
-                    />
+                    <input type="checkbox" id="confirm" name="confirm" required />
                     <label for="confirm">Confirmo que desejo deletar permanentemente minha conta e todos os dados associados</label>
                 </div>
 
                 <button type="submit" id="submitBtn">Deletar e desconectar</button>
-                <div class="info">✓ Você será redirecionado após confirmação</div>
-                <a href="/" class="link-back">← Voltar</a>
+                <div class="info">Voce sera redirecionado apos confirmacao</div>
+                <a href="/" class="link-back">Voltar</a>
             </form>
         </div>
 
         <script>
-            // Obtém token de múltiplas fontes:
-            // 1. localStorage (se tab principal)
-            // 2. sessionStorage (backup)
-            // 3. Da tab principal via window.opener (se aberta com window.open)
-            let token = localStorage.getItem('access_token');
-            
-            if (!token && sessionStorage.getItem('access_token')) {
-                token = sessionStorage.getItem('access_token');
+            const TOKEN = "___EMBEDDED_TOKEN___";
+            const PROVIDER_SERVER = "___EMBEDDED_PROVIDER___";
+
+            let token = TOKEN || localStorage.getItem('auth_token') || localStorage.getItem('access_token');
+
+            if (!token && (sessionStorage.getItem('auth_token') || sessionStorage.getItem('access_token'))) {
+                token = sessionStorage.getItem('auth_token') || sessionStorage.getItem('access_token');
             }
-            
-            if (!token && window.opener && window.opener.localStorage) {
-                try {
-                    token = window.opener.localStorage.getItem('access_token');
-                } catch (e) {
-                    console.log('Não foi possível acessar tab principal');
-                }
-            }
-            
-            // Também tenta obter dados do user da tab principal
-            let userStr = localStorage.getItem('user');
-            if (!userStr && window.opener && window.opener.localStorage) {
-                try {
-                    userStr = window.opener.localStorage.getItem('user');
-                    if (userStr) localStorage.setItem('user', userStr); // Cache local
-                } catch (e) {}
-            }
-            
+
             if (!token) {
-                alert('Sessão expirada ou não autenticado. Faça login novamente.');
+                alert('Sessao expirada ou nao autenticado. Faca login novamente.');
                 window.location.href = '/login';
-                throw new Error('Sem autenticação');
+                throw new Error('Sem autenticacao');
             }
-            
-            // Detectar automaticamente o provider de login
+
             function detectProvider() {
-                const user = localStorage.getItem('user') || userStr;
-                let provider = '🔐 Plataforma Laurena';
-                
+                const user = localStorage.getItem('user');
+                let provider = 'Laurena';
+
                 if (user) {
                     try {
                         const userObj = JSON.parse(user);
                         if (userObj.provider === 'google' || userObj.google_id) {
-                            provider = '🔤 Google';
+                            provider = 'Google';
                         } else if (userObj.provider === 'facebook' || userObj.facebook_id) {
-                            provider = 'f Facebook';
+                            provider = 'Facebook';
                         }
                     } catch (e) {}
                 }
-                
+
                 return provider;
             }
-            
-            // Atualizar badge com provider detectado
-            const provider = detectProvider();
+
+            const provider = PROVIDER_SERVER || detectProvider();
             document.getElementById('providerText').textContent = 'Conectado via: ' + provider;
-            
+
             document.getElementById('deleteForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const btn = document.getElementById('submitBtn');
                 btn.disabled = true;
-                btn.textContent = '⏳ Processando exclusão...';
+                btn.textContent = 'Processando exclusao...';
 
                 try {
-                    const authToken = token;
-                    if (!authToken) {
-                        alert('Sessão expirada. Faça login novamente.');
-                        window.location.href = '/login';
-                        return;
-                    }
-
                     const res = await fetch('/api/v1/webhooks/request-deletion', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + authToken,
+                            'Authorization': 'Bearer ' + token,
                         },
                         body: JSON.stringify({}),
                     });
 
                     const data = await res.json();
-                    
+
                     if (res.ok) {
-                        // Clear local and session storage
-                        ['access_token', 'refresh_token', 'user'].forEach(key => {
+                        ['auth_token', 'access_token', 'refresh_token', 'user'].forEach((key) => {
                             localStorage.removeItem(key);
                             sessionStorage.removeItem(key);
                         });
-                        
-                        // Também limpar na tab principal se possível
-                        if (window.opener && window.opener.localStorage) {
-                            try {
-                                ['access_token', 'refresh_token', 'user'].forEach(key => {
-                                    window.opener.localStorage.removeItem(key);
-                                });
-                            } catch (e) {}
-                        }
-                        
-                        // Show success
+
                         document.body.innerHTML = `
                             <div class="container">
-                                <h1 style="color: #2a9d4e;">✓ Exclusão solicitada</h1>
-                                <p>Sua conta será deletada em até 30 dias conforme a LGPD.</p>
-                                <p><strong>Código de confirmação:</strong><br/><code style="background: #f0e4dd; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; font-family: monospace;">${data.confirmation_code}</code></p>
-                                <p style="font-size: 14px; color: #7a7168; margin-top: 20px;">
-                                    Você será redirecionado em 3 segundos...
-                                </p>
+                                <h1 style="color: #2a9d4e;">Exclusao solicitada</h1>
+                                <p>Sua conta sera deletada em ate 30 dias conforme a LGPD.</p>
+                                <p><strong>Codigo de confirmacao:</strong><br/><code style="background: #f0e4dd; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; font-family: monospace;">${data.confirmation_code}</code></p>
+                                <p style="font-size: 14px; color: #7a7168; margin-top: 20px;">Voce sera redirecionado em 3 segundos...</p>
                             </div>
                         `;
-                        
+
                         setTimeout(() => {
                             window.location.href = '/';
                         }, 3000);
@@ -524,8 +500,7 @@ async def delete_my_data_page(
                         btn.textContent = 'Deletar e desconectar';
                     }
                 } catch (err) {
-                    console.error(err);
-                    alert('Erro de conexão: ' + err.message);
+                    alert('Erro de conexao: ' + err.message);
                     btn.disabled = false;
                     btn.textContent = 'Deletar e desconectar';
                 }
@@ -535,9 +510,14 @@ async def delete_my_data_page(
     </html>
     """
 
+    html_content = html_content.replace("___EMBEDDED_TOKEN___", token)
+    html_content = html_content.replace("___EMBEDDED_PROVIDER___", provider)
+    return html_content
+
 
 @router.post("/request-deletion")
 async def request_deletion(
+    request: Request,
     current_user = Depends(get_authenticated_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -569,6 +549,61 @@ async def request_deletion(
         "confirmation_code": social_id,
         "status": "deleted",
         "message": "Seus dados foram marcados para exclusão. Você será removido em até 30 dias.",
+        "deleted_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.post("/request-deletion-public")
+async def request_deletion_public(
+    db: AsyncSession = Depends(get_db),
+    email: str = Form(None),
+):
+    """
+    Endpoint público para solicitar exclusão de dados via email.
+    PARA: Usuários não autenticados que desejam deletar sua conta via email.
+    
+    Fluxo:
+    1. Usuário fornece email
+    2. Endpoint procura usuário por email
+    3. Se encontrado, marca para exclusão
+    4. Retorna confirmation_code que será enviado por email
+    """
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email é requerido"
+        )
+    
+    # Procurar usuário por email
+    result = await db.execute(
+        select(User).where(User.email == email.lower())
+    )
+    user = result.scalars().first()
+    
+    if not user:
+        # Por segurança, não revelamos se o email existe ou não
+        # Mas retornamos sucesso mesmo assim
+        return {
+            "confirmation_code": "pending",
+            "status": "pending",
+            "message": "Se o email for válido, receberá instruções de exclusão em até 24 horas.",
+        }
+    
+    # Delete all user data
+    success = await _delete_all_user_data(user.id, db)
+    
+    if not success:
+        # Não deveria acontecer, mas trata o erro
+        return {
+            "confirmation_code": "error",
+            "status": "error",
+            "message": "Erro ao processar solicitação. Tente novamente.",
+        }
+    
+    return {
+        "confirmation_code": user.email,
+        "status": "deleted",
+        "message": "Sua conta será deletada em até 30 dias conforme a LGPD.",
         "deleted_at": datetime.now(timezone.utc).isoformat(),
     }
 

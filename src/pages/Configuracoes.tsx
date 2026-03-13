@@ -49,6 +49,7 @@ const contasSociais = [
 export default function Configuracoes() {
   const { toast } = useToast();
   const atualizarUsuario = useAuthStore((s) => s.atualizarUsuario);
+  const tokenStore = useAuthStore((s) => s.token);
 
   // ── State para dialogs/modals ─────────────────────────────────────────────
   const [carregandoDeletion, setCarregandoDeletion] = useState(false);
@@ -187,7 +188,20 @@ export default function Configuracoes() {
   const handleOpenDeleteDataPage = async () => {
     setCarregandoDeletion(true);
     try {
-      const token = localStorage.getItem('access_token');
+      let token = localStorage.getItem('auth_token') || localStorage.getItem('access_token') || tokenStore;
+
+      // Fallback para sessões antigas: token salvo apenas no estado persistido do Zustand
+      if (!token) {
+        const persistedAuth = localStorage.getItem('laurena-auth');
+        if (persistedAuth) {
+          try {
+            const parsed = JSON.parse(persistedAuth);
+            token = parsed?.state?.token || null;
+          } catch {
+            token = null;
+          }
+        }
+      }
       
       // Valida token
       if (!token) {
@@ -200,41 +214,8 @@ export default function Configuracoes() {
         return;
       }
 
-      console.log('🔍 Tentando acessar /delete-my-data com token...');
-      
-      // Fetch da página COM o header JWT
-      const response = await fetch('/api/v1/webhooks/delete-my-data', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('📊 Resposta:', response.status);
-
-      // Se 401, token expirou
-      if (response.status === 401) {
-        toast({
-          title: 'Sessão expirada',
-          description: 'Seu token expirou. Faça login novamente.',
-          variant: 'destructive',
-        });
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        setTimeout(() => window.location.href = '/login', 1500);
-        return;
-      }
-
-      // Se não 200, erro
-      if (!response.ok) {
-        throw new Error(`Erro ${response.status}: ${response.statusText}`);
-      }
-
-      // Sucesso! Pega HTML e abre em nova aba
-      const htmlContent = await response.text();
-      const newWindow = window.open('', '_blank');
+      const deleteUrl = `/api/v1/webhooks/delete-my-data?token=${encodeURIComponent(token)}`;
+      const newWindow = window.open(deleteUrl, '_blank');
       
       if (!newWindow) {
         toast({
@@ -245,14 +226,9 @@ export default function Configuracoes() {
         return;
       }
 
-      // Escreve HTML na nova aba
-      newWindow.document.write(htmlContent);
-      newWindow.document.close();
-      
-      console.log('✅ Página de exclusão aberta com sucesso!');
-      
+      newWindow.focus();
+
     } catch (err) {
-      console.error('❌ Erro:', err);
       toast({
         title: 'Erro ao acessar página de exclusão',
         description: err instanceof Error ? err.message : 'Tente novamente.',
@@ -802,6 +778,9 @@ export default function Configuracoes() {
                   )}
                   {carregandoDeletion ? 'Carregando...' : 'Acessar Central de Exclusão de Dados'}
                 </Button>
+                <p className="text-xs text-muted-foreground">
+                  Nota importante: A exclusão de dados é permanente e não pode ser desfeita. Seus posts, comentários, configurações e toda a atividade será removida.
+                </p>
               </div>
             </CardContent>
           </Card>

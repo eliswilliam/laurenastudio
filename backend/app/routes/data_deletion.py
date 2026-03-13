@@ -296,6 +296,17 @@ async def delete_my_data_page(
             }
             h1 { color: #C15F3C; margin-bottom: 16px; font-size: 24px; }
             p { color: #7a7168; margin-bottom: 16px; line-height: 1.6; }
+            .provider-badge {
+                display: inline-block;
+                background: #f0e4dd;
+                border: 1px solid #C15F3C;
+                color: #9a3f20;
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 600;
+                margin-bottom: 16px;
+            }
             .warning {
                 background: #fff3e0;
                 border-left: 4px solid #C15F3C;
@@ -345,11 +356,27 @@ async def delete_my_data_page(
                 font-weight: 500;
             }
             .link-back:hover { text-decoration: underline; }
+            .spinner {
+                display: inline-block;
+                width: 14px;
+                height: 14px;
+                border: 3px solid #C15F3C;
+                border-radius: 50%;
+                border-top-color: transparent;
+                animation: spin 0.8s linear infinite;
+                margin-right: 8px;
+            }
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <h1>Excluir meus dados</h1>
+            <div class="provider-badge" id="providerBadge">
+                <span class="spinner"></span><span id="providerText">Detectando...</span>
+            </div>
             <p>Esta ação é <strong>irreversível</strong>. Todos os seus dados pessoais serão deletados permanentemente.</p>
             
             <div class="warning">
@@ -382,15 +409,45 @@ async def delete_my_data_page(
             const token = localStorage.getItem('access_token');
             
             if (!token) {
-                // Sem token, redirecionar para login
                 window.location.href = '/login';
             }
+            
+            // Detectar automaticamente o provider de login
+            function detectProvider() {
+                const user = localStorage.getItem('user');
+                let provider = 'Plataforma';
+                
+                if (user) {
+                    try {
+                        const userObj = JSON.parse(user);
+                        // Se tem google_id, foi via Google
+                        // Se tem facebook_id, foi via Facebook
+                        // Se tem apenas email/password, foi via Plataforma
+                        if (userObj.provider === 'google' || userObj.google_id) {
+                            provider = '🔤 Google';
+                        } else if (userObj.provider === 'facebook' || userObj.facebook_id) {
+                            provider = 'f Facebook';
+                        } else {
+                            provider = '🔐 Plataforma Laurena';
+                        }
+                    } catch (e) {
+                        // Se erro no parse, assumir plataforma
+                        provider = '🔐 Plataforma Laurena';
+                    }
+                }
+                
+                return provider;
+            }
+            
+            // Atualizar badge com provider detectado
+            const provider = detectProvider();
+            document.getElementById('providerText').textContent = 'Conectado via: ' + provider;
             
             document.getElementById('deleteForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const btn = document.getElementById('submitBtn');
                 btn.disabled = true;
-                btn.textContent = 'Processando exclusão...';
+                btn.textContent = '⏳ Processando exclusão...';
 
                 try {
                     const res = await fetch('/api/v1/webhooks/request-deletion', {

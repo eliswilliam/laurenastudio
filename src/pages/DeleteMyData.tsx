@@ -15,7 +15,7 @@ export default function DeleteMyData() {
     setErrorMsg("");
 
     try {
-      const res = await fetch("/webhooks/request-deletion", {
+      const res = await fetch("/api/v1/webhooks/request-deletion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, provider }),
@@ -24,7 +24,7 @@ export default function DeleteMyData() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.detail || "Erreur serveur");
+        throw new Error(data.detail || "Erro no servidor");
       }
 
       setConfirmCode(data.confirmation_code);
@@ -37,7 +37,7 @@ export default function DeleteMyData() {
     }
   }
 
-  // Style tokens — utilise les couleurs de Laurena Studio
+  // Style tokens — utiliza as cores de Laurena Studio
   const colors = {
     terracotta: "#C15F3C",
     terracottaDark: "#9a3f20",
@@ -89,10 +89,10 @@ export default function DeleteMyData() {
               marginBottom: "16px",
             }}
           >
-            Demande enregistrée
+            Solicitação registrada ✓
           </h2>
           <p style={{ color: colors.textMuted, marginBottom: "16px" }}>
-            Votre demande de suppression a été reçue et traitée.
+            Sua solicitação de exclusão foi recebida e processada.
           </p>
           <div
             style={{
@@ -105,15 +105,15 @@ export default function DeleteMyData() {
             }}
           >
             <p style={{ color: colors.textMuted, marginBottom: "8px" }}>
-              Code de confirmation
+              Código de confirmação
             </p>
             <p style={{ color: colors.warmBrown, fontWeight: "bold" }}>
               {confirmCode}
             </p>
           </div>
           <p style={{ color: colors.textMuted, fontSize: "14px" }}>
-            Vos données seront supprimées sous <strong>30 jours</strong> conformément au RGPD.
-            Un email de confirmation a été envoyé.
+            Seus dados serão excluídos em <strong>30 dias</strong> conforme a LGPD.
+            Um email de confirmação foi enviado.
           </p>
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function DeleteMyData() {
               textAlign: "center",
             }}
           >
-            Une erreur est survenue
+            Ocorreu um erro
           </h2>
           <p
             style={{
@@ -167,7 +167,7 @@ export default function DeleteMyData() {
               textAlign: "center",
             }}
           >
-            {errorMsg || "Veuillez réessayer ou contacter le support."}
+            {errorMsg || "Tente novamente ou entre em contato com o suporte."}
           </p>
           <button
             onClick={() => {
@@ -196,7 +196,7 @@ export default function DeleteMyData() {
                 colors.terracotta)
             }
           >
-            Réessayer
+            Tentar novamente
           </button>
         </div>
       </div>
@@ -232,10 +232,10 @@ export default function DeleteMyData() {
             marginBottom: "16px",
           }}
         >
-          Supprimer mes données
+          Excluir meus dados
         </h1>
         <p style={{ color: colors.textMuted, marginBottom: "16px" }}>
-          Soumettez ce formulaire pour demander la suppression de toutes vos données personnelles.
+          Envie este formulário para solicitar a exclusão de todos os seus dados pessoais.
         </p>
 
         <div
@@ -249,8 +249,8 @@ export default function DeleteMyData() {
             fontSize: "14px",
           }}
         >
-          <strong>⚠️ Attention :</strong> Cette action est irréversible. Toutes vos données
-          seront supprimées sous 30 jours.
+          <strong>⚠️ Atenção:</strong> Esta ação é irreversível. Todos os seus dados
+          serão excluídos em 30 dias.
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -263,14 +263,14 @@ export default function DeleteMyData() {
                 marginBottom: "8px",
               }}
             >
-              Adresse email
+              Endereço de email
             </label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="votre@email.com"
+              placeholder="seu@email.com"
               style={{
                 width: "100%",
                 padding: "12px",
@@ -291,7 +291,7 @@ export default function DeleteMyData() {
                 marginBottom: "8px",
               }}
             >
-              Connecté via
+              Conectado via
             </label>
             <select
               value={provider}
@@ -336,11 +336,11 @@ export default function DeleteMyData() {
                   colors.terracotta;
             }}
           >
-            {loading ? "Envoi en cours..." : "Demander la suppression"}
+            {loading ? "Enviando..." : "Solicitar exclusão"}
           </button>
 
           <p style={{ fontSize: "12px", color: colors.cloudy, marginTop: "12px" }}>
-            Vous recevrez un email de confirmation.
+            Você receberá um email de confirmação.
           </p>
         </form>
       </div>

@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
-  PenSquare,
-  Sparkles,
-  CalendarDays,
-  BarChart3,
   Megaphone,
+  Sparkles,
+  Code2,
+  BarChart3,
+  TrendingUp,
   Image,
   CreditCard,
   Settings,
@@ -15,22 +15,22 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useState } from 'react';
+import { useSidebarStore } from '@/store/useSidebarStore';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: PenSquare, label: 'Criar Post', href: '/criar-post' },
+  { icon: Megaphone, label: 'Marketing AI', href: '/marketing-ai' },
   { icon: Sparkles, label: 'AI Studio', href: '/ai-studio' },
-  { icon: CalendarDays, label: 'Agendador', href: '/agendador' },
+  { icon: Code2, label: 'Laurena Code', href: '/laurena-code' },
   { icon: BarChart3, label: 'Analytics', href: '/analytics' },
-  { icon: Megaphone, label: 'Ads Analytics', href: '/ads-analytics' },
+  { icon: TrendingUp, label: 'Ads Analytics', href: '/ads-analytics' },
   { icon: Image, label: 'Biblioteca de Mídia', href: '/midia' },
   { icon: CreditCard, label: 'Pagamento', href: '/pagamento' },
   { icon: Settings, label: 'Configurações', href: '/configuracoes' },
 ];
 
 export default function AppSidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, toggle } = useSidebarStore();
 
   return (
     <aside
@@ -40,7 +40,6 @@ export default function AppSidebar() {
         collapsed ? 'w-[68px]' : 'w-[250px]'
       )}
     >
-      {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border shrink-0">
         <img src="/android-chrome-192x192.png" alt="Laurena Studio" className="w-8 h-8 rounded-lg shrink-0" />
         {!collapsed && (
@@ -50,7 +49,6 @@ export default function AppSidebar() {
         )}
       </div>
 
-      {/* Navegação */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -87,13 +85,12 @@ export default function AppSidebar() {
         })}
       </nav>
 
-      {/* Botão colapsar */}
       <div className="p-3 border-t border-sidebar-border shrink-0">
         <Button
           variant="ghost"
           size="sm"
           className="w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggle}
         >
           {collapsed ? (
             <ChevronRight className="w-4 h-4" />

@@ -1,0 +1,266 @@
+
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Excluir meus dados — Laurena Studio</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: 'Inter', system-ui, sans-serif;
+                background: linear-gradient(135deg, #f0e4dd 0%, #F4F3EE 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            .container {
+                width: 100%;
+                max-width: 500px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                padding: 40px;
+            }
+            h1 { color: #C15F3C; margin-bottom: 16px; font-size: 24px; }
+            p { color: #7a7168; margin-bottom: 16px; line-height: 1.6; }
+            .provider-badge {
+                display: inline-block;
+                background: #f0e4dd;
+                border: 1px solid #C15F3C;
+                color: #9a3f20;
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 600;
+                margin-bottom: 16px;
+            }
+            .warning {
+                background: #fff3e0;
+                border-left: 4px solid #C15F3C;
+                padding: 16px;
+                margin-bottom: 24px;
+                border-radius: 4px;
+                color: #9a3f20;
+                font-size: 14px;
+            }
+            .warning ul { margin-left: 20px; margin-top: 8px; }
+            .warning li { margin-bottom: 6px; }
+            .checkbox-group { 
+                display: flex; 
+                align-items: flex-start; 
+                margin-bottom: 24px;
+            }
+            input[type="checkbox"] { 
+                margin-right: 12px; 
+                margin-top: 4px;
+                cursor: pointer;
+            }
+            label { 
+                color: #2a1a10; 
+                font-weight: 500; 
+                cursor: pointer;
+                margin: 0;
+            }
+            button {
+                width: 100%;
+                background: #C15F3C;
+                color: white;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            button:hover:not(:disabled) { background: #9a3f20; }
+            button:disabled { background: #B1ADA1; cursor: not-allowed; }
+            .info { font-size: 12px; color: #B1ADA1; margin-top: 12px; }
+            .link-back { 
+                display: inline-block; 
+                margin-top: 20px; 
+                color: #C15F3C; 
+                text-decoration: none;
+                font-weight: 500;
+            }
+            .link-back:hover { text-decoration: underline; }
+            .spinner {
+                display: inline-block;
+                width: 14px;
+                height: 14px;
+                border: 3px solid #C15F3C;
+                border-radius: 50%;
+                border-top-color: transparent;
+                animation: spin 0.8s linear infinite;
+                margin-right: 8px;
+            }
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Excluir meus dados</h1>
+            <div class="provider-badge" id="providerBadge">
+                <span class="spinner"></span><span id="providerText">Detectando...</span>
+            </div>
+            <p>Esta ação é <strong>irreversível</strong>. Todos os seus dados pessoais serão deletados permanentemente.</p>
+            
+            <div class="warning">
+                ⚠️ <strong>Atenção:</strong> 
+                <ul>
+                    <li>Você será desconectado imediatamente</li>
+                    <li>Todos os dados serão removidos em até 30 dias (LGPD)</li>
+                    <li>Não é possível recuperar após a exclusão</li>
+                </ul>
+            </div>
+
+            <form id="deleteForm">
+                <div class="checkbox-group">
+                    <input 
+                        type="checkbox" 
+                        id="confirm" 
+                        name="confirm" 
+                        required 
+                    />
+                    <label for="confirm">Confirmo que desejo deletar permanentemente minha conta e todos os dados associados</label>
+                </div>
+
+                <button type="submit" id="submitBtn">Deletar e desconectar</button>
+                <div class="info">✓ Você será redirecionado após confirmação</div>
+                <a href="/" class="link-back">← Voltar</a>
+            </form>
+        </div>
+
+        <script>
+            // Token já foi embutido no HTML server-side
+            const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzYWU5OGEwYy04ZGNiLTRkYjktYWVlNi03MTQ1YzJiODM2OTIiLCJpYXQiOjE3NzMzODM4NjEsImV4cCI6MTc3MzM4NDc2MSwidHlwZSI6ImFjY2VzcyJ9.Aibsx7Akpwxfsy6Aa81VZ1eS4LnDyBkYGaf8CsDz1U0";
+            
+            // Backup: tenta recuperar de localStorage se o token embutido estiver vazio
+            let token = TOKEN || localStorage.getItem('auth_token') || localStorage.getItem('access_token');
+            
+            if (!token && (sessionStorage.getItem('auth_token') || sessionStorage.getItem('access_token'))) {
+                token = sessionStorage.getItem('auth_token') || sessionStorage.getItem('access_token');
+            }
+            
+            if (!token && window.opener && window.opener.localStorage) {
+                try {
+                    token = window.opener.localStorage.getItem('auth_token') || window.opener.localStorage.getItem('access_token');
+                } catch (e) {
+                    console.log('Não foi possível acessar tab principal');
+                }
+            }
+            
+            // Também tenta obter dados do user da tab principal
+            let userStr = localStorage.getItem('user');
+            if (!userStr && window.opener && window.opener.localStorage) {
+                try {
+                    userStr = window.opener.localStorage.getItem('user');
+                    if (userStr) localStorage.setItem('user', userStr); // Cache local
+                } catch (e) {}
+            }
+            
+            if (!token) {
+                alert('Sessão expirada ou não autenticado. Faça login novamente.');
+                window.location.href = '/login';
+                throw new Error('Sem autenticação');
+            }
+            
+            // Detectar automaticamente o provider de login
+            function detectProvider() {
+                const user = localStorage.getItem('user') || userStr;
+                let provider = '🔐 Plataforma Laurena';
+                
+                if (user) {
+                    try {
+                        const userObj = JSON.parse(user);
+                        if (userObj.provider === 'google' || userObj.google_id) {
+                            provider = '🔤 Google';
+                        } else if (userObj.provider === 'facebook' || userObj.facebook_id) {
+                            provider = 'f Facebook';
+                        }
+                    } catch (e) {}
+                }
+                
+                return provider;
+            }
+            
+            // Atualizar badge com provider detectado
+            const provider = detectProvider();
+            document.getElementById('providerText').textContent = 'Conectado via: ' + provider;
+            
+            document.getElementById('deleteForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('submitBtn');
+                btn.disabled = true;
+                btn.textContent = '⏳ Processando exclusão...';
+
+                try {
+                    const authToken = token;
+                    if (!authToken) {
+                        alert('Sessão expirada. Faça login novamente.');
+                        window.location.href = '/login';
+                        return;
+                    }
+
+                    const res = await fetch('/api/v1/webhooks/request-deletion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + authToken,
+                        },
+                        body: JSON.stringify({}),
+                    });
+
+                    const data = await res.json();
+                    
+                    if (res.ok) {
+                        // Clear local and session storage
+                        ['auth_token', 'access_token', 'refresh_token', 'user'].forEach(key => {
+                            localStorage.removeItem(key);
+                            sessionStorage.removeItem(key);
+                        });
+                        
+                        // Também limpar na tab principal se possível
+                        if (window.opener && window.opener.localStorage) {
+                            try {
+                                ['auth_token', 'access_token', 'refresh_token', 'user'].forEach(key => {
+                                    window.opener.localStorage.removeItem(key);
+                                });
+                            } catch (e) {}
+                        }
+                        
+                        // Show success
+                        document.body.innerHTML = `
+                            <div class="container">
+                                <h1 style="color: #2a9d4e;">✓ Exclusão solicitada</h1>
+                                <p>Sua conta será deletada em até 30 dias conforme a LGPD.</p>
+                                <p><strong>Código de confirmação:</strong><br/><code style="background: #f0e4dd; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; font-family: monospace;">${data.confirmation_code}</code></p>
+                                <p style="font-size: 14px; color: #7a7168; margin-top: 20px;">
+                                    Você será redirecionado em 3 segundos...
+                                </p>
+                            </div>
+                        `;
+                        
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 3000);
+                    } else {
+                        alert('Erro: ' + (data.detail || 'Erro ao processar'));
+                        btn.disabled = false;
+                        btn.textContent = 'Deletar e desconectar';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Erro de conexão: ' + err.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Deletar e desconectar';
+                }
+            });
+        </script>
+    </body>
+    </html>
+    

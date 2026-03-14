@@ -76,6 +76,10 @@ docker_images_list.txt
 *.pid
 .socket
 
+# ── LAURENA CODE — cloned repos & workspaces ─────────────────────────────────
+backend/code-server/
+backend/workspaces/
+
 # ── External backups (parent directory) ────────────────────────────────────────
 ../laurenafoncionel*/
 ../laurenastudio.backup*/

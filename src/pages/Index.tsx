@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Sparkles,
-  PenSquare,
   CalendarDays,
   BarChart3,
   Megaphone,
@@ -27,10 +26,10 @@ const funcionalidades = [
     cor: "bg-primary/10 text-primary",
   },
   {
-    icon: PenSquare,
-    titulo: "Criar Post",
-    descricao: "Editor completo com pré-visualização em tempo real. Publique ou agende diretamente para suas redes.",
-    href: "/criar-post",
+    icon: Megaphone,
+    titulo: "Marketing AI",
+    descricao: "Crie imagens e vídeos publicitários com IA. Anúncios profissionais em poucos minutos.",
+    href: "/marketing-ai",
     cor: "bg-blue-500/10 text-blue-500",
   },
   {

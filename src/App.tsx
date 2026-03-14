@@ -17,15 +17,16 @@ import EscolherPlano from './pages/EscolherPlano';
 import CheckoutSucesso from './pages/CheckoutSucesso';
 // App pages
 import Dashboard from "./pages/Dashboard";
-import CriarPost from "./pages/CriarPost";
+import MarketingAI from "./pages/MarketingAI";
 import AIStudio from "./pages/AIStudio";
-import Agendador from "./pages/Agendador";
+import LaurenaCode from "./pages/LaurenaCode";
 import Analytics from "./pages/Analytics";
 import AdsAnalytics from "./pages/AdsAnalytics";
 import BibliotecaMidia from "./pages/BibliotecaMidia";
 import Pagamento from "./pages/Pagamento";
 import Configuracoes from "./pages/Configuracoes";
 import PreviewPost from "./pages/PreviewPost";
+import Editor from "./pages/Editor";
 import NotFound from "./pages/NotFound";
 
 // Legacy blog template pages
@@ -58,15 +59,16 @@ const App = () => (
           {/* App routes (with sidebar layout) */}
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/criar-post" element={<CriarPost />} />
+            <Route path="/marketing-ai" element={<MarketingAI />} />
             <Route path="/ai-studio" element={<AIStudio />} />
-            <Route path="/agendador" element={<Agendador />} />
+            <Route path="/laurena-code" element={<LaurenaCode />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/ads-analytics" element={<AdsAnalytics />} />
             <Route path="/midia" element={<BibliotecaMidia />} />
             <Route path="/pagamento" element={<Pagamento />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/preview-post" element={<PreviewPost />} />
+            <Route path="/editor" element={<Editor />} />
           </Route>
 
           {/* Home & Legacy blog template pages */}

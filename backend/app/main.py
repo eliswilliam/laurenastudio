@@ -29,6 +29,8 @@ from app.routes.workspaces import router as workspaces_router
 from app.routes.search import router as search_router
 from app.routes.media import router as media_router
 from app.routes.data_deletion import router as deletion_router
+from app.routes.marketing import router as marketing_router
+from app.routes.laurena_code import router as laurena_code_router
 
 
 @asynccontextmanager
@@ -74,6 +76,8 @@ app.include_router(workspaces_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(media_router, prefix="/api/v1")
 app.include_router(deletion_router, prefix="/api/v1")
+app.include_router(marketing_router, prefix="/api/v1")
+app.include_router(laurena_code_router, prefix="/api/v1")
 
 # ── Static file serving (uploads) ────────────────────────────────────────────
 _uploads_dir = Path(__file__).resolve().parent.parent / "uploads"

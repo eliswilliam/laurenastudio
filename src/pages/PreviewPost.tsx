@@ -234,8 +234,8 @@ export default function PreviewPost() {
         <Card className="rounded-xl">
           <CardContent className="p-8 text-center text-muted-foreground">
             <p>Nenhum conteúdo para visualizar. Volte e crie um post primeiro.</p>
-            <Button variant="outline" className="mt-4" onClick={() => navigate('/criar-post')}>
-              Criar Post
+            <Button variant="outline" className="mt-4" onClick={() => navigate('/marketing-ai')}>
+              Marketing AI
             </Button>
           </CardContent>
         </Card>

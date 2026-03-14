@@ -1,404 +1,407 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Sparkles,
-  Type,
-  Image,
+  ImageIcon,
   Video,
-  RefreshCw,
-  Save,
-  Copy,
+  Music,
+  ArrowLeft,
+  Send,
   Download,
-  Wand2,
+  Copy,
+  User,
+  Bot,
   Loader2,
 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useAIStore } from '@/store/useAIStore';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/lib/api';
+import AIInferenceAnimation from '@/components/shared/AIInferenceAnimation';
 
-const tons = [
-  { value: 'profissional', label: 'Profissional' },
-  { value: 'casual', label: 'Casual' },
-  { value: 'humoristico', label: 'Humorístico' },
-  { value: 'inspirador', label: 'Inspirador' },
-  { value: 'educativo', label: 'Educativo' },
-  { value: 'persuasivo', label: 'Persuasivo' },
-];
+type StudioMode = null | 'gemini' | 'veo' | 'audio';
 
-const plataformas = [
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'facebook', label: 'Facebook' },
-  { value: 'twitter', label: 'Twitter/X' },
-  { value: 'linkedin', label: 'LinkedIn' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'youtube', label: 'YouTube' },
-];
-
-const vozesMarca = [
-  { value: 'corporativo', label: 'Corporativo' },
-  { value: 'amigavel', label: 'Amigável' },
-  { value: 'ousado', label: 'Ousado' },
-  { value: 'elegante', label: 'Elegante' },
-  { value: 'minimalista', label: 'Minimalista' },
-];
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | 'text';
+  timestamp: Date;
+}
 
 export default function AIStudio() {
-  const {
-    prompt,
-    tipo,
-    tom,
-    plataforma,
-    vozMarca,
-    isGerando,
-    resultado,
-    setPrompt,
-    setTipo,
-    setTom,
-    setPlataforma,
-    setVozMarca,
-    setGerando,
-    setResultado,
-  } = useAIStore();
-
+  const [mode, setMode] = useState<StudioMode>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const [abaAtiva, setAbaAtiva] = useState('texto');
 
-  const handleGerar = async () => {
-    if (!prompt.trim()) {
-      toast({ title: 'Atenção', description: 'Digite um prompt para gerar conteúdo.', variant: 'destructive' });
-      return;
-    }
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isGenerating]);
 
-    setGerando(true);
-    setResultado(null);
+  const handleSend = async () => {
+    if (!input.trim() || isGenerating || !mode) return;
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input.trim(),
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    const prompt = input.trim();
+    setInput('');
+    setIsGenerating(true);
 
     try {
-      const resourceType = abaAtiva as 'texto' | 'imagem' | 'video';
-      const typeMap: Record<string, string> = { texto: 'text', imagem: 'image', video: 'video' };
+      if (mode === 'gemini') {
+        const { data } = await api.post(
+          '/ai/generate',
+          { resource_type: 'image', prompt, style: null },
+          { timeout: 120000 }
+        );
 
-      // Video generation takes longer (polling Veo)
-      const timeout = resourceType === 'video' ? 600000 : 120000;
+        const isImage = data.content?.startsWith('/uploads/');
+        const assistantMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: isImage ? '' : data.content,
+          mediaUrl: isImage ? data.content : undefined,
+          mediaType: isImage ? 'image' : 'text',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+      } else if (mode === 'veo') {
+        const { data } = await api.post(
+          '/ai/generate',
+          { resource_type: 'video', prompt, style: null },
+          { timeout: 600000 }
+        );
 
-      const { data } = await api.post('/ai/generate', {
-        resource_type: typeMap[resourceType],
-        prompt,
-        style: tom,
-      }, { timeout });
-
-      const isMedia = resourceType === 'imagem' || resourceType === 'video';
-
-      setResultado({
-        id: Date.now().toString(),
-        conteudo: data.content,
-        tipo: resourceType,
-        urlPreview: isMedia ? data.content : undefined,
-        criadoEm: new Date().toISOString(),
-      });
-
-      toast({ title: 'Conteúdo gerado!', description: data.message || 'Seu conteúdo foi criado com sucesso pela IA.' });
-    } catch (err: any) {
-      toast({
-        title: 'Erro na geração',
-        description: err.message || 'Falha ao gerar conteúdo. Tente novamente.',
-        variant: 'destructive',
-      });
+        const assistantMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: '',
+          mediaUrl: data.content,
+          mediaType: 'video',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+      }
+      toast({ title: 'Conteúdo gerado!', description: 'A IA finalizou a geração.' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Erro na geração: ${message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+      toast({ title: 'Erro', description: message, variant: 'destructive' });
     } finally {
-      setGerando(false);
+      setIsGenerating(false);
     }
   };
 
-  const handleCopiar = () => {
-    if (resultado?.conteudo) {
-      navigator.clipboard.writeText(resultado.conteudo);
-      toast({ title: 'Copiado!', description: 'Conteúdo copiado para a área de transferência.' });
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
-  const handleSalvar = () => {
-    toast({ title: 'Salvo!', description: 'Conteúdo salvo na biblioteca de mídia.' });
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Copiado!' });
   };
+
+  const resetStudio = () => {
+    setMode(null);
+    setMessages([]);
+    setInput('');
+    setIsGenerating(false);
+  };
+
+  // ── Landing page ───────────────────────────────────────────────────────────
+  if (!mode) {
+    return (
+      <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
+        <div className="text-center space-y-3 pt-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-2">
+            <Sparkles className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold">AI Studio</h1>
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+            Gere conteúdo de alta qualidade com inteligência artificial. Escolha o tipo de conteúdo abaixo.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {/* Gemini — Image & Text */}
+          <button onClick={() => setMode('gemini')} className="group text-left">
+            <Card className="rounded-2xl border-2 border-transparent transition-all duration-200 hover:border-primary hover:shadow-lg hover:shadow-primary/10 cursor-pointer h-full">
+              <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <ImageIcon className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold mb-1">Imagem & Texto</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Gere textos, imagens e conteúdo criativo em um chat interativo.
+                  </p>
+                </div>
+                <Badge variant="secondary" className="gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  Gemini 2.5
+                </Badge>
+              </CardContent>
+            </Card>
+          </button>
+
+          {/* Veo — Video */}
+          <button onClick={() => setMode('veo')} className="group text-left">
+            <Card className="rounded-2xl border-2 border-transparent transition-all duration-200 hover:border-primary hover:shadow-lg hover:shadow-primary/10 cursor-pointer h-full">
+              <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <Video className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold mb-1">Vídeo</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Gere vídeos cinematográficos e criativos com IA generativa.
+                  </p>
+                </div>
+                <Badge variant="secondary" className="gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  Veo 3.1
+                </Badge>
+              </CardContent>
+            </Card>
+          </button>
+
+          {/* Audio — Coming Soon */}
+          <div className="relative">
+            <Card className="rounded-2xl border-2 border-dashed border-muted-foreground/20 h-full opacity-60">
+              <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+                  <Music className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold mb-1">Áudio</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Geração de áudio e trilhas sonoras com IA.
+                  </p>
+                </div>
+                <Badge variant="outline" className="gap-1 text-muted-foreground">
+                  Em breve
+                </Badge>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Chat interface ─────────────────────────────────────────────────────────
+  const modeLabel = mode === 'gemini' ? 'Imagem & Texto' : 'Vídeo';
+  const modeModel = mode === 'gemini' ? 'Gemini 2.5' : 'Veo 3.1';
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Cabeçalho */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold">AI Studio</h1>
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-8rem)]">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={resetStudio}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              AI Studio — {modeLabel}
+            </h1>
+            <p className="text-sm text-muted-foreground">Modelo: {modeModel}</p>
+          </div>
         </div>
-        <p className="text-muted-foreground">
-          Gere conteúdo de alta qualidade usando inteligência artificial.
-        </p>
+        <Badge variant="secondary" className="gap-1">
+          <Sparkles className="w-3 h-3" />
+          {modeModel}
+        </Badge>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        {/* Painel de entrada */}
-        <div className="xl:col-span-2 space-y-6">
-          {/* Abas de tipo */}
-          <Tabs value={abaAtiva} onValueChange={(v) => { setAbaAtiva(v); setResultado(null); }}>
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="texto" className="gap-2">
-                <Type className="w-4 h-4" />
-                Texto
-              </TabsTrigger>
-              <TabsTrigger value="imagem" className="gap-2">
-                <Image className="w-4 h-4" />
-                Imagem
-              </TabsTrigger>
-              <TabsTrigger value="video" className="gap-2">
-                <Video className="w-4 h-4" />
-                Vídeo
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="texto" className="mt-4">
-              <p className="text-sm text-muted-foreground">
-                Gere textos para posts, legendas, artigos e muito mais.
-              </p>
-            </TabsContent>
-            <TabsContent value="imagem" className="mt-4">
-              <p className="text-sm text-muted-foreground">
-                Crie imagens únicas para suas redes sociais com IA generativa.
-              </p>
-            </TabsContent>
-            <TabsContent value="video" className="mt-4">
-              <p className="text-sm text-muted-foreground">
-                Gere vídeos cinematográficos com IA generativa (Veo 3.1).
-              </p>
-            </TabsContent>
-          </Tabs>
-
-          {/* Prompt */}
-          <Card className="rounded-xl">
-            <CardContent className="p-5 space-y-4">
-              <div className="space-y-2">
-                <Label>Prompt</Label>
-                <Textarea
-                  placeholder="Descreva o conteúdo que deseja gerar... Ex: Crie um post motivacional para Instagram sobre empreendedorismo digital."
-                  className="min-h-[120px] resize-none"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tom do conteúdo</Label>
-                  <Select value={tom} onValueChange={(v) => setTom(v as any)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tons.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Plataforma</Label>
-                  <Select value={plataforma} onValueChange={(v) => setPlataforma(v as any)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {plataformas.map((p) => (
-                        <SelectItem key={p.value} value={p.value}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Voz da marca</Label>
-                <Select value={vozMarca} onValueChange={(v) => setVozMarca(v as any)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vozesMarca.map((v) => (
-                      <SelectItem key={v.value} value={v.value}>
-                        {v.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button
-                className="w-full h-11 gap-2"
-                onClick={handleGerar}
-                disabled={isGerando}
-              >
-                {isGerando ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-4 h-4" />
-                    Gerar Conteúdo
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Sugestões rápidas */}
-          <Card className="rounded-xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Sugestões Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {[
-                'Post motivacional para Instagram',
-                'Legenda para produto no Facebook',
-                'Thread informativa para Twitter',
-                'Artigo profissional no LinkedIn',
-                'Descrição criativa para TikTok',
-                'Roteiro de vídeo para YouTube',
-              ].map((sugestao) => (
-                <Badge
-                  key={sugestao}
-                  variant="secondary"
-                  className="cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
-                  onClick={() => setPrompt(sugestao)}
-                >
-                  {sugestao}
-                </Badge>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Painel de resultado */}
-        <div className="xl:col-span-3">
-          <Card className="rounded-xl h-full">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-base">Preview do Conteúdo</CardTitle>
-                <CardDescription>
-                  {resultado
-                    ? 'Conteúdo gerado com sucesso'
-                    : 'O resultado da geração aparecerá aqui'}
-                </CardDescription>
-              </div>
-              {resultado && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="gap-1.5" onClick={handleCopiar}>
-                    <Copy className="w-3.5 h-3.5" />
-                    Copiar
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSalvar}>
-                    <Save className="w-3.5 h-3.5" />
-                    Salvar
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5" onClick={handleGerar}>
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Regenerar
-                  </Button>
-                </div>
-              )}
-            </CardHeader>
-            <CardContent>
-              {isGerando ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-4">
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                    <Sparkles className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium">Gerando conteúdo...</p>
-                    <p className="text-sm text-muted-foreground">
-                      {abaAtiva === 'video'
-                        ? 'Gerando vídeo com Veo 3.1... Isso pode levar alguns minutos.'
-                        : 'Nossa IA está criando algo incrível para você.'}
-                    </p>
-                  </div>
-                </div>
-              ) : resultado ? (
-                <div className="space-y-4">
-                  {resultado.tipo === 'texto' ? (
-                    <div className="bg-muted/50 rounded-xl p-6 whitespace-pre-wrap text-sm leading-relaxed border">
-                      {resultado.conteudo}
-                    </div>
-                  ) : resultado.tipo === 'video' ? (
-                    <div className="space-y-4">
-                      <div className="rounded-xl overflow-hidden border bg-muted/30">
-                        <video
-                          src={resultado.urlPreview}
-                          controls
-                          className="w-full h-auto max-h-[500px]"
-                          autoPlay
-                          loop
-                        />
-                      </div>
-                      <div className="flex justify-center">
-                        <a
-                          href={resultado.urlPreview}
-                          download
-                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                        >
-                          <Download className="w-4 h-4" />
-                          Baixar vídeo
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="rounded-xl overflow-hidden border bg-muted/30">
-                        <img
-                          src={resultado.urlPreview}
-                          alt="Conteúdo gerado"
-                          className="w-full h-auto max-h-96 object-cover"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Metadados do resultado */}
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <Badge variant="outline">{abaAtiva === 'texto' ? 'Texto' : abaAtiva === 'imagem' ? 'Imagem' : 'Vídeo'}</Badge>
-                    <Badge variant="outline">{tons.find((t) => t.value === tom)?.label}</Badge>
-                    <Badge variant="outline">{plataformas.find((p) => p.value === plataforma)?.label}</Badge>
-                    <Badge variant="outline">{vozesMarca.find((v) => v.value === vozMarca)?.label}</Badge>
-                  </div>
-                </div>
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto space-y-4 pb-4 pr-1">
+        {messages.length === 0 && !isGenerating && (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+              {mode === 'gemini' ? (
+                <ImageIcon className="w-8 h-8 text-primary" />
               ) : (
-                <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Wand2 className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Nenhum conteúdo gerado ainda</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Preencha o prompt e clique em "Gerar Conteúdo" para começar.
-                    </p>
+                <Video className="w-8 h-8 text-primary" />
+              )}
+            </div>
+            <div>
+              <p className="font-medium">Comece uma conversa</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {mode === 'gemini'
+                  ? 'Descreva o que deseja gerar — texto, imagem ou ambos.'
+                  : 'Descreva o vídeo que deseja criar.'}
+              </p>
+            </div>
+            {/* Quick suggestions */}
+            <div className="flex flex-wrap gap-2 max-w-md justify-center">
+              {(mode === 'gemini'
+                ? [
+                    'Crie uma imagem para post de Instagram sobre café',
+                    'Gere um banner para promoção de verão',
+                    'Crie uma imagem minimalista de logo tech',
+                  ]
+                : [
+                    'Crie um vídeo de um pôr do sol na praia',
+                    'Gere um vídeo de transição suave de produto',
+                    'Crie um vídeo cinematográfico urbano',
+                  ]
+              ).map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => setInput(suggestion)}
+                  className="px-3 py-1.5 rounded-full border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            {msg.role === 'assistant' && (
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                <Bot className="w-4 h-4 text-primary" />
+              </div>
+            )}
+
+            <div
+              className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                msg.role === 'user'
+                  ? 'bg-primary text-primary-foreground rounded-br-md'
+                  : 'bg-card border rounded-bl-md'
+              }`}
+            >
+              {msg.content && (
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              )}
+
+              {msg.mediaUrl && msg.mediaType === 'image' && (
+                <div className="mt-2 space-y-2">
+                  <img
+                    src={msg.mediaUrl}
+                    alt="Generated"
+                    className="rounded-xl max-w-full border"
+                  />
+                  <div className="flex gap-2">
+                    <a href={msg.mediaUrl} download target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
+                        <Download className="w-3 h-3" />
+                        Baixar
+                      </Button>
+                    </a>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+
+              {msg.mediaUrl && msg.mediaType === 'video' && (
+                <div className="mt-2 space-y-2">
+                  <video src={msg.mediaUrl} controls className="rounded-xl max-w-full border" />
+                  <a href={msg.mediaUrl} download target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
+                      <Download className="w-3 h-3" />
+                      Baixar
+                    </Button>
+                  </a>
+                </div>
+              )}
+
+              {msg.role === 'assistant' && msg.content && !msg.mediaUrl && (
+                <button
+                  onClick={() => handleCopy(msg.content)}
+                  className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Copy className="w-3 h-3" />
+                  Copiar
+                </button>
+              )}
+            </div>
+
+            {msg.role === 'user' && (
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 mt-1">
+                <User className="w-4 h-4 text-primary-foreground" />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* AI inference animation during generation */}
+        {isGenerating && (
+          <div className="flex gap-3 justify-start">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+              <Bot className="w-4 h-4 text-primary" />
+            </div>
+            <div className="bg-card border rounded-2xl rounded-bl-md px-4 py-3 max-w-[75%]">
+              <AIInferenceAnimation type={mode === 'veo' ? 'video' : 'image'} />
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t pt-4 shrink-0">
+        <div className="flex gap-3 items-end">
+          <div className="flex-1 relative">
+            <Textarea
+              ref={textareaRef}
+              placeholder={
+                mode === 'gemini'
+                  ? 'Descreva o que deseja gerar…'
+                  : 'Descreva o vídeo que deseja criar…'
+              }
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="min-h-[48px] max-h-[150px] resize-none pr-12"
+              disabled={isGenerating}
+            />
+          </div>
+          <Button
+            size="icon"
+            className="h-12 w-12 shrink-0 rounded-xl"
+            onClick={handleSend}
+            disabled={!input.trim() || isGenerating}
+          >
+            {isGenerating ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+          </Button>
         </div>
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          {mode === 'gemini'
+            ? 'Gemini 2.5 — gera texto e imagens com base no seu prompt.'
+            : 'Veo 3.1 — a geração de vídeo pode levar até 5 minutos.'}
+        </p>
       </div>
     </div>
   );

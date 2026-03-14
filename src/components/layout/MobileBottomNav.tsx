@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
-  PenSquare,
-  Sparkles,
-  CalendarDays,
-  BarChart3,
   Megaphone,
+  Sparkles,
+  Code2,
+  BarChart3,
+  TrendingUp,
   Image,
   CreditCard,
   Settings,
@@ -17,14 +17,14 @@ import { useState } from 'react';
 
 const mainItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: PenSquare,       label: 'Criar Post', href: '/criar-post' },
+  { icon: Megaphone,       label: 'Marketing AI', href: '/marketing-ai' },
   { icon: Sparkles,        label: 'AI Studio',  href: '/ai-studio' },
-  { icon: CalendarDays,    label: 'Agenda',     href: '/agendador' },
+  { icon: Code2,           label: 'Code',       href: '/laurena-code' },
   { icon: BarChart3,       label: 'Analytics',  href: '/analytics' },
 ];
 
 const moreItems = [
-  { icon: Megaphone, label: 'Ads Analytics',      href: '/ads-analytics' },
+  { icon: TrendingUp, label: 'Ads Analytics',      href: '/ads-analytics' },
   { icon: Image,     label: 'Biblioteca de Mídia', href: '/midia' },
   { icon: CreditCard,label: 'Pagamento',           href: '/pagamento' },
   { icon: Settings,  label: 'Configurações',       href: '/configuracoes' },

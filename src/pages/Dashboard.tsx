@@ -20,7 +20,7 @@ import {
   ArrowRight,
   RefreshCw,
   Loader2,
-  PenSquare,
+  Megaphone,
   BarChart3,
 } from 'lucide-react';
 import {
@@ -233,9 +233,9 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            <Button size="sm" onClick={() => navigate('/criar-post')} className="justify-start">
-              <PenSquare className="w-4 h-4 mr-2" />
-              Criar Post
+            <Button size="sm" onClick={() => navigate('/marketing-ai')} className="justify-start">
+              <Megaphone className="w-4 h-4 mr-2" />
+              Marketing AI
             </Button>
             <Button size="sm" variant="outline" onClick={() => navigate('/ai-studio')} className="justify-start">
               <Sparkles className="w-4 h-4 mr-2" />

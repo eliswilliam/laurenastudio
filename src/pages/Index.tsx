@@ -1,122 +1,90 @@
+import { useState } from "react";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import IntroSection from "@/components/IntroSection";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Sparkles,
-  CalendarDays,
-  BarChart3,
   Megaphone,
-  Image,
+  Globe,
   Check,
   ArrowRight,
   Zap,
   Crown,
   Building2,
 } from "lucide-react";
+import { PLANOS } from "@/data/planos";
 
 const funcionalidades = [
   {
+    icon: Megaphone,
+    titulo: "Campanhas publicitárias",
+    descricao:
+      "Crie imagens e vídeos para suas campanhas de anúncio. Descreva o que precisa e a IA gera o material pronto para usar em Meta, Google ou qualquer rede.",
+    href: "/login",
+    imagem: "/a4.jpeg",
+    gradient: "from-blue-600/90 to-blue-500/70",
+    ring: "group-hover:ring-blue-500/30",
+    chip: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+    accentLabel: "Performance",
+  },
+  {
     icon: Sparkles,
-    titulo: "AI Studio",
-    descricao: "Gere textos, imagens e vídeos com IA em segundos. Escolha o tom, a plataforma e a voz da sua marca.",
-    href: "/ai-studio",
-    cor: "bg-primary/10 text-primary",
+    titulo: "Textos, imagens e vídeos",
+    descricao:
+      "Gere conteúdos criativos para redes sociais. Textos, imagens ou vídeos em segundos. Você escolhe o tom e o estilo.",
+    href: "/login",
+    imagem: "/a5.jpeg",
+    gradient: "from-primary to-primary/80",
+    ring: "group-hover:ring-primary/35",
+    chip: "bg-primary/10 text-primary",
+    accentLabel: "Criatividade",
   },
   {
-    icon: Megaphone,
-    titulo: "Marketing AI",
-    descricao: "Crie imagens e vídeos publicitários com IA. Anúncios profissionais em poucos minutos.",
-    href: "/marketing-ai",
-    cor: "bg-blue-500/10 text-blue-500",
-  },
-  {
-    icon: CalendarDays,
-    titulo: "Agendador",
-    descricao: "Calendim visual para organizar todo seu conteúdo. Agende posts com um clique para qualquer horário.",
-    href: "/agendador",
-    cor: "bg-green-500/10 text-green-500",
-  },
-  {
-    icon: BarChart3,
-    titulo: "Analytics",
-    descricao: "Acompanhe impressões, engajamento, cliques e crescimento de seguidores com gráficos detalhados.",
-    href: "/analytics",
-    cor: "bg-amber-500/10 text-amber-500",
-  },
-  {
-    icon: Megaphone,
-    titulo: "Ads Analytics",
-    descricao: "Monitore CPC, CPA, ROAS e conversões das suas campanhas no Meta, Google e TikTok.",
-    href: "/ads-analytics",
-    cor: "bg-pink-500/10 text-pink-500",
-  },
-  {
-    icon: Image,
-    titulo: "Biblioteca de Mídia",
-    descricao: "Organize todas as suas imagens e vídeos gerados pela IA ou enviados por upload em um único lugar.",
-    href: "/midia",
-    cor: "bg-violet-500/10 text-violet-500",
+    icon: Globe,
+    titulo: "Criar site com IA",
+    descricao:
+      "Crie sites completos sem programar. Descreva seu negócio e a IA monta o site para você.",
+    href: "/login",
+    imagem: "/a3.jpeg",
+    gradient: "from-amber-600/90 to-amber-500/70",
+    ring: "group-hover:ring-amber-500/30",
+    chip: "bg-amber-500/10 text-amber-800 dark:text-amber-300",
+    accentLabel: "Presença digital",
   },
 ];
 
 const passos = [
   {
     numero: "01",
-    titulo: "Descreva sua ideia",
-    descricao: "Digite um prompt simples e escolha o tom, a plataforma e o estilo visual que deseja.",
+    titulo: "Descreva o que precisa",
+    descricao:
+      "Escreva em poucas palavras o que quer criar: uma imagem para anúncio, um vídeo para Instagram ou um texto para post.",
   },
   {
     numero: "02",
-    titulo: "A IA cria o conteúdo",
-    descricao: "Em segundos, o Laurena Studio gera texto, imagem ou vídeo prontos para publicar.",
+    titulo: "A IA gera o conteúdo",
+    descricao: "Em segundos você recebe o material pronto. Imagem, vídeo ou texto, conforme pediu.",
   },
   {
     numero: "03",
-    titulo: "Publique ou agende",
-    descricao: "Publique agora nas suas redes ou agende para o melhor horário com um só clique.",
+    titulo: "Use onde quiser",
+    descricao: "Baixe e use em suas campanhas de anúncio, redes sociais ou onde precisar.",
   },
 ];
 
-const planos = [
-  {
-    id: "starter",
-    icon: Zap,
-    nome: "Starter",
-    preco: "R$ 49",
-    periodo: "/mês",
-    descricao: "Perfeito para criadores que estão começando.",
-    recursos: ["50 posts por mês", "100 gerações IA", "3 redes sociais", "Analytics básico"],
-    destaque: false,
-    cta: "Começar",
-  },
-  {
-    id: "pro",
-    icon: Crown,
-    nome: "Pro",
-    preco: "R$ 129",
-    periodo: "/mês",
-    descricao: "Para profissionais e times de marketing.",
-    recursos: ["500 posts por mês", "1.000 gerações IA", "Todas as redes sociais", "Ads Analytics", "Agendamento inteligente"],
-    destaque: true,
-    cta: "Assinar Pro",
-  },
-  {
-    id: "business",
-    icon: Building2,
-    nome: "Business",
-    preco: "R$ 349",
-    periodo: "/mês",
-    descricao: "Para agências e empresas de alto volume.",
-    recursos: ["Posts ilimitados", "IA ilimitada", "White-label", "API personalizada", "Gerente dedicado"],
-    destaque: false,
-    cta: "Falar com vendas",
-  },
-];
+const iconesPlano = {
+  starter: Zap,
+  pro: Crown,
+  business: Building2,
+};
 
 const Index = () => {
+  const [anual, setAnual] = useState(true);
+
   return (
     <div className="min-h-screen bg-background animate-fade-in">
       <Header />
@@ -128,30 +96,91 @@ const Index = () => {
         {/* Stats */}
         <IntroSection />
 
-        {/* Funcionalidades */}
-        <section id="funcionalidades" className="py-16 md:py-20 scroll-mt-20">
-          <div className="text-center mb-12 animate-slide-up">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">Funcionalidades</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold">Uma plataforma, infinitas possibilidades</h2>
-            <p className="text-muted-foreground mt-3 text-lg max-w-2xl mx-auto">
-              Tudo o que um criador de conteúdo ou equipe de marketing precisa para crescer online.
+        {/* Funcionalidades — layout marketing com imagens */}
+        <section id="funcionalidades" className="py-12 md:py-20 scroll-mt-20">
+          <div className="relative mb-10 md:mb-14 max-w-3xl mx-auto space-y-4 text-center animate-slide-up">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/25 bg-primary/5 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-primary"
+            >
+              Soluções integradas
+            </Badge>
+            <h2 className="text-3xl font-bold leading-tight tracking-tight md:text-4xl lg:text-[2.35rem]">
+              Três formas de criar com{" "}
+              <span className="text-primary">inteligência artificial</span>
+            </h2>
+            <p className="text-base leading-relaxed text-muted-foreground md:text-lg">
+              Campanhas publicitárias, conteúdos para redes sociais e sites completos sem programar, num fluxo único com modelos de IA de última geração.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="flex flex-col gap-12 md:gap-16 lg:gap-20">
             {funcionalidades.map((f, i) => {
               const Icon = f.icon;
+              const reverse = i % 2 === 1;
               return (
                 <Link
                   key={f.titulo}
-                  to="/login"
-                  className={`group block rounded-2xl bg-card border border-border p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-slide-up stagger-${Math.min(i + 1, 6)}`}
+                  to={f.href}
+                  className={`group relative grid gap-8 rounded-[1.75rem] border border-border/70 bg-card/80 shadow-sm backdrop-blur-sm transition-all duration-500 hover:border-primary/20 hover:shadow-lg md:grid-cols-2 md:items-stretch md:gap-0 md:overflow-hidden lg:rounded-[2rem] ${f.ring} hover:ring-2 animate-slide-up stagger-${Math.min(i + 1, 3)}`}
                 >
-                  <div className={`w-11 h-11 rounded-xl ${f.cor} flex items-center justify-center mb-4`}>
-                    <Icon className="w-5 h-5" />
+                  {/* Imagem */}
+                  <div
+                    className={`relative min-h-[220px] overflow-hidden md:min-h-[300px] lg:min-h-[340px] ${
+                      reverse ? "md:order-2" : "md:order-1"
+                    }`}
+                  >
+                    <img
+                      src={f.imagem}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent md:from-background/40"
+                      aria-hidden
+                    />
+                    <div className="absolute left-4 top-4 flex items-center gap-2 md:left-5 md:top-5">
+                      <span
+                        className={`rounded-full bg-background/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-foreground shadow-sm backdrop-blur-sm md:text-[11px] ${f.chip}`}
+                      >
+                        {f.accentLabel}
+                      </span>
+                    </div>
+                    <div
+                      className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r md:h-1 ${f.gradient}`}
+                      aria-hidden
+                    />
                   </div>
-                  <h3 className="font-semibold text-base mb-2 group-hover:text-primary transition-colors">{f.titulo}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{f.descricao}</p>
+
+                  {/* Conteúdo */}
+                  <div
+                    className={`flex flex-col justify-center px-6 pb-8 pt-2 md:px-9 md:py-10 lg:px-11 lg:py-12 ${
+                      reverse ? "md:order-1" : "md:order-2"
+                    }`}
+                  >
+                    <div className="mb-5 flex items-center gap-4">
+                      <div
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${f.chip} transition-transform group-hover:scale-105 md:h-14 md:w-14`}
+                      >
+                        <Icon className="h-6 w-6 md:h-7 md:w-7" strokeWidth={1.6} />
+                      </div>
+                      <span className="font-mono text-xs font-semibold text-muted-foreground">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+                    <h3 className="mb-3 text-xl font-bold leading-snug tracking-tight text-foreground transition-colors group-hover:text-primary md:text-2xl">
+                      {f.titulo}
+                    </h3>
+                    <p className="mb-6 max-w-prose text-sm leading-relaxed text-muted-foreground md:text-base">
+                      {f.descricao}
+                    </p>
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                      Explorar na plataforma
+                      <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1.5" />
+                    </span>
+                  </div>
                 </Link>
               );
             })}
@@ -159,27 +188,53 @@ const Index = () => {
         </section>
 
         {/* Como funciona */}
-        <section id="como-funciona" className="py-16 md:py-20 scroll-mt-20">
-          <div className="rounded-[2.5rem] bg-card border border-border p-8 md:p-14">
-            <div className="text-center mb-12 animate-slide-up">
-              <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">Como funciona</Badge>
-              <h2 className="text-3xl md:text-4xl font-bold">Simples como deve ser</h2>
-              <p className="text-muted-foreground mt-3 text-lg max-w-xl mx-auto">
-                Três passos para transformar uma ideia em conteúdo publicado.
+        <section id="como-funciona" className="py-16 md:py-24 scroll-mt-20">
+          <div className="relative rounded-[2rem] md:rounded-[2.5rem] border border-border/80 bg-gradient-to-b from-muted/40 via-card to-card p-8 md:p-12 lg:p-16 overflow-hidden">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.4]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.08) 1px, transparent 0)",
+                backgroundSize: "28px 28px",
+              }}
+              aria-hidden
+            />
+
+            <div className="relative text-center mb-14 md:mb-16 max-w-2xl mx-auto space-y-4 animate-slide-up">
+              <Badge
+                variant="outline"
+                className="rounded-full px-4 py-1 text-xs font-medium tracking-wide border-primary/25 bg-background/80 text-primary"
+              >
+                Como funciona
+              </Badge>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+                É simples em{" "}
+                <span className="text-primary">três passos</span>
+              </h2>
+              <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
+                Você descreve, a IA cria e você usa. Sem complicação.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6 lg:gap-8">
+              {/* Ligne de connexion desktop */}
+              <div
+                className="hidden md:block absolute top-[3.25rem] left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent"
+                aria-hidden
+              />
+
               {passos.map((p, i) => (
-                <div key={p.numero} className={`text-center space-y-3 animate-slide-up stagger-${i + 1}`}>
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                    <span className="text-xl font-bold text-primary">{p.numero}</span>
+                <div
+                  key={p.numero}
+                  className={`relative flex flex-col items-center text-center space-y-4 animate-slide-up stagger-${i + 1}`}
+                >
+                  <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-background bg-gradient-to-br from-primary to-primary/85 text-primary-foreground shadow-lg shadow-primary/20">
+                    <span className="text-lg font-bold tabular-nums">{p.numero}</span>
                   </div>
-                  {i < passos.length - 1 && (
-                    <div className="hidden md:block absolute" />
-                  )}
-                  <h3 className="font-semibold text-lg">{p.titulo}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{p.descricao}</p>
+                  <div className="space-y-2 pt-1 max-w-xs mx-auto">
+                    <h3 className="font-semibold text-lg md:text-xl">{p.titulo}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{p.descricao}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -188,7 +243,7 @@ const Index = () => {
 
         {/* Planos */}
         <section id="planos" className="py-16 md:py-20 scroll-mt-20">
-          <div className="text-center mb-12 animate-slide-up">
+          <div className="text-center mb-8 animate-slide-up">
             <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">Planos</Badge>
             <h2 className="text-3xl md:text-4xl font-bold">Invista no seu crescimento</h2>
             <p className="text-muted-foreground mt-3 text-lg max-w-xl mx-auto">
@@ -196,43 +251,65 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {planos.map((plano, i) => {
-              const Icon = plano.icon;
+          {/* Toggle mensal/anual */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-8 sm:mb-10">
+            <span className={`text-sm font-medium ${!anual ? 'text-foreground' : 'text-muted-foreground'}`}>
+              Mensal
+            </span>
+            <Switch checked={anual} onCheckedChange={setAnual} />
+            <span className={`text-sm font-medium ${anual ? 'text-foreground' : 'text-muted-foreground'}`}>
+              Anual
+            </span>
+            {anual && (
+              <Badge variant="secondary" className="text-xs text-green-600 bg-green-500/10 border-green-500/20">
+                Economize 25% no plano anual
+              </Badge>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            {PLANOS.map((plano, i) => {
+              const Icon = iconesPlano[plano.id as keyof typeof iconesPlano];
+              const preco = anual ? plano.precoAnual : plano.preco;
+              const precoAnualTotal = plano.precoAnual * 12;
               return (
                 <div
                   key={plano.id}
-                  className={`relative rounded-2xl border p-7 flex flex-col animate-slide-up stagger-${i + 1} ${
+                  className={`relative rounded-xl border p-6 sm:p-7 flex flex-col animate-slide-up ${
                     plano.destaque
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xl scale-[1.02]'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xl md:scale-[1.02]'
                       : 'bg-card border-border'
                   }`}
                 >
                   {plano.destaque && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-background text-primary shadow">★ Mais popular</Badge>
+                      <Badge className="bg-background text-primary shadow">Mais popular</Badge>
                     </div>
                   )}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 shrink-0 ${
                     plano.destaque ? 'bg-white/20' : 'bg-primary/10'
                   }`}>
                     <Icon className={`w-5 h-5 ${plano.destaque ? 'text-white' : 'text-primary'}`} />
                   </div>
-                  <h3 className="font-bold text-xl">{plano.nome}</h3>
-                  <p className={`text-sm mt-1 mb-4 ${plano.destaque ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                    {plano.descricao}
-                  </p>
-                  <div className="mb-5">
-                    <span className="text-3xl font-bold">{plano.preco}</span>
-                    <span className={`text-sm ${plano.destaque ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                      {plano.periodo}
-                    </span>
+                  <h3 className="font-bold text-xl">Plano {plano.nome}</h3>
+                  <div className="mt-2 mb-4 space-y-1">
+                    <div>
+                      <span className="text-3xl font-bold">R$ {preco}</span>
+                      <span className={`text-sm ${plano.destaque ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                        {' '}/ mês
+                      </span>
+                    </div>
+                    {anual && (
+                      <p className={`text-xs ${plano.destaque ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                        Cobrado R$ {precoAnualTotal} / ano
+                      </p>
+                    )}
                   </div>
-                  <ul className="space-y-2.5 mb-7 flex-1">
-                    {plano.recursos.map((r) => (
-                      <li key={r} className="flex items-center gap-2 text-sm">
-                        <Check className={`w-4 h-4 shrink-0 ${plano.destaque ? 'text-white' : 'text-green-500'}`} />
-                        {r}
+                  <ul className="space-y-2 mb-6 flex-1">
+                    {plano.recursos.slice(0, 4).map((r) => (
+                      <li key={r} className="flex items-start gap-2 text-sm">
+                        <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plano.destaque ? 'text-white' : 'text-green-500'}`} />
+                        <span>{r}</span>
                       </li>
                     ))}
                   </ul>
@@ -241,7 +318,9 @@ const Index = () => {
                     variant={plano.destaque ? 'secondary' : 'default'}
                     className="w-full rounded-full"
                   >
-                    <Link to="/registro">{plano.cta}</Link>
+                    <Link to="/registro">
+                      {plano.id === 'business' ? 'Falar com vendas' : plano.destaque ? `Assinar ${plano.nome}` : 'Começar'}
+                    </Link>
                   </Button>
                 </div>
               );
@@ -253,9 +332,9 @@ const Index = () => {
         <section className="py-16 mb-8">
           <div className="rounded-[2.5rem] bg-primary p-10 md:p-16 text-center text-primary-foreground animate-scale-in">
             <Sparkles className="w-10 h-10 mx-auto mb-4 opacity-80" />
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Pronto para criar conteúdo que converte?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Quer criar campanhas e conteúdos com IA?</h2>
             <p className="text-primary-foreground/80 text-lg mb-8 max-w-xl mx-auto">
-              Comece hoje mesmo gratuitamente. Sem cartão de crédito.
+              Crie sua conta e comece agora. Sem cartão de crédito.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" variant="secondary" className="rounded-full px-10 hover:scale-105 transition-all gap-2">
@@ -282,7 +361,7 @@ const Index = () => {
                 <span className="font-bagel tracking-wider text-lg">LAURENA</span>
               </Link>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                A plataforma de IA para criadores de conteúdo e times de marketing.
+                Crie campanhas publicitárias e sites com inteligência artificial. Imagens, vídeos, textos e sites completos sem programar.
               </p>
             </div>
             <div>
@@ -312,7 +391,7 @@ const Index = () => {
           </div>
           <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
             <p>© 2026 Laurena Studio. Todos os direitos reservados.</p>
-            <p>Feito para criadores de conteúdo</p>
+            <p>Crie campanhas publicitárias e sites com IA</p>
           </div>
         </div>
       </footer>

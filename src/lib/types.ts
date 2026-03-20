@@ -127,6 +127,7 @@ export interface Plano {
   preco: number;
   precoAnual: number;
   recursos: string[];
+  restricoes?: string[];
   limites: {
     postsmes: number;
     geracoesIA: number;

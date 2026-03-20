@@ -1,9 +1,6 @@
 /**
  * Pagamento.tsx
- * Subscription management page — shows the user's REAL plan, usage,
- * and billing data fetched from the FastAPI /billing endpoints.
- *
- * Hardcoded mock data has been completely removed.
+ * Subscription management page: user's plan, usage, and billing data.
  */
 import { useState, useEffect } from 'react';
 import {
@@ -16,6 +13,7 @@ import {
   ExternalLink,
   AlertCircle,
   RefreshCw,
+  X,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,67 +28,7 @@ import {
   apiBillingStatus,
   type BillingStatusResponse,
 } from '@/lib/billingApi';
-import type { Plano } from '@/lib/types';
-
-// ── Static plan cards (display only) ────────────────────────────────────────
-
-const planos: Plano[] = [
-  {
-    id: 'starter',
-    nome: 'Starter',
-    preco: 49,
-    precoAnual: 39,
-    recursos: [
-      '50 posts por mês',
-      '100 gerações IA',
-      '3 redes sociais',
-      '1 membro',
-      '5GB armazenamento',
-      'Analytics básico',
-      'Suporte por e-mail',
-    ],
-    limites: { postsmes: 50, geracoesIA: 100, membros: 1, armazenamento: '5GB' },
-  },
-  {
-    id: 'pro',
-    nome: 'Pro',
-    preco: 129,
-    precoAnual: 99,
-    recursos: [
-      '500 posts por mês',
-      '1.000 gerações IA',
-      'Todas as redes sociais',
-      '5 membros',
-      '50GB armazenamento',
-      'Analytics avançado',
-      'Ads Analytics',
-      'Agendamento inteligente',
-      'Suporte prioritário',
-    ],
-    limites: { postsmes: 500, geracoesIA: 1000, membros: 5, armazenamento: '50GB' },
-    destaque: true,
-  },
-  {
-    id: 'business',
-    nome: 'Business',
-    preco: 349,
-    precoAnual: 279,
-    recursos: [
-      'Posts ilimitados',
-      'Gerações IA ilimitadas',
-      'Todas as redes sociais',
-      'Membros ilimitados',
-      '500GB armazenamento',
-      'Analytics completo',
-      'Ads Analytics premium',
-      'API personalizada',
-      'White-label',
-      'Gerente de conta dedicado',
-      'SLA garantido',
-    ],
-    limites: { postsmes: -1, geracoesIA: -1, membros: -1, armazenamento: '500GB' },
-  },
-];
+import { PLANOS, PLAN_DISPLAY_NAMES } from '@/data/planos';
 
 const iconesPlano: Record<string, React.ReactNode> = {
   starter: <Zap className="w-5 h-5" />,
@@ -98,10 +36,8 @@ const iconesPlano: Record<string, React.ReactNode> = {
   business: <Building2 className="w-5 h-5" />,
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '\u2014';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: 'long',
@@ -114,21 +50,16 @@ function pct(used: number, limit: number): number {
   return Math.min(Math.round((used / limit) * 100), 100);
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
-
 export default function Pagamento() {
   const [anual, setAnual] = useState(true);
   const [carregando, setCarregando] = useState<string | null>(null);
   const [portalCarregando, setPortalCarregando] = useState(false);
-
   const [billing, setBilling] = useState<BillingStatusResponse | null>(null);
   const [billingLoading, setBillingLoading] = useState(true);
   const [billingError, setBillingError] = useState<string | null>(null);
 
   const { fetchBillingStatus } = useAuthStore();
   const { toast } = useToast();
-
-  // ── Fetch real billing data ───────────────────────────────────────────────
 
   const loadBilling = async () => {
     setBillingLoading(true);
@@ -137,8 +68,8 @@ export default function Pagamento() {
       const data = await apiBillingStatus();
       setBilling(data);
       fetchBillingStatus();
-    } catch (err: any) {
-      setBillingError(err?.message || 'Erro ao carregar dados de faturamento.');
+    } catch (err: unknown) {
+      setBillingError(err instanceof Error ? err.message : 'Erro ao carregar dados de faturamento.');
     } finally {
       setBillingLoading(false);
     }
@@ -146,7 +77,6 @@ export default function Pagamento() {
 
   useEffect(() => {
     loadBilling();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -154,7 +84,7 @@ export default function Pagamento() {
     const status = params.get('status');
     if (status === 'success') {
       toast({
-        title: 'Pagamento confirmado!',
+        title: 'Pagamento confirmado',
         description: 'Sua assinatura foi ativada com sucesso.',
       });
       window.history.replaceState({}, '', '/pagamento');
@@ -162,19 +92,16 @@ export default function Pagamento() {
     } else if (status === 'canceled') {
       toast({
         title: 'Pagamento cancelado',
-        description: 'Voc\u00ea cancelou o checkout. Nenhuma cobran\u00e7a foi feita.',
+        description: 'Você cancelou o checkout. Nenhuma cobrança foi feita.',
         variant: 'destructive',
       });
       window.history.replaceState({}, '', '/pagamento');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ── Derived values ────────────────────────────────────────────────────────
 
   const isActive = billing?.is_active ?? false;
   const planName = billing?.subscription?.plan?.name ?? null;
-  const planDisplayName = billing?.subscription?.plan?.display_name ?? planName ?? 'Nenhum';
+  const planDisplayName = (planName ? PLAN_DISPLAY_NAMES[planName] : null) ?? billing?.subscription?.plan?.display_name ?? planName ?? 'Nenhum';
   const nextBillingDate = billing?.subscription?.current_period_end ?? null;
 
   const postsUsed = billing?.usage?.usage?.posts_used ?? 0;
@@ -183,8 +110,6 @@ export default function Pagamento() {
   const textLimit = billing?.usage?.limits?.text_limit ?? 0;
   const imageUsed = billing?.usage?.usage?.image_used ?? 0;
   const imageLimit = billing?.usage?.limits?.image_limit ?? 0;
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleCheckout = async (planoId: string) => {
     if (planoId === planName) return;
@@ -196,12 +121,11 @@ export default function Pagamento() {
         `${window.location.origin}/pagamento?status=canceled`,
       );
       window.location.href = url;
-    } catch (err: any) {
-      console.error('Erro ao criar checkout:', err);
+    } catch (err: unknown) {
       setCarregando(null);
       toast({
         title: 'Erro no checkout',
-        description: err?.message || 'N\u00e3o foi poss\u00edvel iniciar o pagamento.',
+        description: err instanceof Error ? err.message : 'Não foi possível iniciar o pagamento.',
         variant: 'destructive',
       });
     }
@@ -212,27 +136,25 @@ export default function Pagamento() {
     try {
       const { url } = await apiCustomerPortal();
       window.location.href = url;
-    } catch (err: any) {
-      console.error('Erro ao abrir portal:', err);
+    } catch (err: unknown) {
       setPortalCarregando(false);
       toast({
         title: 'Erro',
-        description: err?.message || 'N\u00e3o foi poss\u00edvel abrir o portal.',
+        description: err instanceof Error ? err.message : 'Não foi possível abrir o portal.',
         variant: 'destructive',
       });
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <CreditCard className="w-6 h-6 text-primary" />
-          Plano & Pagamento
+          Plano e Pagamento
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mt-1">
           Gerencie sua assinatura e acompanhe seu uso mensal.
         </p>
       </div>
@@ -240,20 +162,20 @@ export default function Pagamento() {
       {/* Status atual */}
       <Card className="rounded-xl border-primary/20">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-base">Plano Atual</CardTitle>
               <CardDescription>
                 {billingLoading
                   ? 'Carregando\u2026'
                   : isActive
-                    ? `Pr\u00f3xima cobran\u00e7a em ${formatDate(nextBillingDate)}`
+                    ? `Próxima cobrança em ${formatDate(nextBillingDate)}`
                     : 'Nenhuma assinatura ativa'}
               </CardDescription>
             </div>
             {!billingLoading && (
               <Badge
-                className={`gap-1 text-sm capitalize ${
+                className={`gap-1 text-sm capitalize shrink-0 ${
                   isActive ? '' : 'bg-destructive/10 text-destructive border-destructive/20'
                 }`}
                 variant={isActive ? 'default' : 'outline'}
@@ -271,8 +193,8 @@ export default function Pagamento() {
               Carregando dados de uso\u2026
             </div>
           ) : billingError ? (
-            <div className="flex items-center gap-2 text-destructive text-sm py-4">
-              <AlertCircle className="w-4 h-4" />
+            <div className="flex flex-wrap items-center gap-2 text-destructive text-sm py-4">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               {billingError}
               <Button variant="ghost" size="sm" onClick={loadBilling}>
                 <RefreshCw className="w-4 h-4 mr-1" />
@@ -284,27 +206,27 @@ export default function Pagamento() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Posts este m\u00eas</span>
+                    <span className="text-muted-foreground">Posts este mês</span>
                     <span className="font-medium">
-                      {postsUsed}/{postsLimit > 0 ? postsLimit : '\u221e'}
+                      {postsUsed} / {postsLimit > 0 ? postsLimit : '\u221e'}
                     </span>
                   </div>
                   <Progress value={pct(postsUsed, postsLimit)} className="h-2" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Gera\u00e7\u00f5es IA (texto)</span>
+                    <span className="text-muted-foreground">Gerações IA (texto)</span>
                     <span className="font-medium">
-                      {textUsed}/{textLimit > 0 ? textLimit : '\u221e'}
+                      {textUsed} / {textLimit > 0 ? textLimit : '\u221e'}
                     </span>
                   </div>
                   <Progress value={pct(textUsed, textLimit)} className="h-2" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Gera\u00e7\u00f5es IA (imagem)</span>
+                    <span className="text-muted-foreground">Gerações IA (imagem)</span>
                     <span className="font-medium">
-                      {imageUsed}/{imageLimit > 0 ? imageLimit : '\u221e'}
+                      {imageUsed} / {imageLimit > 0 ? imageLimit : '\u221e'}
                     </span>
                   </div>
                   <Progress value={pct(imageUsed, imageLimit)} className="h-2" />
@@ -326,15 +248,15 @@ export default function Pagamento() {
               </Button>
             </>
           ) : (
-            <div className="text-sm text-muted-foreground py-2">
-              Voc\u00ea n\u00e3o tem um plano ativo. Escolha um plano abaixo para come\u00e7ar.
-            </div>
+            <p className="text-sm text-muted-foreground py-2">
+              Você não tem um plano ativo. Escolha um plano abaixo para começar.
+            </p>
           )}
         </CardContent>
       </Card>
 
       {/* Toggle mensal/anual */}
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         <span className={`text-sm font-medium ${!anual ? 'text-foreground' : 'text-muted-foreground'}`}>
           Mensal
         </span>
@@ -343,72 +265,102 @@ export default function Pagamento() {
           Anual
         </span>
         {anual && (
-          <Badge variant="secondary" className="text-xs text-green-600 bg-green-50">
-            Economize at\u00e9 25%
+          <Badge variant="secondary" className="text-xs text-green-600 bg-green-500/10 border-green-500/20">
+            Economize 25% no plano anual
           </Badge>
         )}
       </div>
 
       {/* Cards de planos */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {planos.map((plano) => {
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        {PLANOS.map((plano) => {
           const isAtual = plano.id === planName;
           const preco = anual ? plano.precoAnual : plano.preco;
+          const precoAnualTotal = plano.precoAnual * 12;
 
           return (
             <Card
               key={plano.id}
-              className={`rounded-xl relative ${
+              className={`rounded-xl relative flex flex-col transition-all duration-200 ${
                 plano.destaque ? 'border-primary shadow-lg ring-1 ring-primary/20' : ''
               } ${isAtual ? 'ring-2 ring-green-500/30 border-green-500/40' : ''}`}
             >
               {plano.destaque && !isAtual && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-primary text-primary-foreground shadow-md">
-                    Mais Popular
+                  <Badge className="bg-primary text-primary-foreground shadow-md text-xs font-semibold">
+                    Mais popular
                   </Badge>
                 </div>
               )}
               {isAtual && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-green-600 text-white shadow-md">
-                    Seu Plano
+                  <Badge className="bg-green-600 text-white shadow-md text-xs font-semibold">
+                    Seu plano
                   </Badge>
                 </div>
               )}
-              <CardHeader className="text-center pb-4">
-                <div className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center ${
-                  isAtual
-                    ? 'bg-green-600 text-white'
-                    : plano.destaque
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                }`}>
+
+              <CardHeader className="text-center pb-4 pt-8 px-4 sm:px-6">
+                <div
+                  className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center shrink-0 ${
+                    isAtual
+                      ? 'bg-green-600 text-white'
+                      : plano.destaque
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                  }`}
+                >
                   {iconesPlano[plano.id]}
                 </div>
-                <CardTitle className="text-xl">{plano.nome}</CardTitle>
-                <div className="mt-2">
-                  <span className="text-4xl font-bold">R${preco}</span>
-                  <span className="text-muted-foreground text-sm">/m\u00eas</span>
+                <CardTitle className="text-xl font-bold">
+                  Plano {plano.nome}
+                </CardTitle>
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-3xl font-bold">R$ {preco}</span>
+                    <span className="text-muted-foreground text-sm">/ mês</span>
+                  </div>
                   {anual && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Cobrado R${preco * 12}/ano
+                    <p className="text-xs text-muted-foreground">
+                      Cobrado R$ {precoAnualTotal} / ano
                     </p>
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2.5">
-                  {plano.recursos.map((recurso) => (
-                    <li key={recurso} className="flex items-start gap-2 text-sm">
-                      <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                      <span>{recurso}</span>
-                    </li>
-                  ))}
-                </ul>
+
+              <CardContent className="flex-1 flex flex-col px-4 sm:px-6 pb-6 space-y-4">
+                <div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    Recursos
+                  </h3>
+                  <ul className="space-y-2">
+                    {plano.recursos.map((recurso) => (
+                      <li key={recurso} className="flex items-start gap-2 text-sm">
+                        <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                        <span>{recurso}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {plano.restricoes && plano.restricoes.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      Restrições
+                    </h3>
+                    <ul className="space-y-2">
+                      {plano.restricoes.map((r) => (
+                        <li key={r} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <X className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                          <span>{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 <Button
-                  className="w-full"
+                  className="w-full mt-auto"
                   variant={isAtual ? 'outline' : plano.destaque ? 'default' : 'outline'}
                   onClick={() => handleCheckout(plano.id)}
                   disabled={isAtual || carregando === plano.id}
@@ -416,7 +368,11 @@ export default function Pagamento() {
                   {carregando === plano.id ? (
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   ) : null}
-                  {isAtual ? 'Plano Atual' : isActive ? `Trocar para ${plano.nome}` : `Assinar ${plano.nome}`}
+                  {isAtual
+                    ? 'Plano atual'
+                    : isActive
+                      ? `Trocar para ${plano.nome}`
+                      : `Assinar ${plano.nome}`}
                 </Button>
               </CardContent>
             </Card>

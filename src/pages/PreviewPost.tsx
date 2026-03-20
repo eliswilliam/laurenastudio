@@ -148,7 +148,7 @@ function TikTokPreview({ conteudo }: { conteudo: string }) {
       <div className="absolute bottom-0 left-0 right-12 p-4 space-y-2">
         <p className="font-bold text-sm">@laurenastudio</p>
         <p className="text-xs leading-relaxed">{conteudo.slice(0, 150)}</p>
-        <p className="text-xs opacity-70">🎵 som original — laurenastudio</p>
+        <p className="text-xs opacity-70">🎵 som original · laurenastudio</p>
       </div>
       <div className="absolute bottom-4 right-3 flex flex-col items-center gap-5">
         <div className="text-center">

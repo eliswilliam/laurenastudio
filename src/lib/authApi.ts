@@ -1,5 +1,5 @@
 /**
- * authApi.ts — typed wrappers for the FastAPI /auth endpoints
+ * authApi.ts: typed wrappers for the FastAPI /auth endpoints
  */
 import api from './api';
 

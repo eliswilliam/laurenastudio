@@ -38,7 +38,7 @@ export default function DeleteMyData() {
     }
   }
 
-  // Style tokens — utiliza as cores de Laurena Studio
+  // Style tokens: cores de Laurena Studio
   const colors = {
     terracotta: "#C15F3C",
     terracottaDark: "#9a3f20",

@@ -40,7 +40,7 @@ const Creativity = () => {
             <h2 className="text-3xl font-bold mb-6">Nurturing Creative Spirit</h2>
             <div className="space-y-4 text-muted-foreground">
               <p>
-                Creativity isn't reserved for artists—it's a fundamental human capacity that enriches every aspect of life. 
+                Creativity isn't reserved for artists: it's a fundamental human capacity that enriches every aspect of life. 
                 Whether you're writing, designing, problem-solving, or simply reimagining your daily routine, 
                 creative thinking opens doors to innovation and fulfillment.
               </p>

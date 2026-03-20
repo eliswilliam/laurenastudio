@@ -10,10 +10,10 @@
 @layer base {
   :root {
     /* Laurena Studio Brand Palette
-       Primary  #C15F3C → hsl(16 53% 50%)   – Terracotta
-       Cloudy   #B1ADA1 → hsl(45  9% 66%)   – Warm grey
-       Pampas   #F4F3EE → hsl(50 21% 95%)   – Cream background
-       White    #FFFFFF → hsl( 0  0% 100%)  – Pure white
+       Primary  #C15F3C → hsl(16 53% 50%)   - Terracotta
+       Cloudy   #B1ADA1 → hsl(45  9% 66%)   - Warm grey
+       Pampas   #F4F3EE → hsl(50 21% 95%)   - Cream background
+       White    #FFFFFF → hsl( 0  0% 100%)  - Pure white
     */
 
     --background: 50 21% 95%;          /* Pampas */
@@ -25,7 +25,7 @@
     --popover: 0 0% 100%;              /* White */
     --popover-foreground: 16 35% 12%;
 
-    --primary: 16 53% 50%;             /* #C15F3C – Terracotta */
+    --primary: 16 53% 50%;             /* #C15F3C - Terracotta */
     --primary-foreground: 0 0% 100%;   /* White */
 
     --secondary: 45 12% 89%;           /* Pampas darker */
@@ -52,7 +52,7 @@
     --chart-4: 210 65% 52%;            /* Blue */
     --chart-5: 340 60% 55%;            /* Dusty rose */
 
-    /* Sidebar – dark warm brown */
+    /* Sidebar - dark warm brown */
     --sidebar-background: 15 30% 11%;
     --sidebar-foreground: 45 9% 65%;   /* Cloudy */
     --sidebar-primary: 16 53% 55%;     /* Terracotta (slightly lighter) */
@@ -82,7 +82,7 @@
     --popover: 15 20% 11%;
     --popover-foreground: 50 21% 92%;
 
-    --primary: 16 58% 58%;             /* Terracotta – lighter for dark bg */
+    --primary: 16 58% 58%;             /* Terracotta - lighter for dark bg */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 15 15% 17%;

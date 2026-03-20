@@ -40,7 +40,7 @@ const Growth = () => {
             <h2 className="text-3xl font-bold mb-6">The Path of Growth</h2>
             <div className="space-y-4 text-muted-foreground">
               <p>
-                Personal growth isn't about perfection—it's about progress, self-awareness, and the courage to evolve. 
+                Personal growth isn't about perfection: it's about progress, self-awareness, and the courage to evolve. 
                 It's the daily practice of becoming more aligned with our values, more compassionate toward ourselves 
                 and others, and more intentional in how we live.
               </p>

@@ -19,7 +19,6 @@ import CheckoutSucesso from './pages/CheckoutSucesso';
 import Dashboard from "./pages/Dashboard";
 import MarketingAI from "./pages/MarketingAI";
 import AIStudio from "./pages/AIStudio";
-import LaurenaCode from "./pages/LaurenaCode";
 import Analytics from "./pages/Analytics";
 import AdsAnalytics from "./pages/AdsAnalytics";
 import BibliotecaMidia from "./pages/BibliotecaMidia";
@@ -61,7 +60,6 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/marketing-ai" element={<MarketingAI />} />
             <Route path="/ai-studio" element={<AIStudio />} />
-            <Route path="/laurena-code" element={<LaurenaCode />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/ads-analytics" element={<AdsAnalytics />} />
             <Route path="/midia" element={<BibliotecaMidia />} />

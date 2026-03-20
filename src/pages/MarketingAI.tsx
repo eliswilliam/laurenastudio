@@ -171,7 +171,7 @@ export default function MarketingAI() {
 
   const handleShare = (channel: string) => {
     const url = getContentUrl();
-    const text = `${brandName} — ${adText}`;
+    const text = `${brandName}: ${adText}`;
     const encoded = encodeURIComponent(text);
     const encodedUrl = encodeURIComponent(url);
 
@@ -349,7 +349,7 @@ export default function MarketingAI() {
                 <p className="text-xs text-muted-foreground text-right">{adText.length}/2000</p>
               </div>
 
-              {/* Image upload — show for image type and for image_to_video mode */}
+              {/* Image upload: image type and image_to_video mode */}
               {(selectedType === 'image' || videoMode === 'image_to_video') && (
                 <div className="space-y-2">
                   <Label>

@@ -84,7 +84,7 @@ export default function BibliotecaMidia() {
       const { data } = await api.get('/media/');
       setMidias(data);
     } catch {
-      // silently fail — show empty state
+      // silently fail; show empty state
     } finally {
       setIsLoading(false);
     }

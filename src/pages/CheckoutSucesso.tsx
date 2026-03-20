@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/useAuthStore';
 import { apiVerifySession } from '@/lib/billingApi';
+import { PLAN_DISPLAY_NAMES } from '@/data/planos';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -92,7 +93,7 @@ export default function CheckoutSucesso() {
         }
 
         if (result.status === 'pending') {
-          // Boleto — show pending state
+          // Boleto: show pending state
           setMessage(result.message);
           setState('pending');
           return;
@@ -104,7 +105,7 @@ export default function CheckoutSucesso() {
           return;
         }
 
-        // Unexpected — retry a few times
+        // Unexpected: retry a few times
         if (currentAttempt < maxAttempts) {
           setAttempt(currentAttempt + 1);
           timer = setTimeout(() => verifyWithSessionId(sid, currentAttempt + 1), 2500);
@@ -350,7 +351,7 @@ export default function CheckoutSucesso() {
             <p className="text-muted-foreground text-lg">
               Sua assinatura foi ativada com sucesso.
               <br />
-              Obrigado por escolher o Laurena Studio! 🎉
+              Obrigado por escolher o Laurena Studio.
             </p>
           </div>
 
@@ -363,7 +364,7 @@ export default function CheckoutSucesso() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold capitalize">{plan.display_name}</h2>
+                    <h2 className="text-xl font-bold">{PLAN_DISPLAY_NAMES[plan.name] ?? plan.display_name ?? plan.name}</h2>
                     <Badge className="bg-green-600 text-white text-xs">Ativa</Badge>
                   </div>
                   <p className="text-muted-foreground text-sm">

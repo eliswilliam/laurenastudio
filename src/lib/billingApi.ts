@@ -1,5 +1,5 @@
 /**
- * billingApi.ts — typed wrappers for the FastAPI /billing endpoints
+ * billingApi.ts: typed wrappers for the FastAPI /billing endpoints
  */
 import api from './api';
 

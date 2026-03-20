@@ -143,7 +143,7 @@ export default function AIStudio() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {/* Gemini — Image & Text */}
+          {/* Gemini: Image & Text */}
           <button onClick={() => setMode('gemini')} className="group text-left">
             <Card className="rounded-2xl border-2 border-transparent transition-all duration-200 hover:border-primary hover:shadow-lg hover:shadow-primary/10 cursor-pointer h-full">
               <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
@@ -164,7 +164,7 @@ export default function AIStudio() {
             </Card>
           </button>
 
-          {/* Veo — Video */}
+          {/* Veo: Video */}
           <button onClick={() => setMode('veo')} className="group text-left">
             <Card className="rounded-2xl border-2 border-transparent transition-all duration-200 hover:border-primary hover:shadow-lg hover:shadow-primary/10 cursor-pointer h-full">
               <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
@@ -185,7 +185,7 @@ export default function AIStudio() {
             </Card>
           </button>
 
-          {/* Audio — Coming Soon */}
+          {/* Audio: Coming Soon */}
           <div className="relative">
             <Card className="rounded-2xl border-2 border-dashed border-muted-foreground/20 h-full opacity-60">
               <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
@@ -224,7 +224,7 @@ export default function AIStudio() {
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
-              AI Studio — {modeLabel}
+              AI Studio · {modeLabel}
             </h1>
             <p className="text-sm text-muted-foreground">Modelo: {modeModel}</p>
           </div>
@@ -250,7 +250,7 @@ export default function AIStudio() {
               <p className="font-medium">Comece uma conversa</p>
               <p className="text-sm text-muted-foreground mt-1">
                 {mode === 'gemini'
-                  ? 'Descreva o que deseja gerar — texto, imagem ou ambos.'
+                  ? 'Descreva o que deseja gerar: texto, imagem ou ambos.'
                   : 'Descreva o vídeo que deseja criar.'}
               </p>
             </div>
@@ -399,8 +399,8 @@ export default function AIStudio() {
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
           {mode === 'gemini'
-            ? 'Gemini 2.5 — gera texto e imagens com base no seu prompt.'
-            : 'Veo 3.1 — a geração de vídeo pode levar até 5 minutos.'}
+            ? 'Gemini 2.5 gera texto e imagens com base no seu prompt.'
+            : 'Veo 3.1: a geração de vídeo pode levar até 5 minutos.'}
         </p>
       </div>
     </div>

@@ -40,7 +40,7 @@ const Travel = () => {
             <h2 className="text-3xl font-bold mb-6">Our Travel Philosophy</h2>
             <div className="space-y-4 text-muted-foreground">
               <p>
-                Travel is more than visiting new places—it's about opening ourselves to new perspectives, cultures, 
+                Travel is more than visiting new places: it's about opening ourselves to new perspectives, cultures, 
                 and ways of being. We believe in slow, intentional travel that prioritizes meaningful connections 
                 over checking off bucket list items.
               </p>

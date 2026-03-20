@@ -20,7 +20,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor de resposta — suporte ao formato FastAPI { detail: "..." }
+// Interceptor de resposta: suporte ao formato FastAPI { detail: "..." }
 api.interceptors.response.use(
   (response) => response,
   (error) => {

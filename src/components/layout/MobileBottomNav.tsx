@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Megaphone,
   Sparkles,
-  Code2,
   BarChart3,
   TrendingUp,
   Image,
@@ -19,7 +18,6 @@ const mainItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Megaphone,       label: 'Marketing AI', href: '/marketing-ai' },
   { icon: Sparkles,        label: 'AI Studio',  href: '/ai-studio' },
-  { icon: Code2,           label: 'Code',       href: '/laurena-code' },
   { icon: BarChart3,       label: 'Analytics',  href: '/analytics' },
 ];
 
@@ -43,7 +41,7 @@ export default function MobileBottomNav() {
         />
       )}
 
-      {/* Sheet "Mais" — desliza de baixo */}
+      {/* Sheet "Mais" desliza de baixo */}
       <div
         className={cn(
           'fixed bottom-16 left-0 right-0 z-50 bg-background border-t border-border rounded-t-2xl shadow-2xl transition-transform duration-300 md:hidden',
@@ -86,7 +84,7 @@ export default function MobileBottomNav() {
 
       {/* Barra de navegação inferior */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-background border-t border-border flex items-center md:hidden">
-        <div className="grid grid-cols-6 w-full h-full">
+        <div className="grid grid-cols-5 w-full h-full">
           {mainItems.map((item) => {
             const Icon = item.icon;
             return (

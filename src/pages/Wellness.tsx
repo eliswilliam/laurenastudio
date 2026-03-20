@@ -40,7 +40,7 @@ const Wellness = () => {
             <h2 className="text-3xl font-bold mb-6">Why Wellness Matters</h2>
             <div className="space-y-4 text-muted-foreground">
               <p>
-                Wellness is not just about physical health—it's about creating harmony between body, mind, and spirit. 
+                Wellness is not just about physical health: it's about creating harmony between body, mind, and spirit. 
                 In our fast-paced world, taking time to nurture ourselves isn't a luxury; it's essential for sustainable living.
               </p>
               <p>

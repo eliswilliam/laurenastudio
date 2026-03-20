@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Megaphone, Layers, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,10 +50,10 @@ export default function Login() {
         data.tokens.access_token
       );
       toast({
-        title: 'Login realizado com sucesso!',
+        title: 'Login realizado com sucesso',
         description: 'Bem-vindo ao Laurena Studio.',
       });
-      // Check billing status — redirect to plan selection if no active plan
+      // Check billing status; redirect to plan selection if no active plan
       const hasActivePlan = await fetchBillingStatus();
       navigate(hasActivePlan ? '/dashboard' : '/escolher-plano');
     } catch (err: unknown) {
@@ -70,34 +70,62 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       {/* Lado esquerdo - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/90 via-primary to-primary/80 relative overflow-hidden items-center justify-center p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/95 via-primary to-primary/75 relative overflow-hidden items-center justify-center p-10 xl:p-14">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRWMjhIMjR2MmgxinptMC00VjI0SDI0djJoMTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
-        <div className="relative z-10 text-white max-w-lg">
-          <div className="flex items-center gap-3 mb-8">
-            <img src="/android-chrome-192x192.png" alt="Laurena Studio" className="w-12 h-12 rounded-xl" />
-            <span className="font-bagel tracking-wider text-white text-3xl">LAURENA</span>
+        <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-white/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-black/10 blur-3xl" />
+        <div className="relative z-10 max-w-xl text-white">
+          <div className="mb-10 flex items-center gap-3">
+            <img src="/android-chrome-192x192.png" alt="Laurena Studio" className="h-12 w-12 rounded-xl shadow-lg shadow-black/20 ring-2 ring-white/20" />
+            <span className="font-bagel text-3xl tracking-[0.2em] text-white drop-shadow-sm">LAURENA</span>
           </div>
-          <h1 className="text-4xl font-bold leading-tight mb-4">
-            Crie conteúdo incrível com Inteligência Artificial
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-white/60">Studio com IA</p>
+          <h1 className="text-balance text-4xl font-bold leading-[1.12] tracking-tight xl:text-[2.65rem]">
+            Crie campanhas publicitárias e sites{' '}
+            <span className="relative inline-block">
+              <span className="relative z-10 bg-gradient-to-r from-white to-white/85 bg-clip-text text-transparent">
+                com IA
+              </span>
+              <span className="absolute -inset-x-1 -bottom-0.5 z-0 h-3 rounded-sm bg-white/25" aria-hidden />
+            </span>
           </h1>
-          <p className="text-lg text-white/80 leading-relaxed">
-            Gere textos, imagens e vídeos automaticamente. Agende publicações,
-            analise performance e gerencie suas campanhas — tudo em um só lugar.
+          <p className="mt-6 max-w-[34rem] text-base leading-relaxed text-white/82 md:text-lg">
+            Aqui você cria imagens e vídeos para suas campanhas de anúncio, gera textos e conteúdos visuais e cria sites
+            completos sem programar.{' '}
+            <span className="font-medium text-white">Tudo com inteligência artificial.</span>
           </p>
-          <div className="mt-12 grid grid-cols-3 gap-6">
-            <div>
-              <p className="text-3xl font-bold">10K+</p>
-              <p className="text-sm text-white/70">Usuários ativos</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold">500K+</p>
-              <p className="text-sm text-white/70">Posts gerados</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold">98%</p>
-              <p className="text-sm text-white/70">Satisfação</p>
-            </div>
-          </div>
+          <ul className="mt-10 flex flex-col gap-3 sm:grid sm:grid-cols-3 sm:gap-4">
+            {[
+              {
+                icon: Megaphone,
+                title: 'Campanhas',
+                desc: 'Imagens e vídeos para anúncios',
+              },
+              {
+                icon: Layers,
+                title: 'Conteúdo',
+                desc: 'Textos, imagens e vídeos',
+              },
+              {
+                icon: Globe,
+                title: 'Sites',
+                desc: 'Sem programar, com IA',
+              },
+            ].map(({ icon: Icon, title, desc }) => (
+              <li
+                key={title}
+                className="group flex gap-3 rounded-2xl border border-white/15 bg-white/[0.08] p-4 shadow-lg shadow-black/5 backdrop-blur-md transition-all duration-300 hover:border-white/25 hover:bg-white/[0.14]"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/18 text-white ring-1 ring-white/20 transition-transform duration-300 group-hover:scale-105">
+                  <Icon className="h-5 w-5" strokeWidth={2} aria-hidden />
+                </div>
+                <div className="min-w-0 pt-0.5">
+                  <p className="text-[0.95rem] font-semibold leading-tight tracking-tight">{title}</p>
+                  <p className="mt-1 text-[0.8125rem] leading-snug text-white/70">{desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 

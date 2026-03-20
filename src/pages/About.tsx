@@ -26,7 +26,7 @@ const About = () => {
             meaningful stories, and practical wisdom come together to enrich our daily lives?
           </p>
           <p>
-            In a world saturated with information, we felt the need for something different—a publication that 
+            In a world saturated with information, we felt the need for something different: a publication that 
             prioritizes depth over speed, quality over quantity, and authentic connection over viral content. 
             Perspective is our answer to that need.
           </p>
@@ -73,7 +73,7 @@ const About = () => {
             <div className="p-6 rounded-xl bg-muted">
               <h3 className="text-xl font-semibold mb-3">Authenticity</h3>
               <p className="text-muted-foreground">
-                We share real experiences, honest reflections, and genuine insights—not curated perfection.
+                We share real experiences, honest reflections, and genuine insights, not curated perfection.
               </p>
             </div>
             <div className="p-6 rounded-xl bg-muted">

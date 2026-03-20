@@ -1,6 +1,6 @@
 /**
  * Dashboard.tsx
- * Main dashboard — shows REAL account info, subscription plan,
+ * Maindashboard: REAL account info, subscription plan,
  * and usage data fetched from the FastAPI /billing endpoints.
  * All hardcoded mock data has been removed.
  */
@@ -43,6 +43,7 @@ import {
 } from 'recharts';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { PLAN_DISPLAY_NAMES } from '@/data/planos';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -64,7 +65,7 @@ function pct(used: number, limit: number): number {
 }
 
 function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: 'short',
@@ -167,7 +168,7 @@ export default function Dashboard() {
               className={`gap-1.5 px-3 py-1.5 text-sm font-semibold capitalize ${planColors[planoNome] ?? ''}`}
             >
               {planIcons[planoNome] ?? <CreditCard className="w-4 h-4" />}
-              Plano {plan?.display_name ?? planoNome}
+              Plano {plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome}
             </Badge>
           )}
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
@@ -187,8 +188,8 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            <p className="text-lg font-semibold truncate">{usuario?.nome ?? '—'}</p>
-            <p className="text-sm text-muted-foreground truncate">{usuario?.email ?? '—'}</p>
+            <p className="text-lg font-semibold truncate">{usuario?.nome ?? '-'}</p>
+            <p className="text-sm text-muted-foreground truncate">{usuario?.email ?? '-'}</p>
             <p className="text-xs text-muted-foreground">
               Membro desde {formatDate(usuario?.criadoEm)}
             </p>
@@ -205,7 +206,7 @@ export default function Dashboard() {
           <CardContent className="space-y-1">
             <div className="flex items-center gap-2">
               <p className="text-lg font-semibold capitalize">
-                {plan?.display_name ?? planoNome ?? 'Nenhum'}
+                {plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome ?? 'Nenhum'}
               </p>
               {billingStatus?.is_active && (
                 <Badge variant="default" className="bg-green-600 text-xs">Ativa</Badge>
@@ -288,7 +289,7 @@ export default function Dashboard() {
             </CardTitle>
             <CardDescription>
               Consumo atual vs. limites do plano{' '}
-              <span className="capitalize font-medium">{plan?.display_name ?? planoNome}</span>
+              <span className="font-medium">{plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome}</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">

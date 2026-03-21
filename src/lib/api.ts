@@ -1,12 +1,45 @@
-import axios from 'axios';
+import axios, { type AxiosError } from 'axios';
 
 const api = axios.create({
   baseURL: '/api/v1',
-  timeout: 30000,
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+/** Extrai mensagem legível da resposta FastAPI ou erro de rede (para o utilizador). */
+export function formatApiError(error: unknown): string {
+  if (!axios.isAxiosError(error)) {
+    return error instanceof Error ? error.message : 'Ocorreu um erro inesperado';
+  }
+  const ax = error as AxiosError<{ detail?: unknown; message?: string }>;
+  if (!ax.response) {
+    if (ax.code === 'ECONNABORTED')
+      return 'O pedido expirou (timeout). Se estiver a gerar um site, tente de novo.';
+    if (ax.message === 'Network Error')
+      return 'Sem ligação ao servidor. Confirme que a API está a correr (ex.: http://localhost:8000) e que o proxy /api funciona.';
+    return ax.message || 'Ocorreu um erro inesperado';
+  }
+  const data = ax.response.data;
+  const detail = data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail.map((item: { msg?: string; type?: string }) => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object' && 'msg' in item && typeof item.msg === 'string')
+        return item.msg;
+      return JSON.stringify(item);
+    });
+    return parts.join(' · ') || `Erro HTTP ${ax.response.status}`;
+  }
+  if (detail && typeof detail === 'object') {
+    const d = detail as Record<string, unknown>;
+    if (typeof d.message === 'string') return d.message;
+  }
+  if (typeof data?.message === 'string') return data.message;
+  return `Erro HTTP ${ax.response.status} (${ax.response.statusText || 'sem detalhe'})`;
+}
 
 // Interceptor de token
 api.interceptors.request.use(
@@ -20,7 +53,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor de resposta: suporte ao formato FastAPI { detail: "..." }
+// Interceptor de resposta: detalhe FastAPI + 401 → login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -28,13 +61,7 @@ api.interceptors.response.use(
       localStorage.removeItem('auth_token');
       window.location.href = '/login';
     }
-    // FastAPI retorna { detail: "..." }, fallback para { message: "..." }
-    const detail = error.response?.data?.detail;
-    const message =
-      typeof detail === 'string'
-        ? detail
-        : error.response?.data?.message || 'Ocorreu um erro inesperado';
-    return Promise.reject(new Error(message));
+    return Promise.reject(new Error(formatApiError(error)));
   }
 );
 

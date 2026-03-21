@@ -30,6 +30,8 @@ from app.routes.search import router as search_router
 from app.routes.media import router as media_router
 from app.routes.data_deletion import router as deletion_router
 from app.routes.marketing import router as marketing_router
+from app.routes.sites import router as sites_router
+from app.routes.publish import router as publish_router
 
 
 @asynccontextmanager
@@ -76,6 +78,8 @@ app.include_router(search_router, prefix="/api/v1")
 app.include_router(media_router, prefix="/api/v1")
 app.include_router(deletion_router, prefix="/api/v1")
 app.include_router(marketing_router, prefix="/api/v1")
+app.include_router(sites_router, prefix="/api/v1")
+app.include_router(publish_router, prefix="/api")
 
 # ── Static file serving (uploads) ────────────────────────────────────────────
 _uploads_dir = Path(__file__).resolve().parent.parent / "uploads"

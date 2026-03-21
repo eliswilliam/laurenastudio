@@ -32,6 +32,8 @@ services:
       BACKEND_URL: http://localhost:8000
       FRONTEND_URL: http://localhost:8080
       GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
+      # Logs visibles tout de suite pendant les requêtes longues (ex. POST /api/publish)
+      PYTHONUNBUFFERED: "1"
     volumes:
       - ./backend:/app
       - ${APPDATA}/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
@@ -56,31 +58,8 @@ services:
       - ./index.html:/app/index.html
     environment:
       VITE_BACKEND_TARGET: http://api:8000
-      VITE_CODE_SERVER_TARGET: http://code-server:8443
     depends_on:
       - api
 
-  # ── LAURENA CODE — code-server (VS Code Web) ──────────────────────────────
-  code-server:
-    image: codercom/code-server:latest
-    restart: always
-    ports:
-      - "8443:8443"
-    environment:
-      DOCKER_USER: coder
-    volumes:
-      - ./backend/workspaces:/home/coder/workspaces
-      - ./backend/code-server/config.yaml:/home/coder/.config/code-server/config.yaml
-      - code_server_data:/home/coder/.local/share/code-server
-    command: >
-      code-server
-        --bind-addr 0.0.0.0:8443
-        --auth none
-        --disable-telemetry
-        --disable-update-check
-        --app-name "LAURENA CODE"
-        /home/coder/workspaces
-
 volumes:
   db_data:
-  code_server_data:

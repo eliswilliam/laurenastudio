@@ -26,6 +26,7 @@ import Pagamento from "./pages/Pagamento";
 import Configuracoes from "./pages/Configuracoes";
 import PreviewPost from "./pages/PreviewPost";
 import Editor from "./pages/Editor";
+import CriarSite from "./pages/CriarSite";
 import NotFound from "./pages/NotFound";
 
 // Legacy blog template pages
@@ -58,6 +59,7 @@ const App = () => (
           {/* App routes (with sidebar layout) */}
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/criar-site" element={<CriarSite />} />
             <Route path="/marketing-ai" element={<MarketingAI />} />
             <Route path="/ai-studio" element={<AIStudio />} />
             <Route path="/analytics" element={<Analytics />} />

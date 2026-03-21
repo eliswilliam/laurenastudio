@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
+  LayoutTemplate,
   Megaphone,
   Sparkles,
   BarChart3,
@@ -18,6 +19,7 @@ import { useSidebarStore } from '@/store/useSidebarStore';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: LayoutTemplate, label: 'Criar site', href: '/criar-site' },
   { icon: Megaphone, label: 'Marketing AI', href: '/marketing-ai' },
   { icon: Sparkles, label: 'AI Studio', href: '/ai-studio' },
   { icon: BarChart3, label: 'Analytics', href: '/analytics' },

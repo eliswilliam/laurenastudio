@@ -69,6 +69,28 @@ class Settings(BaseSettings):
     GOOGLE_CLOUD_LOCATION: str = "us-central1"
     # Service account JSON for Vertex AI (used in Azure where no ADC file exists)
     GOOGLE_CREDENTIALS_JSON: str = ""
+    # Gemini model for site-builder chat + JSON structure (text). Override via .env if needed.
+    GEMINI_TEXT_MODEL: str = "gemini-2.5-flash"
+
+    # ── Publish to GitHub (API-only; PAT needs repo + workflow scopes) ─────────
+    GITHUB_TOKEN: str = ""
+    GITHUB_OWNER: str = ""
+    GCP_PROJECT_ID: str = ""
+    # Service account JSON for Cloud Run deploy (from Actions). Plain JSON or base64-of-JSON in .env.
+    GCP_SA_KEY: str = ""
+    GCP_REGION: str = "us-central1"
+    # After publish, poll Cloud Run API until the service URL exists (GitHub Actions deploy).
+    CLOUD_RUN_POLL_MAX_SECONDS: int = 1200
+    CLOUD_RUN_POLL_INTERVAL_SECONDS: int = 12
+    # Après création du domain mapping GCP : poll jusqu'à Ready + enregistrements DNS.
+    GCP_DOMAIN_MAPPING_POLL_MAX_SECONDS: int = 900
+    GCP_DOMAIN_MAPPING_POLL_INTERVAL_SECONDS: int = 15
+
+    # ── Cloudflare DNS (custom subdomain → Cloud Run via proxied CNAME) ───────
+    CLOUDFLARE_TOKEN: str = ""
+    CLOUDFLARE_ZONE_ID: str = ""
+    CLOUDFLARE_ACCOUNT_ID: str = ""
+    ROOT_DOMAIN: str = ""
 
     # ── Session (required by Starlette SessionMiddleware for OAuth flow) ─────
     SESSION_SECRET_KEY: str = "CHANGE-ME-session-secret-use-openssl-rand-hex-32"

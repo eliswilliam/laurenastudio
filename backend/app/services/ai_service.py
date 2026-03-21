@@ -6,7 +6,6 @@ Uses google-genai SDK:
   - Video: vertexai=True with ADC + project/location (veo-3.1-generate-001)
 """
 import asyncio
-import base64
 import logging
 import os
 import time
@@ -18,6 +17,7 @@ from google import genai
 from google.genai import types
 
 from app.core.config import settings
+from app.core.google_credentials import decode_google_service_account_json
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +33,20 @@ _video_client: genai.Client | None = None
 
 
 def _get_client() -> genai.Client:
-    """Client for Gemini text/image generation (api_key + vertexai)."""
+    """Client for Gemini text/image via the Gemini Developer API (AI Studio key).
+
+    Use ``vertexai=False`` explicitly so ``GOOGLE_GENAI_USE_VERTEXAI`` in the
+    environment cannot switch this to Vertex express mode, which interacts
+    badly with ``GOOGLE_CLOUD_PROJECT``/location and API-key auth for chat.
+    """
     global _client
     if _client is None:
-        _client = genai.Client(
-            vertexai=True,
-            api_key=settings.GOOGLE_CLOUD_API_KEY,
-        )
+        api_key = (settings.GOOGLE_CLOUD_API_KEY or settings.GOOGLE_API_KEY or "").strip()
+        if not api_key:
+            raise RuntimeError(
+                "Set GOOGLE_API_KEY or GOOGLE_CLOUD_API_KEY for Gemini (site builder + marketing)."
+            )
+        _client = genai.Client(vertexai=False, api_key=api_key)
     return _client
 
 
@@ -63,17 +70,8 @@ def _ensure_gcloud_credentials() -> None:
         logger.info("Using ADC credentials at %s", adc_path)
         return
 
-    creds_json = settings.GOOGLE_CREDENTIALS_JSON
+    creds_json = decode_google_service_account_json(settings.GOOGLE_CREDENTIALS_JSON)
     if creds_json:
-        # Support base64-encoded JSON (avoids Azure mangling the JSON)
-        try:
-            decoded = base64.b64decode(creds_json).decode("utf-8")
-            import json
-            json.loads(decoded)  # validate it's real JSON
-            creds_json = decoded
-        except Exception:
-            pass  # assume it's already raw JSON
-
         sa_path = "/tmp/gcloud_sa_key.json"
         Path(sa_path).write_text(creds_json)
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = sa_path

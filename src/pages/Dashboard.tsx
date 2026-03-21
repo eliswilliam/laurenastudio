@@ -22,6 +22,7 @@ import {
   Loader2,
   Megaphone,
   BarChart3,
+  LayoutTemplate,
 } from 'lucide-react';
 import {
   Card,
@@ -237,6 +238,10 @@ export default function Dashboard() {
             <Button size="sm" onClick={() => navigate('/marketing-ai')} className="justify-start">
               <Megaphone className="w-4 h-4 mr-2" />
               Marketing AI
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate('/criar-site')} className="justify-start">
+              <LayoutTemplate className="w-4 h-4 mr-2" />
+              Criar site
             </Button>
             <Button size="sm" variant="outline" onClick={() => navigate('/ai-studio')} className="justify-start">
               <Sparkles className="w-4 h-4 mr-2" />

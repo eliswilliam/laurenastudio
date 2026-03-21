@@ -106,6 +106,24 @@ def test_all():
     print(f"[MEDIA] List: {s}")
     print(f"  {str(d)[:200]}")
 
+    # --- Criar site / Laurena chat (needs Gemini; may fail without API key) ---
+    s, d = req(
+        "POST",
+        "/sites/chat",
+        {
+            "project_id": None,
+            "messages": [
+                {"role": "user", "content": "Quero uma landing para uma pastelaria em Lisboa."}
+            ],
+        },
+        token=token,
+    )
+    print(f"[SITES] Chat: {s}")
+    if s == 200:
+        print(f"  project_id={d.get('project_id')} reply={str(d.get('reply', ''))[:120]}…")
+    else:
+        print(f"  {str(d)[:300]}")
+
     print("=" * 60)
     print("TEST COMPLETE")
     print("=" * 60)

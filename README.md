@@ -19,6 +19,7 @@
 12. [Nginx](#12-nginx)
 13. [Déploiement Azure](#13-déploiement-azure)
 14. [Restauration depuis ce snapshot](#14-restauration-depuis-ce-snapshot)
+15. [Générateur de sites (Criar site)](docs/SITE_BUILDER.md)
 
 ---
 

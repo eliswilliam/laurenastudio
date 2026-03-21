@@ -1,4 +1,5 @@
 # Logs
+.env
 logs
 *.log
 npm-debug.log*
@@ -6,7 +7,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+.env
 node_modules
 dist
 dist-ssr
@@ -29,6 +30,8 @@ dist-ssr
 .env.*.local
 backend/.env
 backend/.env.local
+# Local copies of service account JSON (never commit)
+backend/jsongpt
 # .env.example IS committed (no secrets, just template)
 
 # ── Python bytecode & cache ─────────────────────────────────────────────────
@@ -76,12 +79,21 @@ docker_images_list.txt
 *.pid
 .socket
 
-# ── LAURENA CODE — cloned repos & workspaces ─────────────────────────────────
-backend/code-server/
-backend/workspaces/
-
 # ── External backups (parent directory) ────────────────────────────────────────
 ../laurenafoncionel*/
 ../laurenastudio.backup*/
 *.tar.gz
 *.zip
+.env.md
+env.md
+
+# Autres fichiers contenant des secrets / variables d’environnement
+.env.*
+!.env.example
+backend/.env.*
+!backend/.env.example
+*.pem
+*.p12
+service-account*.json
+application_default_credentials.json
+**/gcloud-sa.json

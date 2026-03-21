@@ -7,6 +7,7 @@ from app.models.subscription import Subscription
 from app.models.usage_tracking import UsageTracking
 from app.models.ai_generation import AIGeneration
 from app.models.media import Media
+from app.models.site_project import GeneratedSite, SiteDeployment, SiteProject, SitePrompt
 
 __all__ = [
     "User",
@@ -18,4 +19,8 @@ __all__ = [
     "UsageTracking",
     "AIGeneration",
     "Media",
+    "SiteProject",
+    "SitePrompt",
+    "GeneratedSite",
+    "SiteDeployment",
 ]

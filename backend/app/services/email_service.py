@@ -133,7 +133,7 @@ async def send_welcome_email(
     """
     subject = "Bem-vindo à Laurena Studio — sua criatividade, amplificada por IA"
 
-base_url = settings.FRONTEND_URL.rstrip('/')
+    base_url = settings.FRONTEND_URL.rstrip('/')
     if "localhost" in base_url or "127.0.0.1" in base_url:
         base_url = "https://studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net"
 

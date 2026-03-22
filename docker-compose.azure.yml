@@ -1,5 +1,8 @@
 # Azure Web App (Linux, multi-container) — Docker Compose only references ACR images (no build:).
 # Single public port: frontend:8080. API and Redis are internal to the Docker network.
+#
+# App Settings must include REDIS_URL=redis://redis:6379/0 (service name "redis") so api/worker
+# do not fall back to localhost:6379.
 
 services:
   redis:

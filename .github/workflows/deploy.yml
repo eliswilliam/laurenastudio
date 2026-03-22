@@ -286,19 +286,21 @@ jobs:
 
       - name: Wait for containers to stabilize
         run: |
-          echo "Waiting 45s for containers to pull new images and start..."
-          sleep 45
+          echo "Waiting 120s for ACR pull, alembic, and nginx wait-for-api..."
+          sleep 120
 
       - name: Verify frontend is responding
         run: |
-          MAX_RETRIES=8
-          RETRY_INTERVAL=15
+          MAX_RETRIES=20
+          RETRY_INTERVAL=20
           SUCCESS=false
 
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Verification $i/$MAX_RETRIES..."
-            HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
-              --max-time 20 \
+            # -4: force IPv4 — GitHub runners often get HTTP 000 with IPv6 to azurewebsites.net
+            HTTP_STATUS=$(curl -4 --silent --output /dev/null --write-out "%{http_code}" \
+              --max-time 45 \
+              --retry 2 --retry-delay 3 \
               "https://${{ env.APP_HOST }}/" || echo "000")
 
             echo "Frontend: $HTTP_STATUS"
@@ -314,6 +316,7 @@ jobs:
 
           if [ "$SUCCESS" = false ]; then
             echo "ERROR: Frontend not responding after $MAX_RETRIES attempts."
+            curl -4 -v --max-time 30 "https://${{ env.APP_HOST }}/" 2>&1 | head -n 40 || true
             exit 1
           fi
 
@@ -325,7 +328,7 @@ jobs:
 
           for i in $(seq 1 $MAX_RETRIES); do
             echo "API check $i/$MAX_RETRIES..."
-            RESPONSE=$(curl --silent --max-time 15 \
+            RESPONSE=$(curl -4 --silent --max-time 25 \
               "https://${{ env.APP_HOST }}/health" || echo "FAIL")
 
             echo "API response: $RESPONSE"

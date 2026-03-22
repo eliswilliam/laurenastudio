@@ -41,28 +41,39 @@ async def send_password_reset_code(to_email: str, code: str) -> None:
     """Send a 6-digit password-reset code to *to_email*."""
     subject = "Seu código de recuperação de senha — Laurena Studio"
 
+    base_url = settings.FRONTEND_URL.rstrip('/')
+    if "localhost" in base_url or "127.0.0.1" in base_url:
+        base_url = "https://studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net"
+        
     html_body = f"""
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="UTF-8"></head>
-<body style="font-family:sans-serif;color:#1a1a1a;max-width:480px;margin:0 auto;padding:24px">
-  <img src="{settings.FRONTEND_URL}/android-chrome-192x192.png" alt="Laurena Studio"
-       width="48" style="border-radius:12px;margin-bottom:16px">
-  <h2 style="margin:0 0 8px">Recuperação de senha</h2>
-  <p style="color:#555;margin:0 0 24px">
-    Use o código abaixo para redefinir sua senha. Ele é válido por <strong>10 minutos</strong>.
-  </p>
-  <div style="background:#f4f4f5;border-radius:12px;padding:24px;text-align:center;
-              font-size:36px;font-weight:bold;letter-spacing:12px;color:#C15F3C">
-    {code}
-  </div>
-  <p style="color:#888;font-size:12px;margin-top:24px">
-    Se você não solicitou a recuperação de senha, ignore este e-mail.
-  </p>
-  <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0">
-  <p style="color:#999;font-size:11px;margin:0">
-    © Laurena Studio — todos os direitos reservados.
-  </p>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;background:#f9f9fa;margin:0;padding:40px 20px">
+  <table width="100%" max-width="500" cellpadding="0" cellspacing="0" style="max-width:500px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);overflow:hidden">
+    <tr>
+      <td style="padding:40px 32px;text-align:center;">
+        <img src="{base_url}/android-chrome-192x192.png" alt="Laurena Studio" width="56" style="border-radius:12px;margin-bottom:24px">
+        <h2 style="margin:0 0 12px;font-size:22px;color:#1a1a1a">Recuperação de Senha</h2>
+        <p style="color:#555;margin:0 0 32px;font-size:15px;line-height:1.5">
+          Use o código abaixo para redefinir sua senha na Laurena Studio. Ele é válido por <strong>10 minutos</strong>.
+        </p>
+        <div style="background:#f4f4f5;border-radius:12px;padding:24px;text-align:center;font-size:36px;font-weight:700;letter-spacing:8px;color:#C15F3C;margin-bottom:32px;">
+          {code}
+        </div>
+        <p style="color:#888;font-size:13px;margin:0;line-height:1.5">
+          Se você não solicitou a recuperação de senha, pode ignorar este e-mail tranquilamente.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#fcfcfc;padding:24px 32px;text-align:center;border-top:1px solid #eee">
+        <p style="color:#aaa;font-size:12px;margin:0">
+          © Laurena Studio — todos os direitos reservados.
+        </p>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
 """
@@ -122,9 +133,13 @@ async def send_welcome_email(
     """
     subject = "Bem-vindo à Laurena Studio — sua criatividade, amplificada por IA"
 
-    logo_url = f"{settings.FRONTEND_URL.rstrip('/')}/android-chrome-192x192.png"
-    plans_url = f"{settings.FRONTEND_URL.rstrip('/')}/escolher-plano"
-    dashboard_url = f"{settings.FRONTEND_URL.rstrip('/')}/dashboard"
+base_url = settings.FRONTEND_URL.rstrip('/')
+    if "localhost" in base_url or "127.0.0.1" in base_url:
+        base_url = "https://studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net"
+
+    logo_url = f"{base_url}/android-chrome-192x192.png"
+    plans_url = f"{base_url}/escolher-plano"
+    dashboard_url = f"{base_url}/dashboard"
 
     safe_name = html.escape(recipient_name, quote=True)
     cards = _format_plan_cards_html(plans)
@@ -133,61 +148,54 @@ async def send_welcome_email(
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;background:#f0eeeb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#1a1a1a">
-  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f0eeeb;padding:32px 16px">
+<body style="margin:0;background:#f9f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;padding:40px 20px">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.06)">
     <tr>
-      <td align="center">
-        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(26,26,26,0.08)">
+      <td style="padding:48px 40px 32px;text-align:center;background:#fff;border-bottom:1px solid #f0f0f0">
+        <img src="{logo_url}" alt="Laurena Studio" width="64" height="64" style="border-radius:16px;display:block;margin:0 auto 20px">
+        <h1 style="margin:0;font-size:26px;font-weight:800;color:#1a1a1a;letter-spacing:-0.5px">Bem-vindo(a), {safe_name}! 🎉</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:40px 40px 24px">
+        <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#444">
+          É um prazer ter você na <strong>Laurena Studio</strong>. Nossa plataforma foi desenhada para impulsionar a sua criatividade com ferramentas de Inteligência Artificial para gerar sites, criar textos, imagens, vídeos e gerir redes sociais.
+        </p>
+        <p style="margin:0 0 32px;font-size:16px;line-height:1.6;color:#444">
+          Para começar com o pé direito, explore o seu Dashboard e conheça nossos planos para liberar ainda mais recursos:
+        </p>
+        
+        <div style="background:#faf9f8;border:1px solid #eaeaea;border-radius:16px;padding:24px;margin-bottom:32px;">
+          <h3 style="margin:0 0 16px;font-size:13px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px">Planos Disponíveis</h3>
+          {cards}
+        </div>
+
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:16px">
           <tr>
-            <td style="background:linear-gradient(135deg,#1a1a1a 0%,#2d2419 50%,#4a2f22 100%);padding:28px 28px 24px;text-align:center">
-              <img src="{logo_url}" alt="Laurena Studio" width="56" height="56" style="border-radius:14px;display:block;margin:0 auto 12px">
-              <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:rgba(255,255,255,0.75)">LAURENA STUDIO</p>
-              <h1 style="margin:8px 0 0;font-size:22px;font-weight:700;color:#ffffff;line-height:1.3">Bem-vindo, {safe_name}!</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:28px 28px 8px">
-              <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#333">
-                Obrigado por entrar na <strong style="color:#C15F3C">Laurena Studio</strong> — a plataforma pensada para
-                <strong>criadores, marcas e equipas</strong> que querem produzir conteúdo de marketing com inteligência artificial:
-                textos, imagens e vídeo, agendamento, biblioteca de mídia e o nosso gerador de sites, tudo num só lugar.
-              </p>
-              <p style="margin:0 0 22px;font-size:15px;line-height:1.65;color:#333">
-                Explore o <strong>dashboard</strong>, experimente o <strong>AI Studio</strong> e escolha o plano que melhor se adapta ao seu ritmo.
-              </p>
-              <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888">Os nossos planos</p>
-              {cards}
-              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:24px 0 8px">
-                <tr>
-                  <td align="center">
-                    <a href="{plans_url}" style="display:inline-block;background:#C15F3C;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:999px">Ver planos e preços</a>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding-top:12px">
-                    <a href="{dashboard_url}" style="color:#C15F3C;font-size:14px;font-weight:500;text-decoration:underline">Abrir o painel</a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:0 28px 28px">
-              <hr style="border:none;border-top:1px solid #e8e4e0;margin:0 0 16px">
-              <p style="margin:0;font-size:12px;line-height:1.5;color:#888;text-align:center">
-                Recebeu este e-mail porque acabou de iniciar sessão ou criar conta na Laurena Studio.<br>
-                Se não foi você, pode ignorar esta mensagem com segurança.
-              </p>
-              <p style="margin:16px 0 0;font-size:11px;color:#aaa;text-align:center">© Laurena Studio — todos os direitos reservados.</p>
+            <td align="center">
+              <a href="{dashboard_url}" style="display:inline-block;background:#C15F3C;color:#ffffff;text-decoration:none;font-weight:600;font-size:16px;padding:16px 36px;border-radius:12px;box-shadow:0 4px 12px rgba(193,95,60,0.3)">Acessar meu Dashboard</a>
             </td>
           </tr>
         </table>
+        
+        <div style="text-align:center;margin-top:24px">
+          <a href="{plans_url}" style="color:#C15F3C;font-size:15px;font-weight:600;text-decoration:none;">Ou compare os planos aqui &rarr;</a>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#fcfcfc;padding:32px 40px;text-align:center;border-top:1px solid #eaeaea">
+        <p style="margin:0 0 12px;font-size:13px;line-height:1.5;color:#888;">
+          Este e-mail foi enviado porque você (ou alguém usando este e-mail) criou uma conta na Laurena Studio. Se não foi você, por favor ignore.
+        </p>
+        <p style="margin:0;font-size:12px;color:#aaa;font-weight:500">© Laurena Studio. Todos os direitos reservados.</p>
       </td>
     </tr>
   </table>
 </body>
 </html>
 """
+
 
     plan_lines_txt = "\n".join(
         f"- {d[0]} ({d[1]}/mês): {d[3]}" for d in plans

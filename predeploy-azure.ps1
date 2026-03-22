@@ -31,14 +31,16 @@ Write-Host "[2/6] Building Frontend prod image..." -ForegroundColor Yellow
 docker build --tag "$FrontendImage`:$Tag" --tag "$FrontendImage`:latest" --file Dockerfile.frontend.prod .
 Write-Host "[OK] Frontend image built" -ForegroundColor Green
 
-# 2) Smoke run containers
+# 2) Smoke run containers (shared user-defined network + DNS alias "api" so nginx can proxy)
 Write-Host "[3/6] Starting API container for smoke test..." -ForegroundColor Yellow
-try { docker rm -f predeploy-test-api *> $null } catch {}
-docker run --detach --name predeploy-test-api --publish 18000:8000 "$ApiImage`:$Tag" sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000" | Out-Null
+try { docker rm -f predeploy-test-api predeploy-test-frontend 2>&1 | Out-Null } catch {}
+docker network rm predeploy-ci-net 2>&1 | Out-Null
+docker network create predeploy-ci-net | Out-Null
+
+docker run --detach --name predeploy-test-api --network predeploy-ci-net --network-alias api --publish 18000:8000 "$ApiImage`:$Tag" sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000" | Out-Null
 
 Write-Host "[4/6] Starting Frontend container for smoke test..." -ForegroundColor Yellow
-try { docker rm -f predeploy-test-frontend *> $null } catch {}
-docker run --detach --name predeploy-test-frontend --publish 18080:8080 "$FrontendImage`:$Tag" | Out-Null
+docker run --detach --name predeploy-test-frontend --network predeploy-ci-net --publish 18080:8080 "$FrontendImage`:$Tag" | Out-Null
 
 # 3) Health checks
 Write-Host "[5/6] Health checks..." -ForegroundColor Yellow
@@ -88,8 +90,9 @@ Write-Host "docker tag $FrontendImage`:$Tag $Registry/$FrontendImage`:$Tag"
 Write-Host "docker tag $ApiImage`:$Tag $Registry/$ApiImage`:latest"
 Write-Host "docker tag $FrontendImage`:$Tag $Registry/$FrontendImage`:latest"
 
-# Cleanup test containers
-try { docker rm -f predeploy-test-api predeploy-test-frontend *> $null } catch {}
+# Cleanup test containers and network
+try { docker rm -f predeploy-test-api predeploy-test-frontend 2>&1 | Out-Null } catch {}
+docker network rm predeploy-ci-net 2>&1 | Out-Null
 
 Write-Host ""
 Write-Host "Predeploy check done successfully." -ForegroundColor Green

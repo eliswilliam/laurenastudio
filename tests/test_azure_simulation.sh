@@ -170,11 +170,15 @@ sleep 10
 H_NGINX=$(curl -s -o /tmp/hn.json -w "%{http_code}" "${FE_BASE}/health" 2>/dev/null || echo "000")
 H_API=$(curl -s -o /tmp/ha.json -w "%{http_code}" "${API_BASE}/health" 2>/dev/null || echo "000")
 NGX_OK=0
-if grep -q 'proxy_pass[[:space:]]\+http://api:8000' "${ROOT_DIR}/nginx.conf" && ! grep -qE 'proxy_pass[^;]*localhost|proxy_pass[^;]*127\.' "${ROOT_DIR}/nginx.conf"; then
+# Dynamic DNS (resolver + $api_upstream) or legacy literal proxy_pass http://api:8000 — not localhost
+if grep -q 'http://api:8000' "${ROOT_DIR}/nginx.conf" \
+  && { grep -qF 'proxy_pass $api_upstream$request_uri' "${ROOT_DIR}/nginx.conf" \
+       || grep -q 'proxy_pass http://api:8000' "${ROOT_DIR}/nginx.conf"; } \
+  && ! grep -qE 'proxy_pass[^;]*localhost|proxy_pass[^;]*127\.' "${ROOT_DIR}/nginx.conf"; then
   NGX_OK=1
 fi
 if [[ "$H_NGINX" == "200" && "$H_API" == "200" && "$NGX_OK" -eq 1 ]]; then
-  pass "T5: /health via nginx and direct API; nginx.conf uses http://api:8000"
+  pass "T5: /health via nginx and direct API; nginx targets api:8000 (not localhost)"
 else
   fail "T5: H_NGINX=$H_NGINX H_API=$H_API NGX_OK=$NGX_OK"
 fi

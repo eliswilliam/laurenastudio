@@ -54,13 +54,21 @@ jobs:
 
       # ── Start containers for health check ──────────────────────────────────
       # API: skip alembic migrations (no DB in CI), just verify the app starts
-      # Frontend: nginx serves static files, no dependencies
+      # Frontend: nginx proxies /api to hostname "api" — must share a user-defined
+      # network and expose the API container under the DNS name "api" (alias).
+
+      - name: Create Docker network for CI
+        run: |
+          docker network rm ci-test-net 2>/dev/null || true
+          docker network create ci-test-net
 
       - name: Start API container for test
         run: |
           docker run \
             --detach \
             --name test-api \
+            --network ci-test-net \
+            --network-alias api \
             --publish 8000:8000 \
             ${{ env.API_IMAGE }}:${{ steps.meta.outputs.tag }} \
             sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
@@ -70,6 +78,7 @@ jobs:
           docker run \
             --detach \
             --name test-frontend \
+            --network ci-test-net \
             --publish 8080:8080 \
             ${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.tag }}
 
@@ -151,6 +160,7 @@ jobs:
         run: |
           docker stop test-api test-frontend || true
           docker rm test-api test-frontend || true
+          docker network rm ci-test-net 2>/dev/null || true
 
       # ── Save images as artifacts for deploy job ────────────────────────────
 

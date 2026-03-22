@@ -1,7 +1,8 @@
 #!/bin/sh
 # Wait until api is up before nginx loads config (avoids "host not found in upstream api").
 set -eu
-max=240
+# Azure: alembic + cold DB can exceed 8 min on first pull after deploy.
+max=360
 i=0
 echo "Waiting for http://api:8000/health (max ${max} iterations, 2s apart)..."
 while [ "$i" -lt "$max" ]; do

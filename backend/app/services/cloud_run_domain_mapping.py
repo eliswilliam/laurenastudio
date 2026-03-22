@@ -230,27 +230,8 @@ def ensure_mapped_domain_and_cloudflare_dns(
             "Verifique IAM (run.domainmappings.*) e a consola Cloud Run → Domain mappings."
         )
 
-    # 2) Ready (certificado / propagation) — fenêtre dédiée
-    deadline_ready = time.monotonic() + settings.GCP_DOMAIN_MAPPING_POLL_MAX_SECONDS
-    last_log_ready = time.monotonic()
-    while time.monotonic() < deadline_ready:
-        dm = _get_domain_mapping(project_id, fqdn, region)
-        _raise_if_fatal_domain_mapping(dm)
-        now = time.monotonic()
-        if now - last_log_ready >= 30.0:
-            logger.info(
-                "[publish] waiting for domain mapping Ready %s (~%ds left)",
-                fqdn,
-                int(deadline_ready - now),
-            )
-            last_log_ready = now
-        if _status_ready(dm):
-            logger.info("Domain mapping Ready for %s", fqdn)
-            return final
-        time.sleep(interval)
-
-    msg = _status_message(dm or {})
-    raise DomainMappingError(
-        f"Domain mapping não ficou Ready após aplicar DNS ({settings.GCP_DOMAIN_MAPPING_POLL_MAX_SECONDS}s). "
-        f"Último estado: {msg or 'sem mensagem'}"
-    )
+    # We skip waiting for "Ready" because certificate propagation (Cloudflare + Google) 
+    # can take up to 30 minutes. The backend job should finish here so the frontend 
+    # doesn't timeout, and the frontend will show a custom waiting message.
+    logger.info("DNS applied to Cloudflare, skipping Ready wait and returning.")
+    return final

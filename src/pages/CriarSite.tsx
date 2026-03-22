@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import api, { getJobStatus } from '@/lib/api';
 import { type JobStatus, type Mensagem, MENSAGEM_ABERTURA_TEXTO } from '@/lib/criarSiteChat';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useCriarSiteJobStore } from '@/store/useCriarSiteJobStore';
+import { useCriarSiteJobStore, type SiteResult } from '@/store/useCriarSiteJobStore';
 import { getPublishConfig, getPublishJobStatus, postPublish } from '@/lib/publishApi';
 
 const ID = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -55,10 +55,7 @@ function slugValid(s: string): boolean {
   return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(t);
 }
 
-interface SiteResult {
-  previewUrl: string;
-  downloadUrl: string;
-}
+
 
 export default function CriarSite() {
   const usuario = useAuthStore((s) => s.usuario);
@@ -68,17 +65,24 @@ export default function CriarSite() {
   const setPublishJobId = useCriarSiteJobStore((s) => s.setPublishJobId);
   const clearGenerateJob = useCriarSiteJobStore((s) => s.clearGenerateJob);
   const clearPublishJob = useCriarSiteJobStore((s) => s.clearPublishJob);
+  const resetAll = useCriarSiteJobStore((s) => s.resetAll);
 
-  const [lista, setLista] = useState<Mensagem[]>([ABERTURA]);
+  const lista = useCriarSiteJobStore((s) => s.lista);
+  const setLista = useCriarSiteJobStore((s) => s.setLista);
   const [rascunho, setRascunho] = useState('');
   const [aEnviar, setAEnviar] = useState(false);
-  const [aGerar, setAGerar] = useState(false);
-  const [aPublicar, setAPublicar] = useState(false);
-  const [projectId, setProjectId] = useState<string | null>(null);
-  const [siteResult, setSiteResult] = useState<SiteResult | null>(null);
-  const [githubUrl, setGithubUrl] = useState<string | null>(null);
-  const [publicSiteUrl, setPublicSiteUrl] = useState<string | null>(null);
-  const [publishSlug, setPublishSlug] = useState('');
+  const [aGerar, setAGerar] = useState(!!generateJobId);
+  const [aPublicar, setAPublicar] = useState(!!publishJobId);
+  const projectId = useCriarSiteJobStore((s) => s.projectId);
+  const setProjectId = useCriarSiteJobStore((s) => s.setProjectId);
+  const siteResult = useCriarSiteJobStore((s) => s.siteResult);
+  const setSiteResult = useCriarSiteJobStore((s) => s.setSiteResult);
+  const githubUrl = useCriarSiteJobStore((s) => s.githubUrl);
+  const setGithubUrl = useCriarSiteJobStore((s) => s.setGithubUrl);
+  const publicSiteUrl = useCriarSiteJobStore((s) => s.publicSiteUrl);
+  const setPublicSiteUrl = useCriarSiteJobStore((s) => s.setPublicSiteUrl);
+  const publishSlug = useCriarSiteJobStore((s) => s.publishSlug);
+  const setPublishSlug = useCriarSiteJobStore((s) => s.setPublishSlug);
   /** Aligné sur GET /api/publish/config (Cloudflare actif côté API). */
   const [requirePublishSlug, setRequirePublishSlug] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -388,7 +392,15 @@ export default function CriarSite() {
         <header className="flex flex-wrap items-center justify-between gap-2 gap-y-3 shrink-0 pb-3 md:pb-4">
           <h1 className="text-sm font-medium text-muted-foreground truncate">{TITULO_PAGINA}</h1>
           <div className="flex items-center gap-2">
-            {siteResult && (
+            <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-normal"
+                onClick={resetAll}
+              >
+                Novo Site
+              </Button>
+              {siteResult && (
               <>
                 <Button
                   variant="outline"

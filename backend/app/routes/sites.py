@@ -205,6 +205,16 @@ async def get_site_status(
         .limit(20)
     )
     deployments = dep_result.scalars().all()
+
+    pr_result = await db.execute(
+        select(SitePrompt)
+        .where(SitePrompt.project_id == project_id)
+        .order_by(SitePrompt.created_at.asc())
+        .limit(100)
+    )
+    prompts = pr_result.scalars().all()
+    messages_out = [ChatMessage(role=p.role, content=p.content) for p in prompts if p.role in ("user", "assistant")]
+
     dep_infos = [
         DeploymentInfo(
             id=d.id,
@@ -224,6 +234,7 @@ async def get_site_status(
     return SiteStatusResponse(
         project_id=project.id,
         project_name=project.name,
+        messages=messages_out,
         status=project.status,
         preview_url=site.preview_url if site else None,
         download_url=download_url,

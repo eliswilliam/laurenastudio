@@ -1,3 +1,0 @@
-<step title="Startup Request" date="2026-03-12T02:59:20.321" instance="004389" url="/api/vfs/LogFiles/2026_03_12_lw1sdlwk0004LL_default_docker.log" method="GET" type="request" pid="775,1,5" ScmType="None" >
-  <step title="Cleanup Xml Logs" date="2026-03-12T02:59:20.325" /><!-- duration: 7ms -->
-</step><!-- duration: 15ms -->

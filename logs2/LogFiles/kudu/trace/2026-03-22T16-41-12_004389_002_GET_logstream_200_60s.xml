@@ -1,5 +1,0 @@
-<step title="Incoming Request" date="2026-03-22T16:41:12.947" instance="004389" url="/logstream" method="GET" type="request" pid="770,1,22" Host="studiolaurena-g8eadbcrg8a9hyeq.scm.canadacentral-01.azurewebsites.net" User-Agent="AZURECLI/2.83.0 (MSI)" Accept-Encoding="identity" Authorization="Bas..." x-ms-client-request-id="ed728b66-260d-11f1-85c7-c86e080be3ab" X-ARR-LOG-ID="ed728b66-260d-11f1-85c7-c86e080be3ab" CLIENT-IP="38.226.185.144:27393" X-SITE-DEPLOYMENT-ID="studiolaurena" WAS-DEFAULT-HOSTNAME="studiolaurena-g8eadbcrg8a9hyeq.scm.canadacentral-01.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/logstream" X-Client-IP="38.226.185.144" X-Client-Port="27393" >
-  <step title="LogStreamHandlerMiddleware.Invoke" date="2026-03-22T16:41:13.047" /><!-- duration: 151ms -->
-  <step title="Error occurred" date="2026-03-22T16:42:13.222" type="error" text="LogStreamManager: ProcessRequest end" /><!-- duration: 9ms -->
-  <step title="Outgoing response" date="2026-03-22T16:42:13.264" type="response" statusCode="200" statusText="OK" /><!-- duration: 11ms -->
-</step><!-- duration: 60330ms -->

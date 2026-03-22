@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import api, { getJobStatus } from '@/lib/api';
 import { type JobStatus, type Mensagem, MENSAGEM_ABERTURA_TEXTO } from '@/lib/criarSiteChat';
+import { HistoricoSitesDrawer } from '@/components/HistoricoSitesDrawer';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCriarSiteJobStore, type SiteResult } from '@/store/useCriarSiteJobStore';
 import { getPublishConfig, getPublishJobStatus, postPublish } from '@/lib/publishApi';
@@ -392,7 +393,8 @@ export default function CriarSite() {
         <header className="flex flex-wrap items-center justify-between gap-2 gap-y-3 shrink-0 pb-3 md:pb-4">
           <h1 className="text-sm font-medium text-muted-foreground truncate">{TITULO_PAGINA}</h1>
           <div className="flex items-center gap-2">
-            <Button
+            <HistoricoSitesDrawer />
+              <Button
                 variant="ghost"
                 size="sm"
                 className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-normal"

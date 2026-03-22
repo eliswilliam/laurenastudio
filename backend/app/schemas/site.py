@@ -55,6 +55,7 @@ class DeploymentInfo(BaseModel):
 
 
 class SiteStatusResponse(BaseModel):
+    messages: list[ChatMessage] = Field(default_factory=list)
     project_id: str
     project_name: str
     status: str

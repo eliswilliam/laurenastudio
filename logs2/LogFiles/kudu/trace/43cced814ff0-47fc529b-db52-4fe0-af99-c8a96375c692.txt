@@ -1,3 +1,0 @@
-2026-03-22T16:12:07  Startup Request, url: /logstream/docker, method: GET, type: request, pid: 770,1,20, ScmType: None
-2026-03-22T16:13:08    Error occurred, type: error, text: LogStreamManager: ProcessRequest end
-2026-03-22T16:13:08  Error occurred, type: error, text: LogStreamManager: Inside Reset

@@ -5,9 +5,10 @@ from __future__ import annotations
 import logging
 
 from arq import create_pool
-from arq.connections import ArqRedis, RedisSettings
+from arq.connections import ArqRedis
 
 from app.core.config import settings
+from app.redis_arq_settings import build_redis_settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ _pool: ArqRedis | None = None
 async def get_arq_pool() -> ArqRedis:
     global _pool
     if _pool is None:
-        _pool = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
+        _pool = await create_pool(build_redis_settings())
         logger.info("ARQ pool connected to %s", settings.REDIS_URL.split("@")[-1])
     return _pool
 

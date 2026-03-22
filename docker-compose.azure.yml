@@ -1,85 +1,91 @@
-# docker-compose.azure.yml — Production deployment for Azure Web App multi-container
-# No "db" service: uses Azure Database for PostgreSQL (VNet private access)
-#
-# Inclui Redis + worker ARQ (mesma imagem da API) para jobs de geração/publicação.
-# Defina REDIS_URL no App Service / variáveis (ex.: redis://redis:6379/0 entre contentores).
+# Azure Web App (Linux, multi-container) — Docker Compose only references ACR images (no build:).
+# Single public port: frontend:8080. API and Redis are internal to the Docker network.
 
 services:
   redis:
     image: redis:7-alpine
-    expose:
-      - "6379"
     restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
-    # CI/CD pushes both :<sha> and :latest. App Service restart pulls :latest.
     image: laurenastudio.azurecr.io/laurena-api:latest
-    expose:
-      - "8000"
+    restart: always
     depends_on:
       - redis
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_URL: ${REDIS_URL}
       SECRET_KEY: ${SECRET_KEY}
       SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
+      DB_SSL_REQUIRE: ${DB_SSL_REQUIRE}
+      GEMINI_TEXT_MODEL: ${GEMINI_TEXT_MODEL}
+      GOOGLE_CLOUD_API_KEY: ${GEMINI_API_KEY}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      CLOUDFLARE_TOKEN: ${CLOUDFLARE_API_TOKEN}
+      ROOT_DOMAIN: ${ROOT_DOMAIN}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      GCP_REGION: ${GCP_REGION}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
+      GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
+      GCP_SA_KEY: ${GCP_SA_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
       FRONTEND_URL: ${FRONTEND_URL}
       BACKEND_URL: ${BACKEND_URL}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       FACEBOOK_APP_ID: ${FACEBOOK_APP_ID}
       FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
-      STRIPE_PRICE_ID_STARTER: ${STRIPE_PRICE_ID_STARTER}
-      STRIPE_PRICE_ID_PRO: ${STRIPE_PRICE_ID_PRO}
-      STRIPE_PRICE_ID_BUSINESS: ${STRIPE_PRICE_ID_BUSINESS}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
-      GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
-      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
-      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
-      GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
 
   worker:
     image: laurenastudio.azurecr.io/laurena-api:latest
     restart: always
     depends_on:
       - redis
-      - api
     command: ["arq", "app.workers.arq_worker.WorkerSettings"]
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_URL: ${REDIS_URL}
       SECRET_KEY: ${SECRET_KEY}
       SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
-      FRONTEND_URL: ${FRONTEND_URL}
-      BACKEND_URL: ${BACKEND_URL}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
+      DB_SSL_REQUIRE: ${DB_SSL_REQUIRE}
+      GEMINI_TEXT_MODEL: ${GEMINI_TEXT_MODEL}
+      GOOGLE_CLOUD_API_KEY: ${GEMINI_API_KEY}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      CLOUDFLARE_TOKEN: ${CLOUDFLARE_API_TOKEN}
+      ROOT_DOMAIN: ${ROOT_DOMAIN}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      GCP_REGION: ${GCP_REGION}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
       GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
-      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-}
-      GCP_REGION: ${GCP_REGION:-}
-      GCP_SA_KEY: ${GCP_SA_KEY:-}
-      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      GITHUB_OWNER: ${GITHUB_OWNER:-}
-      CLOUDFLARE_TOKEN: ${CLOUDFLARE_TOKEN:-}
-      CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:-}
-      ROOT_DOMAIN: ${ROOT_DOMAIN:-}
+      GCP_SA_KEY: ${GCP_SA_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      FRONTEND_URL: ${FRONTEND_URL}
+      BACKEND_URL: ${BACKEND_URL}
+      GITHUB_OWNER: ${GITHUB_OWNER}
+      CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID}
 
   frontend:
     image: laurenastudio.azurecr.io/laurena-frontend:latest
+    restart: always
     ports:
       - "8080:8080"
     depends_on:

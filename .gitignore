@@ -90,6 +90,7 @@ env.md
 # Autres fichiers contenant des secrets / variables d’environnement
 .env.*
 !.env.example
+!.env.test
 backend/.env.*
 !backend/.env.example
 *.pem

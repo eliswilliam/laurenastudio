@@ -30,6 +30,10 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+    # First successful login/register welcome e-mail (SMTP) — NULL = not sent yet.
+    welcome_email_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # ── Relationships ────────────────────────────────────────────────────────
     workspaces: Mapped[list["Workspace"]] = relationship(  # noqa: F821

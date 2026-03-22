@@ -1,0 +1,71 @@
+# Local Azure-like simulation for tests (Docker Desktop).
+# Rules: only frontend publishes 8080 to the host; api uses 8001 only for direct test access (not Azure-like).
+# No bind-mount of source; no external named volumes (ephemeral DB via tmpfs).
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: "no"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:15
+    restart: "no"
+    environment:
+      POSTGRES_DB: laurenadb_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: testpass
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d laurenadb_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: "no"
+    env_file:
+      - .env.test
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      # Test-only: curl API from host. On real Azure this port is not published (nginx → api:8000).
+      - "8001:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: "no"
+    env_file:
+      - .env.test
+    command: ["arq", "app.workers.arq_worker.WorkerSettings"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.prod
+    restart: "no"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api

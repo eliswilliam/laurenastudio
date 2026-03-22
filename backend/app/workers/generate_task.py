@@ -3,6 +3,7 @@ ARQ task: run site generation (Gemini structure + Jinja2 HTML) for a background 
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from uuid import UUID
@@ -10,7 +11,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.db.session import AsyncSessionLocal
+from app.db.worker_db import WorkerSessionLocal
 from app.models.site_project import GeneratedSite, SiteProject
 from app.services.job_service import append_log, get_job, mark_failed, mark_running, mark_success
 from app.services.site_ai_service import generate_site_structure
@@ -18,10 +19,19 @@ from app.services.site_generator import generate_html, save_site
 
 logger = logging.getLogger(__name__)
 
+MAX_TASK_RUNTIME_S = 600
 
-async def arq_generate_site(ctx: dict, job_id: str) -> None:
+
+async def _handle_generate_timeout(job_id: UUID) -> None:
+    async with WorkerSessionLocal() as db:
+        await append_log(db, job_id, "Timeout: tarefa excedeu 600s.")
+        await mark_failed(db, job_id, "timeout")
+        await db.commit()
+
+
+async def _arq_generate_site_impl(job_id: str) -> None:
     jid = UUID(job_id)
-    async with AsyncSessionLocal() as db:
+    async with WorkerSessionLocal() as db:
         job = await get_job(db, jid)
         if not job:
             logger.error("generate task: job not found %s", job_id)
@@ -142,3 +152,12 @@ async def arq_generate_site(ctx: dict, job_id: str) -> None:
         await append_log(db, jid, "Geração concluída com sucesso.")
         await mark_success(db, jid, out)
         await db.commit()
+
+
+async def arq_generate_site(ctx: dict, job_id: str) -> None:
+    jid = UUID(job_id)
+    try:
+        await asyncio.wait_for(_arq_generate_site_impl(job_id), timeout=MAX_TASK_RUNTIME_S)
+    except asyncio.TimeoutError:
+        logger.warning("generate task exceeded %ss: %s", MAX_TASK_RUNTIME_S, job_id)
+        await _handle_generate_timeout(jid)

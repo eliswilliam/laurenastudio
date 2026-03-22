@@ -11,7 +11,7 @@ from uuid import UUID
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.db.session import AsyncSessionLocal
+from app.db.worker_db import WorkerSessionLocal
 from app.models.site_project import SiteDeployment, SiteProject
 from app.schemas.publish import PublishResponse
 from app.services.cloud_run_lookup import wait_for_cloud_run_url
@@ -24,10 +24,19 @@ from app.services.site_static_bundle import split_html_to_static_files
 
 logger = logging.getLogger(__name__)
 
+MAX_TASK_RUNTIME_S = 600
 
-async def arq_publish_site(ctx: dict, job_id: str) -> None:
+
+async def _handle_publish_timeout(job_id: UUID) -> None:
+    async with WorkerSessionLocal() as db:
+        await append_log(db, job_id, "Timeout: tarefa excedeu 600s.")
+        await mark_failed(db, job_id, "timeout")
+        await db.commit()
+
+
+async def _arq_publish_site_impl(job_id: str) -> None:
     jid = UUID(job_id)
-    async with AsyncSessionLocal() as db:
+    async with WorkerSessionLocal() as db:
         job = await get_job(db, jid)
         if not job:
             logger.error("publish task: job not found %s", job_id)
@@ -272,3 +281,12 @@ async def arq_publish_site(ctx: dict, job_id: str) -> None:
             await mark_failed(db, jid, msg)
             await db.commit()
             raise
+
+
+async def arq_publish_site(ctx: dict, job_id: str) -> None:
+    jid = UUID(job_id)
+    try:
+        await asyncio.wait_for(_arq_publish_site_impl(job_id), timeout=MAX_TASK_RUNTIME_S)
+    except asyncio.TimeoutError:
+        logger.warning("publish task exceeded %ss: %s", MAX_TASK_RUNTIME_S, job_id)
+        await _handle_publish_timeout(jid)

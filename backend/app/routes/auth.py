@@ -4,7 +4,7 @@ Authentication endpoints: register, login, forgot-password, verify-reset-code,
 reset-password, Google OAuth (GET /google  →  GET /google/callback).
 A `get_current_user` dependency is also exposed for protecting other routes.
 """
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
@@ -28,6 +28,7 @@ from app.schemas.auth import (
 )
 from app.schemas.user import UserRead, UserUpdateRequest
 from app.services import auth_service
+from app.services.welcome_email_service import run_welcome_email_task
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -86,9 +87,12 @@ async def get_current_user(
 )
 async def register(
     payload: RegisterRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> AuthResponse:
-    return await auth_service.register_user(db, payload)
+    resp = await auth_service.register_user(db, payload)
+    background_tasks.add_task(run_welcome_email_task, resp.user.id)
+    return resp
 
 
 # ── POST /auth/login ──────────────────────────────────────────────────────────
@@ -101,9 +105,12 @@ async def register(
 )
 async def login(
     payload: LoginRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> AuthResponse:
-    return await auth_service.login_user(db, payload)
+    resp = await auth_service.login_user(db, payload)
+    background_tasks.add_task(run_welcome_email_task, resp.user.id)
+    return resp
 
 
 # ── POST /auth/forgot-password ────────────────────────────────────────────────
@@ -202,12 +209,14 @@ async def google_login(request: Request):
 )
 async def google_callback(
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     try:
         token = await oauth.google.authorize_access_token(request)
         user_info = await oauth.google.userinfo(token=token)
         auth_resp = await auth_service.google_oauth_login(db, dict(user_info))
+        background_tasks.add_task(run_welcome_email_task, auth_resp.user.id)
 
         # Redirect to the React SPA callback route with tokens as query params
         return RedirectResponse(
@@ -247,6 +256,7 @@ async def facebook_login(request: Request):
 )
 async def facebook_callback(
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -259,6 +269,7 @@ async def facebook_callback(
         )
         user_info = resp.json()
         auth_resp = await auth_service.facebook_oauth_login(db, user_info)
+        background_tasks.add_task(run_welcome_email_task, auth_resp.user.id)
 
         return RedirectResponse(
             url=(

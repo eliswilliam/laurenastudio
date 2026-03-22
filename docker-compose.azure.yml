@@ -20,9 +20,17 @@ services:
     # Azure App Service ignores depends_on ordering; nginx uses runtime DNS (see nginx.conf).
     depends_on:
       - redis
-    command: >
-      sh -c "alembic upgrade head &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    command: ["sh", "/app/scripts/docker-entrypoint-api-azure.sh"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 120s
     environment:
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}

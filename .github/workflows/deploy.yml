@@ -11,7 +11,6 @@ env:
   FRONTEND_IMAGE: laurena-frontend
   WEBAPP_NAME: studiolaurena
   RESOURCE_GROUP: studio
-
 jobs:
   # ─────────────────────────────────────────
   # JOB 1: Build & Test both Docker images
@@ -45,8 +44,12 @@ jobs:
             .
 
       - name: Build Frontend image
+        env:
+          VITE_ROOT_DOMAIN_RESOLVED: ${{ vars.VITE_ROOT_DOMAIN }}
         run: |
+          DOMAIN="${VITE_ROOT_DOMAIN_RESOLVED:-laurenastudio.pro}"
           docker build \
+            --build-arg "VITE_ROOT_DOMAIN=$DOMAIN" \
             --tag ${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.tag }} \
             --tag ${{ env.FRONTEND_IMAGE }}:latest \
             --file Dockerfile.frontend.prod \
@@ -208,6 +211,8 @@ jobs:
     env:
       SCM_HOST: studiolaurena-g8eadbcrg8a9hyeq.scm.canadacentral-01.azurewebsites.net
       APP_HOST: studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net
+      # Optional: set AZURE_CREDENTIALS (service principal JSON) to auto-apply WEBSITES_PORT + start timeout
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
     steps:
       - name: Download image artifacts
@@ -253,6 +258,26 @@ jobs:
           docker push ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
 
           echo "All images pushed to ACR."
+
+      # ── App Service platform settings (multi-container: only frontend publishes 8080) ──
+      - name: Azure login (optional, for WEBSITES_PORT)
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Apply WEBSITES_PORT and WEBSITES_CONTAINER_START_TIME_LIMIT
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        run: |
+          az webapp config appsettings set \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --name "${{ env.WEBAPP_NAME }}" \
+            --settings WEBSITES_PORT=8080 WEBSITES_CONTAINER_START_TIME_LIMIT=600
+
+      - name: Warn if AZURE_CREDENTIALS missing
+        if: ${{ env.AZURE_CREDENTIALS == '' }}
+        run: |
+          echo "::warning::AZURE_CREDENTIALS secret not set — set WEBSITES_PORT=8080 and WEBSITES_CONTAINER_START_TIME_LIMIT=600 in Azure Portal if 503 persists."
 
       # ── Deploy explicite — restart via SCM API ─────────────────────────────
       # Sitecontainers pointent vers :latest + SystemIdentity

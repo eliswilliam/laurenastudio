@@ -83,11 +83,11 @@ export default function Registro() {
       // New users never have a subscription; go to plan selection
       navigate('/escolher-plano');
     } catch (err: unknown) {
-      toast({
-        title: 'Erro ao criar conta',
-        description: err instanceof Error ? err.message : 'Tente novamente.',
-        variant: 'destructive',
-      });
+        toast({
+          title: 'Erro ao criar conta',
+          description: 'Não foi possível criar a conta. Verifique os seus dados.',
+          variant: 'destructive',
+        });
     } finally {
       setCarregando(false);
     }

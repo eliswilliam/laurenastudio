@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { Send, Loader2, Wand2, Download, ExternalLink, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,7 @@ function slugValid(s: string): boolean {
 
 
 export default function CriarSite() {
+  const { toast } = useToast();
   const usuario = useAuthStore((s) => s.usuario);
   const generateJobId = useCriarSiteJobStore((s) => s.generateJobId);
   const publishJobId = useCriarSiteJobStore((s) => s.publishJobId);
@@ -209,22 +211,16 @@ export default function CriarSite() {
           setPublicSiteUrl(site);
 
           let textoSucesso = '';
-          if (deployOk && site) {
-            const partes = [`Publicação concluída!`, `Site: ${site}`];
-            if (cr && cr !== site) {
-              partes.push(`Cloud Run (directo): ${cr}`);
-            }
-            if (!dnsOk) {
-              partes.push(
-                `Nota: o subdomínio (https://slug.${ROOT_DOMAIN}) é criado pela API com Cloudflare depois do deploy — não pelo workflow GitHub. ` +
-                  `Para o URL bonito, defina no .env da API: CLOUDFLARE_TOKEN, CLOUDFLARE_ZONE_ID e ROOT_DOMAIN (e use GET /api/publish/config para slug obrigatório).`
-              );
-            }
-            partes.push(`GitHub: ${gh}`);
-            textoSucesso = partes.join('\n');
-          } else {
-            textoSucesso = `Repositório privado criado: ${gh}${actions ? `\nActions (ver o deploy): ${actions}` : ''}\nO URL público ainda não foi detetado a tempo — abra Actions ou confira IAM no GCP.`;
-          }
+            if (deployOk && site) {
+              textoSucesso = `Parabéns! Site publicado com sucesso!
+O seu site está a ser protegido e o domínio está a propagar com a Cloudflare.
+Aguarde cerca de 45 minutos para que fique disponível publicamente neste link: ${site}`;
+              toast({
+                  title: 'Site Publicado!',
+                  description: 'O seu site foi publicado e está em propagação.',
+              });
+            } else {
+              textoSucesso = `Ocorreu um erro ou a publicação ainda está a terminar em segundo plano.`;
 
           const msg: Mensagem = {
             id: ID(),
@@ -495,7 +491,7 @@ export default function CriarSite() {
           </div>
         )}
 
-        {(githubUrl || publicSiteUrl) && emConversa && (
+        {publicSiteUrl && emConversa && (
           <div className="mb-3 shrink-0 space-y-2">
             {publicSiteUrl && (
               <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-center">
@@ -510,19 +506,7 @@ export default function CriarSite() {
                 </a>
               </div>
             )}
-            {githubUrl && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-center">
-                <p className="text-xs text-muted-foreground">GitHub</p>
-                <a
-                  href={githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-primary underline-offset-4 hover:underline break-all"
-                >
-                  {githubUrl}
-                </a>
-              </div>
-            )}
+            
           </div>
         )}
 

@@ -57,11 +57,11 @@ export default function Login() {
       const hasActivePlan = await fetchBillingStatus();
       navigate(hasActivePlan ? '/dashboard' : '/escolher-plano');
     } catch (err: unknown) {
-      toast({
-        title: 'Erro ao entrar',
-        description: err instanceof Error ? err.message : 'Credenciais inválidas.',
-        variant: 'destructive',
-      });
+        toast({
+          title: 'Erro no login',
+          description: 'E-mail ou senha incorretos',
+          variant: 'destructive',
+        });
     } finally {
       setCarregando(false);
     }

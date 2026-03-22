@@ -40,6 +40,16 @@ services:
     ports:
       # Test-only: curl API from host. On real Azure this port is not published (nginx → api:8000).
       - "8001:8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 10s
+      timeout: 8s
+      retries: 30
+      start_period: 90s
     depends_on:
       redis:
         condition: service_healthy
@@ -68,4 +78,5 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - api
+      api:
+        condition: service_healthy

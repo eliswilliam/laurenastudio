@@ -17,6 +17,7 @@ services:
   api:
     image: laurenastudio.azurecr.io/laurena-api:latest
     restart: always
+    # Azure App Service ignores depends_on ordering; nginx uses runtime DNS (see nginx.conf).
     depends_on:
       - redis
     command: >

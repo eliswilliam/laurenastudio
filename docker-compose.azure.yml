@@ -1,110 +1,15 @@
-# Azure Web App (Linux, multi-container) — Docker Compose only references ACR images (no build:).
-# Single public port: frontend:8080. API and Redis are internal to the Docker network.
-#
-# App Settings must include REDIS_URL=redis://redis:6379/0 (service name "redis") so api/worker
-# do not fall back to localhost:6379.
+# Azure Web App — Single combined container image with nginx + uvicorn + supervisord
+# Exposes port 8080 (nginx proxy + direct API access)
 
 services:
-  redis:
-    image: redis:7-alpine
-    restart: always
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  api:
-    image: laurenastudio.azurecr.io/laurena-api:latest
-    restart: always
-    # Azure App Service ignores depends_on ordering; nginx uses runtime DNS (see nginx.conf).
-    depends_on:
-      - redis
-    command: ["sh", "/app/scripts/docker-entrypoint-api-azure.sh"]
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -f http://127.0.0.1:8000/health || exit 1",
-        ]
-      interval: 15s
-      timeout: 10s
-      retries: 8
-      start_period: 120s
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      SECRET_KEY: ${SECRET_KEY}
-      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
-      DB_SSL_REQUIRE: ${DB_SSL_REQUIRE}
-      GEMINI_TEXT_MODEL: ${GEMINI_TEXT_MODEL}
-      GOOGLE_CLOUD_API_KEY: ${GEMINI_API_KEY}
-      GITHUB_TOKEN: ${GITHUB_TOKEN}
-      CLOUDFLARE_TOKEN: ${CLOUDFLARE_API_TOKEN}
-      ROOT_DOMAIN: ${ROOT_DOMAIN}
-      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
-      GCP_REGION: ${GCP_REGION}
-      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
-      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
-      GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
-      GCP_SA_KEY: ${GCP_SA_KEY}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USERNAME: ${SMTP_USER}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      FRONTEND_URL: ${FRONTEND_URL}
-      BACKEND_URL: ${BACKEND_URL}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID}
-      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET}
-
-  worker:
-    image: laurenastudio.azurecr.io/laurena-api:latest
-    restart: always
-    depends_on:
-      - redis
-    command: ["arq", "app.workers.arq_worker.WorkerSettings"]
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      SECRET_KEY: ${SECRET_KEY}
-      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
-      DB_SSL_REQUIRE: ${DB_SSL_REQUIRE}
-      GEMINI_TEXT_MODEL: ${GEMINI_TEXT_MODEL}
-      GOOGLE_CLOUD_API_KEY: ${GEMINI_API_KEY}
-      GITHUB_TOKEN: ${GITHUB_TOKEN}
-      CLOUDFLARE_TOKEN: ${CLOUDFLARE_API_TOKEN}
-      ROOT_DOMAIN: ${ROOT_DOMAIN}
-      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
-      GCP_REGION: ${GCP_REGION}
-      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
-      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
-      GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
-      GCP_SA_KEY: ${GCP_SA_KEY}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USERNAME: ${SMTP_USER}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      FRONTEND_URL: ${FRONTEND_URL}
-      BACKEND_URL: ${BACKEND_URL}
-      GITHUB_OWNER: ${GITHUB_OWNER}
-      CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID}
-
-  frontend:
-    image: laurenastudio.azurecr.io/laurena-frontend:latest
+  app:
+    image: laurenastudio.azurecr.io/laurena-app:latest
     restart: always
     ports:
       - "8080:8080"
-    depends_on:
-      - api
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:8080/"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 60s

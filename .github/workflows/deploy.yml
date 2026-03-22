@@ -7,16 +7,15 @@ on:
 
 env:
   REGISTRY: laurenastudio.azurecr.io
-  API_IMAGE: laurena-api
-  FRONTEND_IMAGE: laurena-frontend
+  COMBINED_IMAGE: laurena-app
   WEBAPP_NAME: studiolaurena
   RESOURCE_GROUP: studio
 jobs:
   # ─────────────────────────────────────────
-  # JOB 1: Build & Test both Docker images
+  # JOB 1: Build & Test combined Docker image
   # ─────────────────────────────────────────
   build-and-test:
-    name: "Build & Test Docker Images"
+    name: "Build & Test Combined Docker Image"
     runs-on: ubuntu-latest
 
     outputs:
@@ -33,94 +32,36 @@ jobs:
           echo "tag=$SHORT_SHA" >> "$GITHUB_OUTPUT"
           echo "Image tag: $SHORT_SHA"
 
-      # ── Build both images ──────────────────────────────────────────────────
+      # ── Build combined image (nginx + uvicorn + supervisord) ───────────────
 
-      - name: Build API image
-        run: |
-          docker build \
-            --tag ${{ env.API_IMAGE }}:${{ steps.meta.outputs.tag }} \
-            --tag ${{ env.API_IMAGE }}:latest \
-            --file backend/Dockerfile \
-            .
-
-      - name: Build Frontend image
+      - name: Build Combined image (nginx + API + frontend)
         env:
           VITE_ROOT_DOMAIN_RESOLVED: ${{ vars.VITE_ROOT_DOMAIN }}
         run: |
           DOMAIN="${VITE_ROOT_DOMAIN_RESOLVED:-laurenastudio.pro}"
           docker build \
             --build-arg "VITE_ROOT_DOMAIN=$DOMAIN" \
-            --tag ${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.tag }} \
-            --tag ${{ env.FRONTEND_IMAGE }}:latest \
-            --file Dockerfile.frontend.prod \
+            --tag ${{ env.COMBINED_IMAGE }}:${{ steps.meta.outputs.tag }} \
+            --tag ${{ env.COMBINED_IMAGE }}:latest \
+            --file Dockerfile.combined \
             .
 
-      # ── Start containers for health check ──────────────────────────────────
-      # API: skip alembic migrations (no DB in CI), just verify the app starts
-      # Frontend: nginx proxies /api to hostname "api" — must share a user-defined
-      # network and expose the API container under the DNS name "api" (alias).
+      # ── Start combined container for health check ──────────────────────────
 
-      - name: Create Docker network for CI
-        run: |
-          docker network rm ci-test-net 2>/dev/null || true
-          docker network create ci-test-net
-
-      - name: Start API container for test
+      - name: Start Combined container for test
         run: |
           docker run \
             --detach \
-            --name test-api \
-            --network ci-test-net \
-            --network-alias api \
-            --publish 8000:8000 \
-            ${{ env.API_IMAGE }}:${{ steps.meta.outputs.tag }} \
-            sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
-
-      - name: Start Frontend container for test
-        run: |
-          docker run \
-            --detach \
-            --name test-frontend \
-            --network ci-test-net \
+            --name test-app \
             --publish 8080:8080 \
-            ${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.tag }}
+            ${{ env.COMBINED_IMAGE }}:${{ steps.meta.outputs.tag }} \
+            sh -c "supervisord -c /etc/supervisor/conf.d/supervisord.conf"
 
       # ── Health checks ──────────────────────────────────────────────────────
 
-      - name: Health Check - API (/health)
-        run: |
-          MAX_RETRIES=10
-          RETRY_INTERVAL=5
-          SUCCESS=false
-
-          for i in $(seq 1 $MAX_RETRIES); do
-            echo "Attempt $i/$MAX_RETRIES..."
-            HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
-              --max-time 10 \
-              http://localhost:8000/health || echo "000")
-
-            echo "HTTP Status: $HTTP_STATUS"
-
-            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
-              echo "API health check passed! Status: $HTTP_STATUS"
-              SUCCESS=true
-              break
-            fi
-
-            echo "API not ready yet. Waiting ${RETRY_INTERVAL}s..."
-            sleep $RETRY_INTERVAL
-          done
-
-          if [ "$SUCCESS" = false ]; then
-            echo "API health check FAILED after $MAX_RETRIES attempts."
-            echo "=== Container logs ==="
-            docker logs test-api
-            exit 1
-          fi
-
       - name: Health Check - Frontend (/)
         run: |
-          MAX_RETRIES=5
+          MAX_RETRIES=10
           RETRY_INTERVAL=3
           SUCCESS=false
 
@@ -130,7 +71,7 @@ jobs:
               --max-time 10 \
               http://localhost:8080/ || echo "000")
 
-            echo "HTTP Status: $HTTP_STATUS"
+            echo "Frontend HTTP Status: $HTTP_STATUS"
 
             if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
               echo "Frontend health check passed! Status: $HTTP_STATUS"
@@ -145,62 +86,71 @@ jobs:
           if [ "$SUCCESS" = false ]; then
             echo "Frontend health check FAILED after $MAX_RETRIES attempts."
             echo "=== Container logs ==="
-            docker logs test-frontend
+            docker logs test-app
+            exit 1
+          fi
+
+      - name: Health Check - API (/health)
+        run: |
+          MAX_RETRIES=10
+          RETRY_INTERVAL=5
+          SUCCESS=false
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i/$MAX_RETRIES..."
+            HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+              --max-time 10 \
+              http://localhost:8080/health || echo "000")
+
+            echo "API HTTP Status: $HTTP_STATUS"
+
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+              echo "API health check passed! Status: $HTTP_STATUS"
+              SUCCESS=true
+              break
+            fi
+
+            echo "API not ready yet. Waiting ${RETRY_INTERVAL}s..."
+            sleep $RETRY_INTERVAL
+          done
+
+          if [ "$SUCCESS" = false ]; then
+            echo "API health check FAILED after $MAX_RETRIES attempts."
+            echo "=== Container logs ==="
+            docker logs test-app
             exit 1
           fi
 
       - name: Collect container logs
         if: success()
         run: |
-          echo "=== API Logs ==="
-          docker logs test-api
-          echo ""
-          echo "=== Frontend Logs ==="
-          docker logs test-frontend
+          echo "=== Combined App Logs ==="
+          docker logs test-app
 
-      - name: Stop and remove test containers
+      - name: Stop and remove test container
         if: always()
         run: |
-          docker stop test-api test-frontend || true
-          docker rm test-api test-frontend || true
-          docker network rm ci-test-net 2>/dev/null || true
+          docker stop test-app || true
+          docker rm test-app || true
 
-      # ── Save images as artifacts for deploy job ────────────────────────────
+      # ── Save image as artifact for deploy job ──────────────────────────────
 
-      - name: Save API image
+      - name: Save Combined image
         if: success()
         run: |
-          docker save ${{ env.API_IMAGE }}:${{ steps.meta.outputs.tag }} \
-            | gzip > /tmp/api-image.tar.gz
+          docker save ${{ env.COMBINED_IMAGE }}:${{ steps.meta.outputs.tag }} \
+            | gzip > /tmp/app-image.tar.gz
 
-      - name: Save Frontend image
-        if: success()
-        run: |
-          docker save ${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.tag }} \
-            | gzip > /tmp/frontend-image.tar.gz
-
-      - name: Upload API image artifact
+      - name: Upload Combined image artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: api-image
-          path: /tmp/api-image.tar.gz
-          retention-days: 1
-
-      - name: Upload Frontend image artifact
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-image
-          path: /tmp/frontend-image.tar.gz
+          name: app-image
+          path: /tmp/app-image.tar.gz
           retention-days: 1
 
   # ─────────────────────────────────────────
-  # JOB 2: Push to ACR & Deploy (contrôle total)
-  # Pas de webhook — le workflow contrôle tout:
-  #   1. Push images vers ACR
-  #   2. Restart explicite via SCM API
-  #   3. Vérification que l'app répond
+  # JOB 2: Push to ACR & Deploy
   # ─────────────────────────────────────────
   deploy:
     name: "Push to ACR & Deploy"
@@ -211,20 +161,18 @@ jobs:
     env:
       SCM_HOST: studiolaurena-g8eadbcrg8a9hyeq.scm.canadacentral-01.azurewebsites.net
       APP_HOST: studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net
-      # Optional: set AZURE_CREDENTIALS (service principal JSON) to auto-apply WEBSITES_PORT + start timeout
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
     steps:
-      - name: Download image artifacts
+      - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
           path: /tmp/images
 
-      - name: Load Docker images
+      - name: Load Docker image
         run: |
-          gunzip -c /tmp/images/api-image/api-image.tar.gz | docker load
-          gunzip -c /tmp/images/frontend-image/frontend-image.tar.gz | docker load
-          echo "Both images loaded successfully."
+          gunzip -c /tmp/images/app-image/app-image.tar.gz | docker load
+          echo "Image loaded successfully."
 
       # ── Push to ACR ────────────────────────────────────────────────────────
 
@@ -235,32 +183,24 @@ jobs:
             --username "${{ secrets.ACR_USERNAME }}" \
             --password-stdin
 
-      - name: Tag and push images to ACR
+      - name: Tag and push image to ACR
         run: |
           TAG=${{ needs.build-and-test.outputs.image-tag }}
 
-          # Tag API
-          docker tag ${{ env.API_IMAGE }}:$TAG \
-            ${{ env.REGISTRY }}/${{ env.API_IMAGE }}:$TAG
-          docker tag ${{ env.API_IMAGE }}:$TAG \
-            ${{ env.REGISTRY }}/${{ env.API_IMAGE }}:latest
+          # Tag Combined image
+          docker tag ${{ env.COMBINED_IMAGE }}:$TAG \
+            ${{ env.REGISTRY }}/${{ env.COMBINED_IMAGE }}:$TAG
+          docker tag ${{ env.COMBINED_IMAGE }}:$TAG \
+            ${{ env.REGISTRY }}/${{ env.COMBINED_IMAGE }}:latest
 
-          # Tag Frontend
-          docker tag ${{ env.FRONTEND_IMAGE }}:$TAG \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:$TAG
-          docker tag ${{ env.FRONTEND_IMAGE }}:$TAG \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+          # Push
+          docker push ${{ env.REGISTRY }}/${{ env.COMBINED_IMAGE }}:$TAG
+          docker push ${{ env.REGISTRY }}/${{ env.COMBINED_IMAGE }}:latest
 
-          # Push SHA tags first, then :latest
-          docker push ${{ env.REGISTRY }}/${{ env.API_IMAGE }}:$TAG
-          docker push ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:$TAG
-          docker push ${{ env.REGISTRY }}/${{ env.API_IMAGE }}:latest
-          docker push ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+          echo "Image pushed to ACR."
 
-          echo "All images pushed to ACR."
-
-      # ── App Service platform settings (multi-container: only frontend publishes 8080) ──
-      - name: Azure login (optional, for WEBSITES_PORT)
+      # ── App Service platform settings ──────────────────────────────────────
+      - name: Azure login
         if: ${{ env.AZURE_CREDENTIALS != '' }}
         uses: azure/login@v2
         with:
@@ -274,21 +214,14 @@ jobs:
             --name "${{ env.WEBAPP_NAME }}" \
             --settings WEBSITES_PORT=8080 WEBSITES_CONTAINER_START_TIME_LIMIT=600
 
-      - name: Warn if AZURE_CREDENTIALS missing
-        if: ${{ env.AZURE_CREDENTIALS == '' }}
-        run: |
-          echo "::warning::AZURE_CREDENTIALS secret not set — set WEBSITES_PORT=8080 and WEBSITES_CONTAINER_START_TIME_LIMIT=600 in Azure Portal if 503 persists."
-
-      # ── Deploy explicite — restart via SCM API ─────────────────────────────
-      # Sitecontainers pointent vers :latest + SystemIdentity
-      # Le restart force Azure à pull les nouvelles images :latest depuis ACR
+      # ── Deploy — restart via SCM API ───────────────────────────────────────
 
       - name: Restart App Service via SCM API
         env:
           SCM_USER: ${{ secrets.WEBAPP_DEPLOY_USER }}
           SCM_PASS: ${{ secrets.WEBAPP_DEPLOY_PASSWORD }}
         run: |
-          echo "Triggering explicit container restart via SCM docker/hook..."
+          echo "Triggering container restart via SCM docker/hook..."
 
           HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" \
             --max-time 60 \
@@ -309,9 +242,9 @@ jobs:
 
       # ── Vérification du déploiement ────────────────────────────────────────
 
-      - name: Wait for containers to stabilize
+      - name: Wait for container to stabilize
         run: |
-          echo "Waiting 120s for ACR pull, alembic, and nginx wait-for-api..."
+          echo "Waiting 120s for ACR pull, alembic, and supervisord startup..."
           sleep 120
 
       - name: Verify frontend is responding
@@ -322,7 +255,6 @@ jobs:
 
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Verification $i/$MAX_RETRIES..."
-            # -4: force IPv4 — GitHub runners often get HTTP 000 with IPv6 to azurewebsites.net
             HTTP_STATUS=$(curl -4 --silent --output /dev/null --write-out "%{http_code}" \
               --max-time 45 \
               --retry 2 --retry-delay 3 \
@@ -341,7 +273,6 @@ jobs:
 
           if [ "$SUCCESS" = false ]; then
             echo "ERROR: Frontend not responding after $MAX_RETRIES attempts."
-            curl -4 -v --max-time 30 "https://${{ env.APP_HOST }}/" 2>&1 | head -n 40 || true
             exit 1
           fi
 
@@ -353,12 +284,13 @@ jobs:
 
           for i in $(seq 1 $MAX_RETRIES); do
             echo "API check $i/$MAX_RETRIES..."
-            RESPONSE=$(curl -4 --silent --max-time 25 \
-              "https://${{ env.APP_HOST }}/health" || echo "FAIL")
+            HTTP_STATUS=$(curl -4 --silent --output /dev/null --write-out "%{http_code}" \
+              --max-time 25 \
+              "https://${{ env.APP_HOST }}/health" || echo "000")
 
-            echo "API response: $RESPONSE"
+            echo "API status: $HTTP_STATUS"
 
-            if echo "$RESPONSE" | grep -q '"status"'; then
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
               echo "API health check passed."
               SUCCESS=true
               break
@@ -369,7 +301,6 @@ jobs:
 
           if [ "$SUCCESS" = false ]; then
             echo "WARNING: API not responding yet. May still be starting."
-            echo "Check Azure Portal > studiolaurena > Sitecontainers for details."
           fi
 
       - name: Deployment summary
@@ -380,7 +311,6 @@ jobs:
           echo "  DEPLOYMENT SUMMARY"
           echo "═══════════════════════════════════════════"
           echo "  Commit:    $TAG"
-          echo "  API:       ${{ env.REGISTRY }}/${{ env.API_IMAGE }}:$TAG"
-          echo "  Frontend:  ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:$TAG"
+          echo "  Image:     ${{ env.REGISTRY }}/${{ env.COMBINED_IMAGE }}:$TAG"
           echo "  App URL:   https://${{ env.APP_HOST }}"
           echo "═══════════════════════════════════════════"

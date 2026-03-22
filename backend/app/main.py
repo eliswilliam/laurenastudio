@@ -32,13 +32,13 @@ from app.routes.data_deletion import router as deletion_router
 from app.routes.marketing import router as marketing_router
 from app.routes.sites import router as sites_router
 from app.routes.publish import router as publish_router
+from app.services.arq_enqueue import close_arq_pool
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: nothing extra needed — Alembic handles migrations.
     yield
-    # Shutdown cleanup (connection pool, etc.) can go here.
+    await close_arq_pool()
 
 
 app = FastAPI(

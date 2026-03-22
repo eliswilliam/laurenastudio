@@ -1,5 +1,5 @@
 """
-E2E text-mode test: login (ou register) → plan dev → /sites/chat → /sites/generate → /api/publish.
+E2E text-mode test: login (ou register) → plan dev → /sites/chat → /sites/generate (job) → poll → /api/publish (job) → poll.
 
 Run from host (API sur localhost:8000):
   cd backend && python test_publish_cloud.py
@@ -7,7 +7,8 @@ Run from host (API sur localhost:8000):
 Run dans le conteneur api (Docker):
   docker compose exec api python test_publish_cloud.py
 
-Exiger: backend/.env avec GITHUB_TOKEN, GITHUB_OWNER, GCP_PROJECT_ID, GCP_SA_KEY, et clés Gemini pour generate.
+Exiger: Redis + worker ARQ en cours d'exécution, backend/.env avec REDIS_URL, GITHUB_TOKEN, GITHUB_OWNER,
+GCP_PROJECT_ID, GCP_SA_KEY, et clés Gemini pour generate.
 
 Contourner chat/génération (ex. Gemini indisponible dans Docker) :
   TEST_EXISTING_PROJECT_ID=<uuid>  (dossier uploads/sites/<uuid>/index.html doit exister, projet du même workspace que le compte test)
@@ -27,6 +28,8 @@ API_ROOT = os.environ.get("API_ROOT", "http://localhost:8000")
 # Compte dev (créé si absent)
 TEST_EMAIL = os.environ.get("TEST_EMAIL", "test@laurena.co")
 TEST_PASSWORD = os.environ.get("TEST_PASSWORD", "Test123!")
+
+POLL_INTERVAL = float(os.environ.get("TEST_JOB_POLL_INTERVAL_SECONDS", "2.5"))
 
 
 def req(method: str, url: str, data: dict | None = None, token: str | None = None, timeout: int = 300):
@@ -68,6 +71,60 @@ def register_or_login() -> tuple[str, str, str]:
     user_id = d["user"]["id"]
     ws_id = d["workspace"]["id"]
     return token, user_id, ws_id
+
+
+def poll_generate_job(token: str, job_id: str, max_seconds: float) -> dict:
+    """Poll GET /api/v1/sites/jobs/{job_id} until success or failed."""
+    url = f"{API_V1}/sites/jobs/{job_id}"
+    deadline = time.monotonic() + max_seconds
+    last_log = 0
+    while time.monotonic() < deadline:
+        s, d = req("GET", url, token=token, timeout=60)
+        if s != 200:
+            print(f"    poll generate job HTTP {s}", json.dumps(d, ensure_ascii=False)[:500])
+            sys.exit(1)
+        status = d.get("status", d.get("Status"))
+        logs = d.get("logs") or []
+        if len(logs) > last_log:
+            for line in logs[last_log:]:
+                msg = line.get("message", line) if isinstance(line, dict) else line
+                print(f"    [log] {msg}")
+            last_log = len(logs)
+        if status == "success":
+            return d
+        if status == "failed":
+            print("    FAIL job:", d.get("error", d))
+            sys.exit(1)
+        time.sleep(POLL_INTERVAL)
+    print("    TIMEOUT waiting for generate job")
+    sys.exit(1)
+
+
+def poll_publish_job(token: str, job_id: str, max_seconds: float) -> dict:
+    """Poll GET /api/publish/jobs/{job_id} until success or failed."""
+    url = f"{API_ROOT}/api/publish/jobs/{job_id}"
+    deadline = time.monotonic() + max_seconds
+    last_log = 0
+    while time.monotonic() < deadline:
+        s, d = req("GET", url, token=token, timeout=120)
+        if s != 200:
+            print(f"    poll publish job HTTP {s}", json.dumps(d, ensure_ascii=False)[:500])
+            sys.exit(1)
+        status = d.get("status", d.get("Status"))
+        logs = d.get("logs") or []
+        if len(logs) > last_log:
+            for line in logs[last_log:]:
+                msg = line.get("message", line) if isinstance(line, dict) else line
+                print(f"    [log] {msg}")
+            last_log = len(logs)
+        if status == "success":
+            return d
+        if status == "failed":
+            print("    FAIL job:", d.get("error", d))
+            sys.exit(1)
+        time.sleep(POLL_INTERVAL)
+    print("    TIMEOUT waiting for publish job")
+    sys.exit(1)
 
 
 def main() -> None:
@@ -125,30 +182,34 @@ def main() -> None:
         project_id = d.get("project_id")
         print(f"    project_id={project_id}")
 
-        print("[4] Sites generate (Gemini)")
+        print("[4] Sites generate (enqueue + poll ARQ)")
         s, d = req(
             "POST",
             f"{API_V1}/sites/generate",
             {"project_id": project_id},
             token=token,
-            timeout=300,
+            timeout=120,
         )
-        print(f"    status={s}")
+        print(f"    enqueue status={s}")
         if s != 200:
             print("    FAIL", json.dumps(d, ensure_ascii=False)[:800])
             sys.exit(1)
-        print(f"    preview_url={d.get('preview_url')}")
+        job_id = d.get("jobId") or d.get("job_id")
+        if not job_id:
+            print("    FAIL: no jobId in response", d)
+            sys.exit(1)
+        print(f"    job_id={job_id} — polling…")
+        gen_timeout = float(os.environ.get("TEST_GENERATE_JOB_TIMEOUT_SECONDS", "600"))
+        job = poll_generate_job(token, job_id, gen_timeout)
+        result = job.get("result") or {}
+        print(f"    previewUrl={result.get('previewUrl') or result.get('preview_url')}")
 
-    print("[5] Publish (GitHub → Actions → Cloud Run, pode demorar até ~10 min)")
+    print("[5] Publish (enqueue + poll — GitHub → Actions → Cloud Run, pode demorar muito)")
     print(
-        "    >>> La requête HTTP reste ouverte jusqu'à la fin (souvent 15–40 min avec DNS). "
-        "Suivez la progression dans un AUTRE terminal :",
+        "    >>> Suivez aussi : docker compose logs -f worker   (et api)",
         flush=True,
     )
-    print("        docker compose logs -f api", flush=True)
-    print("    (repérez les lignes [publish] …)", flush=True)
     pub_body: dict = {"userId": user_id, "projectId": project_id, "files": []}
-    # Aligner sur le backend (lit .env) : le conteneur n’expose pas toujours CLOUDFLARE_* dans os.environ.
     s_cfg, cfg = req("GET", f"{API_ROOT}/api/publish/config", timeout=30)
     require_slug = bool(s_cfg == 200 and cfg.get("requireSlug"))
     if require_slug or (
@@ -159,26 +220,35 @@ def main() -> None:
         pub_body["slug"] = os.environ.get("TEST_PUBLISH_SLUG", f"test-{int(time.time())}")
         print(f"    (sous-domaine / DNS) slug={pub_body['slug']}")
 
-    pub_timeout = int(os.environ.get("TEST_PUBLISH_TIMEOUT_SECONDS", "3600"))
     s, d = req(
         "POST",
         f"{API_ROOT}/api/publish",
         pub_body,
         token=token,
-        timeout=pub_timeout,
+        timeout=120,
     )
-    print(f"    status={s}")
-    print(f"    response={json.dumps(d, ensure_ascii=False)}")
+    print(f"    enqueue status={s}")
     if s != 200:
+        print("    FAIL", json.dumps(d, ensure_ascii=False)[:1200])
         sys.exit(1)
+    pub_job_id = d.get("jobId") or d.get("job_id")
+    if not pub_job_id:
+        print("    FAIL: no jobId in publish response", d)
+        sys.exit(1)
+    print(f"    job_id={pub_job_id} — polling…")
+
+    pub_timeout = float(os.environ.get("TEST_PUBLISH_JOB_TIMEOUT_SECONDS", "7200"))
+    pj = poll_publish_job(token, pub_job_id, pub_timeout)
+    result = pj.get("result") or {}
+    print(f"    response result={json.dumps(result, ensure_ascii=False)}")
 
     print()
-    print("OK — Repo:", d.get("github"))
-    print("Actions:", d.get("actionsUrl"))
-    print("Site URL:", d.get("siteUrl"))
-    print("deployOk:", d.get("deployOk"))
+    print("OK — Repo:", result.get("github"))
+    print("Actions:", result.get("actionsUrl"))
+    print("Site URL:", result.get("siteUrl"))
+    print("deployOk:", result.get("deployOk"))
 
-    gh = d.get("github", "")
+    gh = result.get("github", "")
     if gh.startswith("https://github.com/"):
         path = gh.replace("https://github.com/", "").strip("/").split("/")
         if len(path) >= 2:
@@ -199,7 +269,7 @@ def main() -> None:
             if pr.status_code == 200:
                 print("repo private (GitHub API):", pr.json().get("private"))
 
-    if not d.get("siteUrl"):
+    if not result.get("siteUrl"):
         print(
             "(Sem URL pública : abra Actions acima ; verifique IAM do GCP — ex. roles/run.admin, cloudbuild.builds.editor, storage.objectAdmin, serviceAccountUser no Cloud Run.)"
         )

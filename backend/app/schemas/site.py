@@ -2,7 +2,7 @@
 schemas/site.py
 Pydantic schemas for the site-builder endpoints.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ── Chat ─────────────────────────────────────────────────────────────────────
@@ -30,11 +30,13 @@ class GenerateSiteRequest(BaseModel):
 
 
 class GenerateSiteResponse(BaseModel):
-    project_id: str
-    status: str
-    preview_url: str | None = None
-    download_url: str | None = None
-    message: str
+    """Immediate response after enqueueing background generation."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    job_id: str = Field(serialization_alias="jobId")
+    project_id: str = Field(serialization_alias="projectId")
+    message: str = "Geração em fila em segundo plano."
 
 
 # ── Site status / info ───────────────────────────────────────────────────────

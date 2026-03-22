@@ -6,6 +6,10 @@ python-multipart>=0.0.9
 # Database
 SQLAlchemy>=2.0.30
 asyncpg>=0.29.0          # async driver for the FastAPI runtime
+
+# Job queue (async workers)
+arq>=0.26.0
+redis>=5.0.0
 pg8000>=1.31.0            # pure-Python sync driver for Alembic migrations
 alembic>=1.13.1
 

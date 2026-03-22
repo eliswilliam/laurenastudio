@@ -1,14 +1,26 @@
 # docker-compose.azure.yml — Production deployment for Azure Web App multi-container
 # No "db" service: uses Azure Database for PostgreSQL (VNet private access)
+#
+# Inclui Redis + worker ARQ (mesma imagem da API) para jobs de geração/publicação.
+# Defina REDIS_URL no App Service / variáveis (ex.: redis://redis:6379/0 entre contentores).
 
 services:
+  redis:
+    image: redis:7-alpine
+    expose:
+      - "6379"
+    restart: always
+
   api:
     # CI/CD pushes both :<sha> and :latest. App Service restart pulls :latest.
     image: laurenastudio.azurecr.io/laurena-api:latest
     expose:
       - "8000"
+    depends_on:
+      - redis
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       SECRET_KEY: ${SECRET_KEY}
       SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
       FRONTEND_URL: ${FRONTEND_URL}
@@ -35,6 +47,36 @@ services:
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
       GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
+
+  worker:
+    image: laurenastudio.azurecr.io/laurena-api:latest
+    restart: always
+    depends_on:
+      - redis
+      - api
+    command: ["arq", "app.workers.arq_worker.WorkerSettings"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SECRET_KEY: ${SECRET_KEY}
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
+      FRONTEND_URL: ${FRONTEND_URL}
+      BACKEND_URL: ${BACKEND_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION}
+      GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-}
+      GCP_REGION: ${GCP_REGION:-}
+      GCP_SA_KEY: ${GCP_SA_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_OWNER: ${GITHUB_OWNER:-}
+      CLOUDFLARE_TOKEN: ${CLOUDFLARE_TOKEN:-}
+      CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:-}
+      ROOT_DOMAIN: ${ROOT_DOMAIN:-}
 
   frontend:
     image: laurenastudio.azurecr.io/laurena-frontend:latest

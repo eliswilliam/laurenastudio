@@ -1,5 +1,21 @@
 /** Lógica reutilizável da página CriarSite (testável sem React). */
 
+export type JobLogEntry = { ts: string; message: string };
+
+/** Estado devolvido por GET /sites/jobs/:id e GET /api/publish/jobs/:id (polling). */
+export type JobStatus = {
+  jobId: string;
+  jobType: string;
+  status: 'pending' | 'running' | 'success' | 'failed';
+  projectId: string | null;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  result: Record<string, unknown> | null;
+  error: string | null;
+  logs: JobLogEntry[];
+};
+
 export type Papel = 'user' | 'bot';
 
 export interface Mensagem {

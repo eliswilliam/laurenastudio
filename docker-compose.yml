@@ -1,4 +1,16 @@
 services:
+  # ── Redis (ARQ job queue) ────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   db:
     image: postgres:15
@@ -29,6 +41,7 @@ services:
       - backend/.env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:example@db:5432/laurenadb
+      REDIS_URL: redis://redis:6379/0
       BACKEND_URL: http://localhost:8000
       FRONTEND_URL: http://localhost:8080
       GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
@@ -42,6 +55,30 @@ services:
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── ARQ worker (site generate + publish jobs) ───────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: always
+    env_file:
+      - backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:example@db:5432/laurenadb
+      REDIS_URL: redis://redis:6379/0
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./backend:/app
+      - ${APPDATA}/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
+    command: arq app.workers.arq_worker.WorkerSettings
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   # ── Frontend (Vite / React) ─────────────────────────────────────────────────

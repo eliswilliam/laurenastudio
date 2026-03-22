@@ -5,6 +5,7 @@ Protected by active subscription.
 """
 import json
 import logging
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
@@ -20,6 +21,8 @@ from app.core.dependencies import (
 from app.db.session import get_db
 from app.models.site_project import GeneratedSite, SiteDeployment, SiteProject, SitePrompt
 from app.models.subscription import Subscription
+from app.models.user import User
+from app.routes.auth import get_current_user
 from app.schemas.site import (
     ChatMessage,
     GenerateSiteRequest,
@@ -30,9 +33,12 @@ from app.schemas.site import (
     SiteChatResponse,
     SiteStatusResponse,
 )
+from app.schemas.job import BackgroundJobResponse
 from app.core.config import settings
-from app.services.site_ai_service import generate_chat_reply, generate_site_structure
-from app.services.site_generator import create_zip, generate_html, save_site
+from app.services.site_ai_service import generate_chat_reply
+from app.services.site_generator import create_zip
+from app.services.job_service import create_job, get_job
+from app.services.arq_enqueue import enqueue_generate_job
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +99,15 @@ async def site_chat(
 
 # ── POST /sites/generate ────────────────────────────────────────────────────
 
-@router.post("/generate", response_model=GenerateSiteResponse, summary="Generate a site from the chat brief")
+@router.post(
+    "/generate",
+    response_model=GenerateSiteResponse,
+    response_model_by_alias=True,
+    summary="Enqueue site generation from the chat brief",
+)
 async def generate_site(
     payload: GenerateSiteRequest,
+    current_user: User = Depends(get_current_user),
     workspace_id: str = Depends(get_workspace_id),
     subscription: Subscription = Depends(verify_active_subscription),
     db: AsyncSession = Depends(get_db),
@@ -124,51 +136,43 @@ async def generate_site(
 
     await check_and_increment_usage(db, workspace_id, "text", subscription)
 
-    try:
-        structure = await generate_site_structure(brief)
-        html = generate_html(structure)
-        html_path, preview_url = save_site(project.id, html, structure)
-    except Exception as exc:
-        logger.exception("Site generation failed: %s", exc)
-        project.status = "error"
-        if project.site:
-            project.site.status = "error"
-            project.site.error_message = str(exc)
-        else:
-            db.add(GeneratedSite(
-                project_id=project.id,
-                status="error",
-                error_message=str(exc),
-            ))
-        await db.flush()
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Falha na geração: {exc}")
+    job = await create_job(
+        db,
+        job_type="generate_site",
+        user_id=current_user.id,
+        project_id=payload.project_id,
+        input_payload=None,
+    )
+    await db.commit()
 
-    if project.site:
-        project.site.structure_json = json.dumps(structure, ensure_ascii=False)
-        project.site.html_path = html_path
-        project.site.preview_url = preview_url
-        project.site.status = "ready"
-        project.site.error_message = None
-    else:
-        db.add(GeneratedSite(
-            project_id=project.id,
-            structure_json=json.dumps(structure, ensure_ascii=False),
-            html_path=html_path,
-            preview_url=preview_url,
-            status="ready",
-        ))
-
-    project.status = "ready"
-    project.name = structure.get("site_name", project.name)
-    await db.flush()
+    await enqueue_generate_job(str(job.id))
 
     return GenerateSiteResponse(
+        job_id=str(job.id),
         project_id=project.id,
-        status="ready",
-        preview_url=preview_url,
-        download_url=f"/api/v1/sites/{project.id}/download",
-        message="Site gerado com sucesso!",
+        message="Geração em fila em segundo plano.",
     )
+
+
+# ── GET /sites/jobs/{job_id} (before /{project_id}) ─────────────────────────
+
+@router.get(
+    "/jobs/{job_id}",
+    response_model=BackgroundJobResponse,
+    response_model_by_alias=True,
+    summary="Poll generation job status",
+)
+async def get_site_job(
+    job_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> BackgroundJobResponse:
+    row = await get_job(db, job_id)
+    if not row or row.user_id != current_user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Job not found.")
+    if row.job_type != "generate_site":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Job not found.")
+    return BackgroundJobResponse.from_model(row)
 
 
 # ── GET /sites/{project_id} ─────────────────────────────────────────────────

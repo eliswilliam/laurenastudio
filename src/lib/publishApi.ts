@@ -1,11 +1,12 @@
 import axios, { type AxiosError } from 'axios';
 import { formatApiError } from '@/lib/api';
+import type { JobStatus } from '@/lib/criarSiteChat';
 
 /** POST /api/publish (not under /api/v1). */
 const client = axios.create({
   baseURL: '',
-  /** Inclui espera pelo deploy no Cloud Run (polling na API). */
-  timeout: 720000,
+  /** Resposta imediata com jobId; o trabalho corre em worker ARQ. */
+  timeout: 120000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -48,8 +49,20 @@ export interface PublishResponse {
   dnsApplied?: boolean;
 }
 
-export async function postPublish(body: PublishBody): Promise<PublishResponse> {
-  const { data } = await client.post<PublishResponse>('/api/publish', body);
+/** Resposta imediata de POST /api/publish (fila ARQ). */
+export interface PublishEnqueueResponse {
+  jobId: string;
+  message: string;
+}
+
+export async function postPublish(body: PublishBody): Promise<PublishEnqueueResponse> {
+  const { data } = await client.post<PublishEnqueueResponse>('/api/publish', body);
+  return data;
+}
+
+/** GET /api/publish/jobs/{jobId} — estado do job de publicação. */
+export async function getPublishJobStatus(jobId: string): Promise<JobStatus> {
+  const { data } = await client.get<JobStatus>(`/api/publish/jobs/${jobId}`);
   return data;
 }
 

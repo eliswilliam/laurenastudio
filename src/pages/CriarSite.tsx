@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import api from '@/lib/api';
-import { type Mensagem, MENSAGEM_ABERTURA_TEXTO } from '@/lib/criarSiteChat';
+import api, { getJobStatus } from '@/lib/api';
+import { type JobStatus, type Mensagem, MENSAGEM_ABERTURA_TEXTO } from '@/lib/criarSiteChat';
 import { useAuthStore } from '@/store/useAuthStore';
-import { getPublishConfig, postPublish } from '@/lib/publishApi';
+import { useCriarSiteJobStore } from '@/store/useCriarSiteJobStore';
+import { getPublishConfig, getPublishJobStatus, postPublish } from '@/lib/publishApi';
 
 const ID = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -43,6 +44,7 @@ const BOTAO_GERAR = 'Gerar site';
 const BOTAO_PUBLICAR = 'Publicar';
 const DICA_TECLADO = 'Enter envia · Shift+Enter nova linha';
 const LOADING_TEXTO = 'Laurena está a pensar…';
+const POLL_MS = 2500;
 
 const ROOT_DOMAIN =
   (import.meta.env.VITE_ROOT_DOMAIN as string | undefined)?.trim() || 'laurenastudio.pro';
@@ -60,6 +62,13 @@ interface SiteResult {
 
 export default function CriarSite() {
   const usuario = useAuthStore((s) => s.usuario);
+  const generateJobId = useCriarSiteJobStore((s) => s.generateJobId);
+  const publishJobId = useCriarSiteJobStore((s) => s.publishJobId);
+  const setGenerateJobId = useCriarSiteJobStore((s) => s.setGenerateJobId);
+  const setPublishJobId = useCriarSiteJobStore((s) => s.setPublishJobId);
+  const clearGenerateJob = useCriarSiteJobStore((s) => s.clearGenerateJob);
+  const clearPublishJob = useCriarSiteJobStore((s) => s.clearPublishJob);
+
   const [lista, setLista] = useState<Mensagem[]>([ABERTURA]);
   const [rascunho, setRascunho] = useState('');
   const [aEnviar, setAEnviar] = useState(false);
@@ -73,6 +82,8 @@ export default function CriarSite() {
   /** Aligné sur GET /api/publish/config (Cloudflare actif côté API). */
   const [requirePublishSlug, setRequirePublishSlug] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [generateJob, setGenerateJob] = useState<JobStatus | null>(null);
+  const [publishJob, setPublishJob] = useState<JobStatus | null>(null);
   const fim = useRef<HTMLDivElement>(null);
   const nUser = lista.filter((m) => m.papel === 'user').length;
   const emConversa = nUser > 0;
@@ -94,6 +105,160 @@ export default function CriarSite() {
       .then((c) => setRequirePublishSlug(Boolean(c.requireSlug)))
       .catch(() => setRequirePublishSlug(false));
   }, []);
+
+  useEffect(() => {
+    if (!generateJobId) {
+      setGenerateJob(null);
+      return;
+    }
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const finish = () => {
+      if (intervalId !== undefined) clearInterval(intervalId);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      try {
+        const j = await getJobStatus(generateJobId);
+        if (cancelled) return;
+        setGenerateJob(j);
+        if (j.status === 'success' && j.result) {
+          finish();
+          const r = j.result;
+          const previewUrl = String(r.previewUrl ?? '');
+          const downloadUrl = String(r.downloadUrl ?? '');
+          setSiteResult({ previewUrl, downloadUrl });
+          const pronto: Mensagem = {
+            id: ID(),
+            papel: 'bot',
+            texto: String(
+              r.message ??
+                'Site gerado com sucesso! Use os botões abaixo para ver a preview ou fazer download.'
+            ),
+          };
+          setLista((p) => [...p, pronto]);
+          setAGerar(false);
+          clearGenerateJob();
+        } else if (j.status === 'failed') {
+          finish();
+          const msg = j.error || 'Erro ao gerar o site.';
+          setErro(msg);
+          const errMsg: Mensagem = {
+            id: ID(),
+            papel: 'bot',
+            texto: `Erro na geração: ${msg}`,
+          };
+          setLista((p) => [...p, errMsg]);
+          setAGerar(false);
+          clearGenerateJob();
+        }
+      } catch (err: unknown) {
+        if (cancelled) return;
+        finish();
+        const msg = err instanceof Error ? err.message : 'Erro ao consultar o estado da geração.';
+        setErro(msg);
+        setAGerar(false);
+        clearGenerateJob();
+      }
+    };
+
+    void tick();
+    intervalId = setInterval(() => void tick(), POLL_MS);
+    return () => {
+      cancelled = true;
+      finish();
+    };
+  }, [generateJobId, clearGenerateJob]);
+
+  useEffect(() => {
+    if (!publishJobId) {
+      setPublishJob(null);
+      return;
+    }
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const finish = () => {
+      if (intervalId !== undefined) clearInterval(intervalId);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      try {
+        const j = await getPublishJobStatus(publishJobId);
+        if (cancelled) return;
+        setPublishJob(j);
+        if (j.status === 'success' && j.result) {
+          finish();
+          const r = j.result as Record<string, unknown>;
+          const gh = String(r.github ?? '');
+          const site = String(r.siteUrl ?? '').trim() || null;
+          const deployOk = Boolean(r.deployOk ?? r.success);
+          const actions = String(r.actionsUrl ?? '').trim();
+          const dnsOk = Boolean(r.dnsApplied);
+          const cr = String(r.cloudRun ?? '').trim();
+
+          setGithubUrl(gh);
+          setPublicSiteUrl(site);
+
+          let textoSucesso = '';
+          if (deployOk && site) {
+            const partes = [`Publicação concluída!`, `Site: ${site}`];
+            if (cr && cr !== site) {
+              partes.push(`Cloud Run (directo): ${cr}`);
+            }
+            if (!dnsOk) {
+              partes.push(
+                `Nota: o subdomínio (https://slug.${ROOT_DOMAIN}) é criado pela API com Cloudflare depois do deploy — não pelo workflow GitHub. ` +
+                  `Para o URL bonito, defina no .env da API: CLOUDFLARE_TOKEN, CLOUDFLARE_ZONE_ID e ROOT_DOMAIN (e use GET /api/publish/config para slug obrigatório).`
+              );
+            }
+            partes.push(`GitHub: ${gh}`);
+            textoSucesso = partes.join('\n');
+          } else {
+            textoSucesso = `Repositório privado criado: ${gh}${actions ? `\nActions (ver o deploy): ${actions}` : ''}\nO URL público ainda não foi detetado a tempo — abra Actions ou confira IAM no GCP.`;
+          }
+
+          const msg: Mensagem = {
+            id: ID(),
+            papel: 'bot',
+            texto: textoSucesso,
+          };
+          setLista((p) => [...p, msg]);
+          setAPublicar(false);
+          clearPublishJob();
+        } else if (j.status === 'failed') {
+          finish();
+          const msg = j.error || 'Erro ao publicar.';
+          setErro(msg);
+          const bot: Mensagem = {
+            id: ID(),
+            papel: 'bot',
+            texto: `Não foi possível publicar: ${msg}`,
+          };
+          setLista((p) => [...p, bot]);
+          setAPublicar(false);
+          clearPublishJob();
+        }
+      } catch (err: unknown) {
+        if (cancelled) return;
+        finish();
+        const msg = err instanceof Error ? err.message : 'Erro ao consultar a publicação.';
+        setErro(msg);
+        setAPublicar(false);
+        clearPublishJob();
+      }
+    };
+
+    void tick();
+    intervalId = setInterval(() => void tick(), POLL_MS);
+    return () => {
+      cancelled = true;
+      finish();
+    };
+  }, [publishJobId, clearPublishJob]);
 
   async function enviar() {
     const t = rascunho.trim();
@@ -154,19 +319,11 @@ export default function CriarSite() {
     setLista((p) => [...p, gerando]);
 
     try {
-      const { data } = await api.post('/sites/generate', { project_id: projectId });
-
-      setSiteResult({
-        previewUrl: data.preview_url,
-        downloadUrl: data.download_url,
-      });
-
-      const pronto: Mensagem = {
-        id: ID(),
-        papel: 'bot',
-        texto: `Site gerado com sucesso! Use os botões abaixo para ver a preview ou fazer download.`,
-      };
-      setLista((p) => [...p, pronto]);
+      const { data } = await api.post<{ jobId: string; projectId: string; message: string }>(
+        '/sites/generate',
+        { project_id: projectId }
+      );
+      setGenerateJobId(data.jobId);
     } catch (err: any) {
       const msg = err?.message || 'Erro ao gerar o site.';
       setErro(msg);
@@ -176,7 +333,6 @@ export default function CriarSite() {
         texto: `Erro na geração: ${msg}`,
       };
       setLista((p) => [...p, errMsg]);
-    } finally {
       setAGerar(false);
     }
   }
@@ -207,38 +363,7 @@ export default function CriarSite() {
         files: [],
         ...(slug ? { slug } : {}),
       });
-      setGithubUrl(data.github);
-      const site = data.siteUrl?.trim() || null;
-      setPublicSiteUrl(site);
-      const deployOk = Boolean((data.success ?? data.deployOk) && site);
-      const actions = data.actionsUrl?.trim();
-      const dnsOk = Boolean(data.dnsApplied);
-      const cr = data.cloudRun?.trim();
-
-      let textoSucesso = '';
-      if (deployOk && site) {
-        const partes = [`Publicação concluída!`, `Site: ${site}`];
-        if (cr && cr !== site) {
-          partes.push(`Cloud Run (directo): ${cr}`);
-        }
-        if (!dnsOk) {
-          partes.push(
-            `Nota: o subdomínio (https://slug.${ROOT_DOMAIN}) é criado pela API com Cloudflare depois do deploy — não pelo workflow GitHub. ` +
-              `Para o URL bonito, defina no .env da API: CLOUDFLARE_TOKEN, CLOUDFLARE_ZONE_ID e ROOT_DOMAIN (e use GET /api/publish/config para slug obrigatório).`
-          );
-        }
-        partes.push(`GitHub: ${data.github}`);
-        textoSucesso = partes.join('\n');
-      } else {
-        textoSucesso = `Repositório privado criado: ${data.github}${actions ? `\nActions (ver o deploy): ${actions}` : ''}\nO URL público ainda não foi detetado a tempo — abra Actions ou confira IAM no GCP.`;
-      }
-
-      const msg: Mensagem = {
-        id: ID(),
-        papel: 'bot',
-        texto: textoSucesso,
-      };
-      setLista((p) => [...p, msg]);
+      setPublishJobId(data.jobId);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao publicar.';
       setErro(msg);
@@ -248,7 +373,6 @@ export default function CriarSite() {
         texto: `Não foi possível publicar: ${msg}`,
       };
       setLista((p) => [...p, bot]);
-    } finally {
       setAPublicar(false);
     }
   }
@@ -346,6 +470,17 @@ export default function CriarSite() {
       )}
 
       <div className={cn('flex-1 flex flex-col min-h-0', !emConversa && 'justify-center')}>
+        {((generateJob?.logs?.length ?? 0) > 0 || (publishJob?.logs?.length ?? 0) > 0) && emConversa && (
+          <div className="mb-3 shrink-0 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 max-h-32 overflow-y-auto text-[11px] font-mono text-muted-foreground space-y-0.5">
+            {(generateJob?.logs ?? []).map((l, i) => (
+              <div key={`g-${i}`}>{l.message}</div>
+            ))}
+            {(publishJob?.logs ?? []).map((l, i) => (
+              <div key={`p-${i}`}>{l.message}</div>
+            ))}
+          </div>
+        )}
+
         {(githubUrl || publicSiteUrl) && emConversa && (
           <div className="mb-3 shrink-0 space-y-2">
             {publicSiteUrl && (
@@ -468,9 +603,9 @@ export default function CriarSite() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
                 {aPublicar
-                  ? 'A publicar no GitHub e a aguardar Cloud Run (vários minutos)…'
+                  ? 'A publicar em segundo plano (GitHub → Cloud Run). Pode fechar esta página — o progresso continua.'
                   : aGerar
-                    ? 'A gerar o site…'
+                    ? 'A gerar o site em segundo plano. Pode fechar esta página — o progresso continua.'
                     : LOADING_TEXTO}
               </div>
             )}

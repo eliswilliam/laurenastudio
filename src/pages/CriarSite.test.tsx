@@ -12,6 +12,22 @@ vi.mock("@/lib/publishApi", () => ({
 vi.mock("@/lib/api", () => {
   let callCount = 0;
   return {
+    getJobStatus: vi.fn(async () => ({
+      jobId: "job-test-1",
+      jobType: "generate_site",
+      status: "success",
+      projectId: "proj-test-123",
+      userId: "user-1",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      result: {
+        previewUrl: "/uploads/sites/proj-test-123/index.html",
+        downloadUrl: "/api/v1/sites/proj-test-123/download",
+        message: "Site gerado com sucesso!",
+      },
+      error: null,
+      logs: [{ ts: new Date().toISOString(), message: "Geração concluída." }],
+    })),
     default: {
       post: vi.fn(async (url: string, body: any) => {
         if (url === "/sites/chat") {
@@ -27,11 +43,9 @@ vi.mock("@/lib/api", () => {
         if (url === "/sites/generate") {
           return {
             data: {
-              project_id: body.project_id,
-              status: "ready",
-              preview_url: "/uploads/sites/proj-test-123/index.html",
-              download_url: "/api/v1/sites/proj-test-123/download",
-              message: "Site gerado com sucesso!",
+              jobId: "job-test-1",
+              projectId: body.project_id,
+              message: "Geração em fila.",
             },
           };
         }

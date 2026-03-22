@@ -1,14 +1,14 @@
 """
-POST /api/publish — create GitHub repo, single git commit, Actions secrets (GCP),
-optional Cloudflare CNAME → custom subdomain. Persists SiteDeployment + SiteProject fields.
+POST /api/publish — enqueue GitHub → Cloud Run → optional Cloudflare DNS (background job).
+GET /api/publish/jobs/{job_id} — poll job status.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import uuid
 from pathlib import Path
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -20,12 +20,11 @@ from app.models.site_project import SiteDeployment, SiteProject
 from app.models.subscription import Subscription
 from app.models.user import User
 from app.routes.auth import get_current_user
-from app.schemas.publish import PublishRequest, PublishResponse
-from app.core.config import settings
-from app.services.cloud_run_lookup import wait_for_cloud_run_url
-from app.services.cloud_run_domain_mapping import DomainMappingError, ensure_mapped_domain_and_cloudflare_dns
-from app.services.dns_service import DnsError, dns_configured, validate_slug
-from app.services.github_publish_service import GitHubPublishError, publish_site_files
+from app.schemas.job import BackgroundJobResponse, PublishEnqueueResponse
+from app.schemas.publish import PublishRequest
+from app.services.arq_enqueue import enqueue_publish_job
+from app.services.dns_service import dns_configured, validate_slug
+from app.services.job_service import create_job, get_job
 from app.services.site_generator import SITES_DIR
 from app.services.site_publish_queries import is_publish_slug_taken_by_other_project
 from app.services.site_static_bundle import split_html_to_static_files
@@ -51,28 +50,38 @@ def _normalize_paths(files: list) -> list[tuple[str, str]]:
     return out
 
 
-def _http_detail_str(detail: object) -> str:
-    if isinstance(detail, str):
-        return detail[:4000]
-    if isinstance(detail, list):
-        try:
-            return json.dumps(detail, ensure_ascii=False)[:4000]
-        except Exception:
-            return str(detail)[:4000]
-    try:
-        return str(detail)[:4000]
-    except Exception:
-        return "error"
+@router.get(
+    "/publish/jobs/{job_id}",
+    response_model=BackgroundJobResponse,
+    response_model_by_alias=True,
+    summary="Poll publish job status",
+)
+async def get_publish_job(
+    job_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> BackgroundJobResponse:
+    row = await get_job(db, job_id)
+    if not row or row.user_id != current_user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Job not found.")
+    if row.job_type != "publish_site":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Job not found.")
+    return BackgroundJobResponse.from_model(row)
 
 
-@router.post("/publish", response_model=PublishResponse, summary="Publish generated site to GitHub (single commit)")
+@router.post(
+    "/publish",
+    response_model=PublishEnqueueResponse,
+    response_model_by_alias=True,
+    summary="Enqueue publish to GitHub / Cloud Run",
+)
 async def publish_site(
     payload: PublishRequest,
     current_user: User = Depends(get_current_user),
     workspace_id: str = Depends(get_workspace_id),
     _: Subscription = Depends(verify_active_subscription),
     db: AsyncSession = Depends(get_db),
-) -> PublishResponse:
+) -> PublishEnqueueResponse:
     if payload.user_id != current_user.id:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
@@ -146,149 +155,28 @@ async def publish_site(
         project.publication_status = "publishing"
         await db.flush()
 
-    site_url: str | None = None
-    deploy_ok = False
-    dns_applied = False
-    actions_url = ""
-    github_url = ""
-    cloud_run_url: str | None = None
+    files_payload: list[dict[str, str]] = []
+    if not payload.project_id:
+        files_payload = [{"path": p, "content": c} for p, c in file_map]
 
-    try:
-        try:
-            logger.info(
-                "[publish] start project_id=%s slug=%s",
-                payload.project_id,
-                slug_norm,
-            )
-            github_url, service_name, commit_sha = await asyncio.to_thread(
-                publish_site_files, file_map, current_user.id
-            )
-            logger.info("[publish] GitHub push OK repo=%s service_name=%s", github_url, service_name)
-        except GitHubPublishError as exc:
-            step = f"{exc.step}: " if exc.step else ""
-            logger.warning("Publish failed: %s%s", step, exc)
-            raise HTTPException(
-                status.HTTP_502_BAD_GATEWAY,
-                detail=f"{step}{exc}",
-            ) from exc
+    input_payload = {
+        "workspace_id": workspace_id,
+        "user_id": current_user.id,
+        "project_id": payload.project_id,
+        "slug": slug_norm,
+        "deployment_id": deployment.id if deployment else None,
+        "files": files_payload,
+    }
 
-        actions_url = github_url.rstrip("/") + "/actions"
-
-        if project:
-            project.github_repo_url = github_url
-            project.cloud_run_service_name = service_name
-        if deployment:
-            deployment.github_repo_url = github_url
-            deployment.cloud_run_service_name = service_name
-            deployment.commit_sha = commit_sha
-            deployment.status = "github_pushed"
-        await db.flush()
-
-        logger.info("[publish] polling Cloud Run until URL (max %ss)…", settings.CLOUD_RUN_POLL_MAX_SECONDS)
-
-        def _poll_cloud_run() -> str | None:
-            return wait_for_cloud_run_url(
-                settings.GCP_PROJECT_ID.strip(),
-                (settings.GCP_REGION or "us-central1").strip(),
-                service_name,
-                max_seconds=settings.CLOUD_RUN_POLL_MAX_SECONDS,
-                interval_seconds=settings.CLOUD_RUN_POLL_INTERVAL_SECONDS,
-            )
-
-        cloud_run_url = await asyncio.to_thread(_poll_cloud_run)
-        logger.info("[publish] Cloud Run URL=%s", cloud_run_url or "(none yet)")
-
-        if project:
-            project.cloud_run_url = cloud_run_url
-        if deployment:
-            deployment.cloud_run_url = cloud_run_url
-            if cloud_run_url:
-                deployment.status = "cloud_run_ready"
-
-        if dns_configured():
-            if not slug_norm:
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    detail="slug is required when custom domain is configured.",
-                )
-            if not cloud_run_url:
-                raise HTTPException(
-                    status.HTTP_502_BAD_GATEWAY,
-                    detail="Cloud Run URL not available in time. Open Actions and check the workflow.",
-                )
-            logger.info(
-                "[publish] domain mapping + Cloudflare DNS for slug=%s (max mapping %ss)…",
-                slug_norm,
-                settings.GCP_DOMAIN_MAPPING_POLL_MAX_SECONDS,
-            )
-            try:
-                site_url = await asyncio.to_thread(
-                    ensure_mapped_domain_and_cloudflare_dns,
-                    slug_norm,
-                    service_name=service_name,
-                )
-            except (DnsError, DomainMappingError) as exc:
-                raise HTTPException(
-                    status.HTTP_502_BAD_GATEWAY,
-                    detail=str(exc),
-                ) from exc
-            deploy_ok = bool(site_url)
-            dns_applied = deploy_ok
-            logger.info("[publish] done site_url=%s deploy_ok=%s", site_url, deploy_ok)
-            if project:
-                project.site_url = site_url
-                project.publish_slug = slug_norm
-            if deployment:
-                deployment.site_url = site_url
-                deployment.slug = slug_norm
-                deployment.status = "success" if deploy_ok else "failed"
-                if not deploy_ok:
-                    deployment.error_message = "Domain mapping / DNS incomplet."
-        else:
-            site_url = cloud_run_url
-            deploy_ok = bool(cloud_run_url)
-            logger.info("[publish] done (no custom DNS) site_url=%s deploy_ok=%s", site_url, deploy_ok)
-            if project:
-                project.site_url = site_url
-            if deployment:
-                deployment.site_url = site_url
-                deployment.status = "success" if deploy_ok else "failed"
-                if not deploy_ok:
-                    deployment.error_message = "Cloud Run URL not available within poll window."
-
-        if project:
-            project.publication_status = "live" if deploy_ok else "failed"
-
-        await db.commit()
-
-    except HTTPException as exc:
-        if deployment:
-            deployment.status = "failed"
-            deployment.error_message = _http_detail_str(exc.detail)
-        if project:
-            project.publication_status = "failed"
-        await db.commit()
-        raise
-
-    except Exception as exc:
-        logger.exception("Unexpected publish error")
-        if deployment:
-            deployment.status = "failed"
-            deployment.error_message = str(exc)[:4000]
-        if project:
-            project.publication_status = "failed"
-        await db.commit()
-        raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY,
-            detail=f"Unexpected error while publishing: {exc}",
-        ) from exc
-
-    return PublishResponse(
-        github=github_url,
-        site_url=site_url,
-        deploy_ok=deploy_ok,
-        success=deploy_ok,
-        actions_url=actions_url,
-        cloud_run=cloud_run_url,
-        dns_applied=dns_applied,
+    job = await create_job(
+        db,
+        job_type="publish_site",
+        user_id=current_user.id,
+        project_id=payload.project_id,
+        input_payload=input_payload,
     )
+    await db.commit()
+
+    await enqueue_publish_job(str(job.id))
+
+    return PublishEnqueueResponse(job_id=str(job.id))

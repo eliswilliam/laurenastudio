@@ -1,5 +1,7 @@
 import axios, { type AxiosError } from 'axios';
 
+import type { JobStatus } from '@/lib/criarSiteChat';
+
 const api = axios.create({
   baseURL: '/api/v1',
   timeout: 120000,
@@ -64,5 +66,11 @@ api.interceptors.response.use(
     return Promise.reject(new Error(formatApiError(error)));
   }
 );
+
+/** GET /api/v1/sites/jobs/{jobId} — poll site generation job (ARQ). */
+export async function getJobStatus(jobId: string): Promise<JobStatus> {
+  const { data } = await api.get<JobStatus>(`/sites/jobs/${jobId}`);
+  return data;
+}
 
 export default api;

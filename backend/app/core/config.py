@@ -32,6 +32,9 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://postgres:example@localhost:5432/laurenadb"
     )
 
+    # ── Redis (ARQ job queue) ────────────────────────────────────────────────
+    REDIS_URL: str = "redis://localhost:6379/0"
+
     # ── JWT ──────────────────────────────────────────────────────────────────
     SECRET_KEY: str = "CHANGE-ME-in-production-use-openssl-rand-hex-32"
     ALGORITHM: str = "HS256"

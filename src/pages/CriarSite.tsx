@@ -51,6 +51,9 @@ const DICA_TECLADO = 'Enter envia · Shift+Enter nova linha';
 const LOADING_TEXTO = 'Laurena está a pensar…';
 const POLL_MS = 2500;
 
+/** Não listar no Histórico (conta) — título técnico da área de preview, não nome de projeto. */
+const EXCLUDE_FROM_PROJECT_HISTORY_NAME = 'Pré-visualização (HTML + CSS como no navegador)';
+
 const ROOT_DOMAIN =
   (import.meta.env.VITE_ROOT_DOMAIN as string | undefined)?.trim() || 'laurenastudio.pro';
 
@@ -569,13 +572,15 @@ export default function CriarSite() {
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               A carregar…
             </div>
-          ) : projects.length === 0 ? (
+          ) : projects.filter((p) => p.name !== EXCLUDE_FROM_PROJECT_HISTORY_NAME).length === 0 ? (
             <p className="text-[11px] text-muted-foreground leading-snug">
               Os projetos aparecem aqui após a primeira mensagem. O mesmo estado fica na sua conta em qualquer
               dispositivo.
             </p>
           ) : (
-            projects.map((p) => (
+            projects
+              .filter((p) => p.name !== EXCLUDE_FROM_PROJECT_HISTORY_NAME)
+              .map((p) => (
               <button
                 key={p.id}
                 type="button"

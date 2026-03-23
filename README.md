@@ -246,7 +246,7 @@ GenerateContentConfig(
     max_output_tokens=32768,
     response_modalities=["TEXT", "IMAGE"],
     safety_settings=[...tous à "OFF"...],
-    image_config=ImageConfig(aspect_ratio="1:1", image_size="1K", output_mime_type="image/png"),
+    image_config=ImageConfig(aspect_ratio="1:1", image_size="1K"),
 )
 # Modèle: gemini-2.5-flash-image
 # Stream: generate_content_stream

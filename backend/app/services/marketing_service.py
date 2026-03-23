@@ -123,7 +123,6 @@ def _marketing_image_config() -> types.GenerateContentConfig:
         image_config=types.ImageConfig(
             aspect_ratio="1:1",
             image_size="1K",
-            output_mime_type="image/png",
         ),
     )
 

@@ -6,6 +6,7 @@ Protected by active subscription + usage limits.
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import (
@@ -22,13 +23,12 @@ from app.services import notification_service
 from app.schemas.ai import (
     MarketingImageRequest,
     MarketingImageResponse,
+    MarketingVideoJobAccepted,
     MarketingVideoRequest,
-    MarketingVideoResponse,
 )
-from app.services.marketing_service import (
-    generate_marketing_image,
-    generate_marketing_video,
-)
+from app.services.arq_enqueue import enqueue_ai_video_job
+from app.services.job_service import create_job
+from app.services.marketing_service import generate_marketing_image
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +96,8 @@ async def marketing_image(
 
 @router.post(
     "/generate-video",
-    response_model=MarketingVideoResponse,
-    summary="Generate a marketing ad video",
+    response_model=None,
+    summary="Generate a marketing ad video (queued; poll GET /api/v1/ai/jobs/{jobId})",
 )
 async def marketing_video(
     payload: MarketingVideoRequest,
@@ -105,49 +105,38 @@ async def marketing_video(
     subscription: Subscription = Depends(verify_active_subscription),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> MarketingVideoResponse:
+) -> JSONResponse:
     usage = await check_and_increment_usage(db, workspace_id, "video", subscription)
 
-    try:
-        result = await generate_marketing_video(
-            brand_name=payload.brand_name,
-            ad_text=payload.ad_text,
-            user_prompt=payload.prompt,
-            video_mode=payload.video_mode,
-            reference_image_b64=payload.reference_image_b64,
-            reference_mime=payload.reference_mime,
-        )
-    except Exception as exc:
-        logger.exception("Marketing video generation failed: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Falha na geração do vídeo: {exc}",
-        )
-
-    prompt_log = f"[MKT-VID:{payload.video_mode}] {payload.brand_name} | {payload.ad_text[:80]}"
-    record = AIGeneration(
-        workspace_id=workspace_id,
-        resource_type="video",
-        prompt=prompt_log,
-        content=result["video_url"],
-        model_used="veo-3.1-generate-001",
-        style="marketing",
-    )
-    db.add(record)
-    await db.commit()
-
-    await notification_service.create_user_notification(
+    job = await create_job(
         db,
+        job_type="ai_video",
         user_id=current_user.id,
-        kind="marketing_video",
-        title="Vídeo publicitário pronto",
-        body=f"Seu vídeo para a marca «{payload.brand_name.strip()}» foi gerado com sucesso.",
+        project_id=None,
+        input_payload={
+            "mode": "marketing",
+            "brand_name": payload.brand_name,
+            "ad_text": payload.ad_text,
+            "user_prompt": payload.prompt,
+            "video_mode": payload.video_mode,
+            "reference_image_b64": payload.reference_image_b64,
+            "reference_mime": payload.reference_mime,
+            "workspace_id": workspace_id,
+            "user_id": current_user.id,
+            "usage_after": usage.video_used,
+            "limit": subscription.plan.video_limit,
+        },
     )
     await db.commit()
+    await enqueue_ai_video_job(str(job.id))
+    logger.info("Marketing video job enqueued job_id=%s", job.id)
 
-    return MarketingVideoResponse(
-        video_url=result["video_url"],
+    body = MarketingVideoJobAccepted(
+        job_id=str(job.id),
         usage_after=usage.video_used,
         limit=subscription.plan.video_limit,
-        message="Vídeo publicitário gerado com sucesso.",
+    )
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content=body.model_dump(by_alias=True),
     )

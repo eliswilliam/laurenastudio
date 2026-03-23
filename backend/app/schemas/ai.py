@@ -22,6 +22,25 @@ class AIGenerateResponse(BaseModel):
     message: str
 
 
+class AIVideoJobAccepted(BaseModel):
+    """Video generation is queued (Veo); poll GET /ai/jobs/{job_id} until status is success."""
+
+    job_id: str = Field(serialization_alias="jobId")
+    resource_type: str = "video"
+    usage_after: int = Field(serialization_alias="usageAfter")
+    limit: int
+    message: str = "Geração de vídeo em fila. Acompanhe com o jobId."
+
+
+class MarketingVideoJobAccepted(BaseModel):
+    """Marketing video queued; poll GET /ai/jobs/{job_id}."""
+
+    job_id: str = Field(serialization_alias="jobId")
+    usage_after: int = Field(serialization_alias="usageAfter")
+    limit: int
+    message: str = "Geração de vídeo em fila."
+
+
 # ── Marketing AI schemas ─────────────────────────────────────────────────────
 
 class MarketingImageRequest(BaseModel):

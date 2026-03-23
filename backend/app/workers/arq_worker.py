@@ -12,6 +12,7 @@ from sqlalchemy import update
 from app.db.worker_db import WorkerSessionLocal
 from app.models.background_job import BackgroundJob
 from app.redis_arq_settings import build_redis_settings
+from app.workers.ai_video_task import arq_ai_video
 from app.workers.generate_task import arq_generate_site
 from app.workers.publish_task import arq_publish_site
 
@@ -96,7 +97,7 @@ async def shutdown(ctx: dict) -> None:
 
 class WorkerSettings:
     redis_settings = build_redis_settings()
-    functions = [arq_generate_site, arq_publish_site]
+    functions = [arq_generate_site, arq_publish_site, arq_ai_video]
     max_jobs = 10
     job_timeout = 7200
     on_startup = startup

@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import api from '@/lib/api';
+import api, { getAiVideoJobStatus } from '@/lib/api';
 import AIInferenceAnimation from '@/components/shared/AIInferenceAnimation';
 
 export default function AIStudio() {
@@ -74,17 +74,47 @@ export default function AIStudio() {
         };
         setMessages((prev) => [...prev, assistantMsg]);
       } else if (mode === 'veo') {
-        const { data } = await api.post(
+        const res = await api.post<{
+          jobId?: string;
+          content?: string;
+        }>(
           '/ai/generate',
           { resource_type: 'video', prompt, style: null },
-          { timeout: 600000 }
+          { timeout: 120000, validateStatus: (s) => s === 200 || s === 202 }
         );
+
+        let videoUrl = '';
+
+        if (res.status === 202 && res.data.jobId) {
+          const jobId = res.data.jobId;
+          const maxWaitMs = 15 * 60 * 1000;
+          const started = Date.now();
+          while (Date.now() - started < maxWaitMs) {
+            const j = await getAiVideoJobStatus(jobId);
+            if (j.status === 'success' && j.result) {
+              videoUrl = String((j.result as Record<string, unknown>).content ?? '');
+              if (!videoUrl) throw new Error('Vídeo gerado sem URL.');
+              break;
+            }
+            if (j.status === 'failed') {
+              throw new Error(j.error || 'Geração falhou');
+            }
+            await new Promise((r) => setTimeout(r, 2500));
+          }
+          if (!videoUrl) {
+            throw new Error('Tempo esgotado ao aguardar o vídeo. Tente novamente.');
+          }
+        } else if (res.status === 200 && res.data.content) {
+          videoUrl = res.data.content;
+        } else {
+          throw new Error('Resposta inesperada do servidor ao gerar vídeo.');
+        }
 
         const assistantMsg: StudioChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: '',
-          mediaUrl: data.content,
+          mediaUrl: videoUrl,
           mediaType: 'video',
           timestamp: ts(),
         };

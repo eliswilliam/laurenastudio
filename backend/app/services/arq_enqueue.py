@@ -38,3 +38,8 @@ async def enqueue_generate_job(job_id: str) -> None:
 async def enqueue_publish_job(job_id: str) -> None:
     redis = await get_arq_pool()
     await redis.enqueue_job("arq_publish_site", job_id)
+
+
+async def enqueue_ai_video_job(job_id: str) -> None:
+    redis = await get_arq_pool()
+    await redis.enqueue_job("arq_ai_video", job_id)

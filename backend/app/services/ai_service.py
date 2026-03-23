@@ -221,6 +221,11 @@ def _sync_generate_video(prompt: str, *, style: str | None = None) -> str:
     Returns the relative URL path to the saved video file.
     """
     client = _get_video_client()
+    logger.info(
+        "Veo 3.1: credentials=%s project=%s",
+        "ok" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "missing",
+        (settings.GOOGLE_CLOUD_PROJECT or "").strip() or "?",
+    )
 
     full_prompt = prompt
     if style:

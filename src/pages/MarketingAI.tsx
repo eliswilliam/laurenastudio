@@ -25,7 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import api from '@/lib/api';
+import api, { getAiVideoJobStatus } from '@/lib/api';
 import AIInferenceAnimation from '@/components/shared/AIInferenceAnimation';
 import {
   FacebookIcon,
@@ -124,7 +124,7 @@ export default function MarketingAI() {
         setImageResult(data);
         toast({ title: 'Imagem gerada!', description: data.message });
       } else {
-        const { data } = await api.post<MarketingVideoResult>(
+        const res = await api.post<{ jobId?: string }>(
           '/marketing/generate-video',
           {
             brand_name: brandName,
@@ -134,8 +134,32 @@ export default function MarketingAI() {
             reference_image_b64: videoMode === 'image_to_video' ? (referenceImage || undefined) : undefined,
             reference_mime: referenceMime,
           },
-          { timeout: 360000 }
+          { timeout: 120000, validateStatus: (s) => s === 202 }
         );
+        const jobId = res.data.jobId;
+        if (!jobId) throw new Error('Resposta sem jobId ao enfileirar vídeo.');
+
+        const maxWaitMs = 15 * 60 * 1000;
+        const started = Date.now();
+        let data: MarketingVideoResult | null = null;
+        while (Date.now() - started < maxWaitMs) {
+          const j = await getAiVideoJobStatus(jobId);
+          if (j.status === 'success' && j.result) {
+            const r = j.result as Record<string, unknown>;
+            data = {
+              video_url: String(r.video_url ?? ''),
+              usage_after: Number(r.usage_after ?? 0),
+              limit: Number(r.limit ?? 0),
+              message: String(r.message ?? 'Vídeo publicitário gerado com sucesso.'),
+            };
+            break;
+          }
+          if (j.status === 'failed') {
+            throw new Error(j.error || 'Falha na geração do vídeo');
+          }
+          await new Promise((r) => setTimeout(r, 2500));
+        }
+        if (!data) throw new Error('Tempo esgotado ao aguardar o vídeo.');
         setVideoResult(data);
         toast({ title: 'Vídeo gerado!', description: data.message });
       }

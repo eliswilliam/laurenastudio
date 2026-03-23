@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { clearSessionOnLogout } from '@/lib/clearSessionOnLogout';
 import type { Usuario } from '@/lib/types';
 import { apiBillingStatus, type BillingStatusResponse } from '@/lib/billingApi';
 
@@ -38,7 +39,16 @@ export const useAuthStore = create<AuthState>()(
       },
       logout: () => {
         localStorage.removeItem('auth_token');
-        set({ usuario: null, token: null, isAutenticado: false, temPlanoAtivo: false, planoNome: null, billingStatus: null, billingChecked: false });
+        clearSessionOnLogout();
+        set({
+          usuario: null,
+          token: null,
+          isAutenticado: false,
+          temPlanoAtivo: false,
+          planoNome: null,
+          billingStatus: null,
+          billingChecked: false,
+        });
       },
       atualizarUsuario: (dados) =>
         set((state) => ({

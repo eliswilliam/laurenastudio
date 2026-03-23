@@ -8,16 +8,6 @@
 */
 
 @layer base {
-  /* Empêche le défilement horizontal sur petits écrans (grilles, scale, contenu large) */
-  html {
-    overflow-x: hidden;
-    max-width: 100%;
-  }
-  body {
-    overflow-x: hidden;
-    max-width: 100%;
-  }
-
   :root {
     /* Laurena Studio Brand Palette
        Primary  #C15F3C → hsl(16 53% 50%)   - Terracotta

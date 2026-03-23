@@ -8,6 +8,7 @@ Uses google-genai SDK:
 import asyncio
 import logging
 import os
+import tempfile
 import time
 import uuid
 from functools import partial
@@ -72,8 +73,8 @@ def _ensure_gcloud_credentials() -> None:
 
     creds_json = decode_google_service_account_json(settings.GOOGLE_CREDENTIALS_JSON)
     if creds_json:
-        sa_path = "/tmp/gcloud_sa_key.json"
-        Path(sa_path).write_text(creds_json)
+        sa_path = str(Path(tempfile.gettempdir()) / "gcloud_sa_key.json")
+        Path(sa_path).write_text(creds_json, encoding="utf-8")
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = sa_path
         logger.info("Wrote service account key from GOOGLE_CREDENTIALS_JSON → %s", sa_path)
         return

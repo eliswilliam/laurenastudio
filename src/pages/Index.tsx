@@ -86,10 +86,10 @@ const Index = () => {
   const [anual, setAnual] = useState(true);
 
   return (
-    <div className="min-h-screen bg-background animate-fade-in">
+    <div className="min-h-screen bg-background animate-fade-in w-full min-w-0 overflow-x-hidden">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8">
         {/* Hero */}
         <HeroSection />
 
@@ -275,9 +275,9 @@ const Index = () => {
               return (
                 <div
                   key={plano.id}
-                  className={`relative rounded-xl border p-6 sm:p-7 flex flex-col animate-slide-up ${
+                  className={`relative rounded-xl border p-6 sm:p-7 flex flex-col animate-slide-up min-w-0 ${
                     plano.destaque
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xl md:scale-[1.02]'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xl md:scale-[1.02] md:origin-center'
                       : 'bg-card border-border'
                   }`}
                 >
@@ -329,8 +329,8 @@ const Index = () => {
         </section>
 
         {/* CTA final */}
-        <section className="py-16 mb-8">
-          <div className="rounded-[2.5rem] bg-primary p-10 md:p-16 text-center text-primary-foreground animate-scale-in">
+        <section className="py-16 mb-8 overflow-x-hidden">
+          <div className="rounded-2xl sm:rounded-[2.5rem] bg-primary px-5 py-10 sm:p-10 md:p-16 text-center text-primary-foreground animate-scale-in min-w-0">
             <Sparkles className="w-10 h-10 mx-auto mb-4 opacity-80" />
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Quer criar campanhas e conteúdos com IA?</h2>
             <p className="text-primary-foreground/80 text-lg mb-8 max-w-xl mx-auto">

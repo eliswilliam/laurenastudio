@@ -29,13 +29,13 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 py-2 sm:py-4">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 pill-nav px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full min-w-0">
+        <div className="flex items-center justify-between h-14 sm:h-16 pill-nav px-4 sm:px-6 gap-2 min-w-0">
           {/* Logo */}
-          <div className="flex items-center min-w-0">
-            <Link to="/" className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center min-w-0 flex-1 md:flex-initial">
+            <Link to="/" className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <img src="/android-chrome-192x192.png" alt="Laurena Studio" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex-shrink-0" />
-              <span className="font-bagel tracking-wider text-xl truncate">LAURENA STUDIO</span>
+              <span className="font-bagel tracking-wider text-base sm:text-xl truncate max-w-[9.5rem] sm:max-w-none">LAURENA STUDIO</span>
             </Link>
           </div>
 

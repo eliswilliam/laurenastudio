@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timezone
 
 from sqlalchemy import desc, func, select
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user_notification import UserNotification
@@ -27,18 +28,33 @@ async def create_user_notification(
     title: str,
     body: str,
     link: str | None = None,
-) -> UserNotification:
-    row = UserNotification(
-        user_id=user_id,
-        kind=kind,
-        title=title,
-        body=body,
-        link=link,
-        read=False,
-    )
-    db.add(row)
-    await db.flush()
-    return row
+) -> UserNotification | None:
+    """
+    Insert a notification in a SAVEPOINT so login/register/billing never fail if
+    migration 016 (user_notifications) was not applied on the server yet.
+    """
+    try:
+        async with db.begin_nested():
+            row = UserNotification(
+                user_id=user_id,
+                kind=kind,
+                title=title,
+                body=body,
+                link=link,
+                read=False,
+            )
+            db.add(row)
+            await db.flush()
+        return row
+    except (ProgrammingError, OperationalError) as exc:
+        logger.warning(
+            "create_user_notification skipped (missing table or DB issue): %s",
+            exc,
+        )
+        return None
+    except Exception as exc:
+        logger.warning("create_user_notification skipped: %s", exc)
+        return None
 
 
 async def list_notifications(
@@ -47,22 +63,26 @@ async def list_notifications(
     *,
     limit: int = 50,
 ) -> tuple[list[UserNotification], int]:
-    q = (
-        select(UserNotification)
-        .where(UserNotification.user_id == user_id)
-        .order_by(desc(UserNotification.created_at))
-        .limit(min(limit, 100))
-    )
-    r = await db.execute(q)
-    items = list(r.scalars().all())
+    try:
+        q = (
+            select(UserNotification)
+            .where(UserNotification.user_id == user_id)
+            .order_by(desc(UserNotification.created_at))
+            .limit(min(limit, 100))
+        )
+        r = await db.execute(q)
+        items = list(r.scalars().all())
 
-    cnt_r = await db.execute(
-        select(func.count())
-        .select_from(UserNotification)
-        .where(UserNotification.user_id == user_id, UserNotification.read.is_(False))
-    )
-    unread = int(cnt_r.scalar_one() or 0)
-    return items, unread
+        cnt_r = await db.execute(
+            select(func.count())
+            .select_from(UserNotification)
+            .where(UserNotification.user_id == user_id, UserNotification.read.is_(False))
+        )
+        unread = int(cnt_r.scalar_one() or 0)
+        return items, unread
+    except (ProgrammingError, OperationalError) as exc:
+        logger.warning("list_notifications unavailable: %s", exc)
+        return [], 0
 
 
 def to_read(n: UserNotification) -> NotificationRead:
@@ -78,25 +98,36 @@ def to_read(n: UserNotification) -> NotificationRead:
 
 
 async def mark_notification_read(db: AsyncSession, user_id: str, notification_id: str) -> bool:
-    r = await db.execute(
-        select(UserNotification).where(
-            UserNotification.id == notification_id,
-            UserNotification.user_id == user_id,
+    try:
+        r = await db.execute(
+            select(UserNotification).where(
+                UserNotification.id == notification_id,
+                UserNotification.user_id == user_id,
+            )
         )
-    )
-    row = r.scalars().first()
-    if not row:
+        row = r.scalars().first()
+        if not row:
+            return False
+        row.read = True
+        await db.flush()
+        return True
+    except (ProgrammingError, OperationalError) as exc:
+        logger.warning("mark_notification_read unavailable: %s", exc)
         return False
-    row.read = True
-    await db.flush()
-    return True
 
 
 async def mark_all_read(db: AsyncSession, user_id: str) -> None:
-    r = await db.execute(select(UserNotification).where(UserNotification.user_id == user_id, UserNotification.read.is_(False)))
-    for row in r.scalars().all():
-        row.read = True
-    await db.flush()
+    try:
+        r = await db.execute(
+            select(UserNotification).where(
+                UserNotification.user_id == user_id, UserNotification.read.is_(False)
+            )
+        )
+        for row in r.scalars().all():
+            row.read = True
+        await db.flush()
+    except (ProgrammingError, OperationalError) as exc:
+        logger.warning("mark_all_read unavailable: %s", exc)
 
 
 async def list_notifications_newer_than(

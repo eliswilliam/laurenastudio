@@ -11,8 +11,9 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from jose import JWTError
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import OperationalError, ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
 from app.db.session import AsyncSessionLocal, get_db
@@ -102,20 +103,24 @@ async def notification_stream(
             while True:
                 await asyncio.sleep(2)
                 async with AsyncSessionLocal() as db:
-                    r = await db.execute(
-                        select(UserNotification)
-                        .where(
-                            UserNotification.user_id == user_id,
-                            UserNotification.created_at >= connected_at,
+                    try:
+                        r = await db.execute(
+                            select(UserNotification)
+                            .where(
+                                UserNotification.user_id == user_id,
+                                UserNotification.created_at >= connected_at,
+                            )
+                            .order_by(UserNotification.created_at.asc())
                         )
-                        .order_by(UserNotification.created_at.asc())
-                    )
-                    for row in r.scalars().all():
-                        if row.id in emitted:
-                            continue
-                        emitted.add(row.id)
-                        data = notification_service.to_read(row).model_dump()
-                        yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+                        for row in r.scalars().all():
+                            if row.id in emitted:
+                                continue
+                            emitted.add(row.id)
+                            data = notification_service.to_read(row).model_dump()
+                            yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+                    except (ProgrammingError, OperationalError) as e:
+                        logger.warning("notification stream query skipped: %s", e)
+                        yield ": keepalive\n\n"
         except asyncio.CancelledError:
             raise
         except Exception as e:

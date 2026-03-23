@@ -4,9 +4,14 @@ from pathlib import Path
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# backend/.env — absolute path so PEXELS_API_KEY etc. load even if cwd is not backend/
+# backend/.env — absolute path so local dev finds the file regardless of cwd.
+# Azure: no .env file on disk; App Settings are read from the process environment only.
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 _ENV_FILE = _BACKEND_ROOT / ".env"
+
+_SETTINGS_ENV_FILE: dict[str, str] = {}
+if _ENV_FILE.is_file():
+    _SETTINGS_ENV_FILE = {"env_file": str(_ENV_FILE), "env_file_encoding": "utf-8"}
 
 
 # Azure App Service can inject empty-string env vars for settings that exist
@@ -22,8 +27,7 @@ _FIELD_DEFAULTS = {
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=str(_ENV_FILE),
-        env_file_encoding="utf-8",
+        **_SETTINGS_ENV_FILE,
         case_sensitive=False,
         extra="ignore",
     )
@@ -61,6 +65,16 @@ class Settings(BaseSettings):
     def _coerce_empty(cls, v: object, info) -> object:
         if v is None or (isinstance(v, str) and v.strip() == ""):
             return _FIELD_DEFAULTS.get(info.field_name, v)
+        return v
+
+    @field_validator("SITE_USE_PEXELS_STOCK", mode="before")
+    @classmethod
+    def _coerce_site_use_pexels(cls, v: object) -> object:
+        # Azure peut envoyer SITE_USE_PEXELS_STOCK="" — éviter ValidationError au chargement.
+        if v is None or (isinstance(v, str) and v.strip() == ""):
+            return True
+        if isinstance(v, str):
+            return v.strip().lower() in ("1", "true", "yes", "on")
         return v
 
     # ── Google OAuth ──────────────────────────────────────────────────────

@@ -75,7 +75,7 @@ export default function HeroInferenceDemo() {
   }, [phase]);
 
   return (
-    <div className="w-full max-w-[380px] bg-background rounded-2xl border border-border shadow-xl overflow-hidden flex flex-col">
+    <div className="w-full max-w-[380px] min-w-0 bg-background rounded-2xl border border-border shadow-xl overflow-hidden flex flex-col mx-auto">
       {/* Header */}
       <div className="bg-sidebar px-4 py-3 flex items-center gap-2 shrink-0">
         <div className="flex gap-1.5">

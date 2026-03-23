@@ -268,8 +268,6 @@ async def _arq_publish_site_impl(job_id: str) -> None:
             await mark_success(db, jid, result_dict)
 
             if deploy_ok and user_id and site_url:
-                from app.core.config import settings
-
                 rd = (settings.ROOT_DOMAIN or "").strip().lstrip(".")
                 sn = (slug_norm or "").strip().lower() if slug_norm else ""
                 if sn and rd:

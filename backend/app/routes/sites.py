@@ -31,11 +31,12 @@ from app.schemas.site import (
     ProjectSummary,
     SiteChatRequest,
     SiteChatResponse,
+    SitePromptItem,
     SiteStatusResponse,
 )
 from app.schemas.job import BackgroundJobResponse
 from app.core.config import settings
-from app.services.site_ai_service import generate_chat_reply
+from app.services.site_ai_service import GeminiGenerationError, generate_chat_reply
 from app.services.site_generator import create_zip
 from app.services.job_service import create_job, get_job
 from app.services.arq_enqueue import enqueue_generate_job
@@ -86,6 +87,12 @@ async def site_chat(
 
     try:
         reply = await generate_chat_reply(history, last_user.content)
+    except GeminiGenerationError as exc:
+        logger.warning("Site chat blocked or empty: %s", exc.reason)
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=exc.user_message,
+        ) from exc
     except Exception as exc:
         logger.exception("Site chat AI error: %s", exc)
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Erro da IA: {exc}")
@@ -185,7 +192,7 @@ async def get_site_status(
 ) -> SiteStatusResponse:
     result = await db.execute(
         select(SiteProject)
-        .options(selectinload(SiteProject.site))
+        .options(selectinload(SiteProject.site), selectinload(SiteProject.prompts))
         .where(
             SiteProject.id == project_id,
             SiteProject.workspace_id == workspace_id,
@@ -196,6 +203,10 @@ async def get_site_status(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Projeto não encontrado.")
 
     site = project.site
+    prompt_rows = [
+        SitePromptItem(id=p.id, role=p.role, content=p.content)
+        for p in sorted(project.prompts, key=lambda x: x.created_at)
+    ]
     download_url = f"/api/v1/sites/{project_id}/download" if site and site.status == "ready" else None
 
     dep_result = await db.execute(
@@ -237,6 +248,7 @@ async def get_site_status(
         site_url=project.site_url,
         publication_status=project.publication_status,
         deployments=dep_infos,
+        prompts=prompt_rows,
     )
 
 

@@ -55,7 +55,7 @@ async def register_user(db: AsyncSession, payload: RegisterRequest) -> AuthRespo
     if await _get_user_by_email(db, payload.email):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered.",
+            detail="Este e-mail já está cadastrado. Faça login ou use outro e-mail.",
         )
 
     # 2. Create user
@@ -85,6 +85,16 @@ async def register_user(db: AsyncSession, payload: RegisterRequest) -> AuthRespo
         role="admin",
     )
     db.add(membership)
+
+    from app.services.notification_service import create_user_notification
+
+    await create_user_notification(
+        db,
+        user_id=user.id,
+        kind="auth_register",
+        title="Conta criada com sucesso",
+        body="Bem-vindo(a) à Laurena Studio! Sua conta e workspace estão prontos.",
+    )
     await db.commit()
     await db.refresh(user)
     await db.refresh(workspace)
@@ -110,7 +120,7 @@ async def login_user(db: AsyncSession, payload: LoginRequest) -> AuthResponse:
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials.",
+            detail="E-mail ou senha incorretos. Verifique os dados e tente novamente.",
         )
 
     if not user.is_active:
@@ -147,6 +157,17 @@ async def login_user(db: AsyncSession, payload: LoginRequest) -> AuthResponse:
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
     )
+
+    from app.services.notification_service import create_user_notification
+
+    await create_user_notification(
+        db,
+        user_id=user.id,
+        kind="auth_login",
+        title="Login realizado com sucesso",
+        body="Bem-vindo(a) de volta à Laurena Studio!",
+    )
+    await db.commit()
 
     return AuthResponse(
         user=UserRead.model_validate(user),

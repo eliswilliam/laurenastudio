@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useAIStudioStore, type StudioChatMessage, type StudioMode } from '@/store/useAIStudioStore';
 import {
   Sparkles,
   ImageIcon,
@@ -20,21 +21,15 @@ import { useToast } from '@/hooks/use-toast';
 import api from '@/lib/api';
 import AIInferenceAnimation from '@/components/shared/AIInferenceAnimation';
 
-type StudioMode = null | 'gemini' | 'veo' | 'audio';
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  mediaUrl?: string;
-  mediaType?: 'image' | 'video' | 'text';
-  timestamp: Date;
-}
-
 export default function AIStudio() {
-  const [mode, setMode] = useState<StudioMode>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
+  const mode = useAIStudioStore((s) => s.mode);
+  const setMode = useAIStudioStore((s) => s.setMode);
+  const messages = useAIStudioStore((s) => s.messages);
+  const setMessages = useAIStudioStore((s) => s.setMessages);
+  const input = useAIStudioStore((s) => s.input);
+  const setInput = useAIStudioStore((s) => s.setInput);
+  const resetStudioStore = useAIStudioStore((s) => s.resetStudio);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -44,14 +39,16 @@ export default function AIStudio() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isGenerating]);
 
+  const ts = () => new Date().toISOString();
+
   const handleSend = async () => {
     if (!input.trim() || isGenerating || !mode) return;
 
-    const userMsg: ChatMessage = {
+    const userMsg: StudioChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content: input.trim(),
-      timestamp: new Date(),
+      timestamp: ts(),
     };
     setMessages((prev) => [...prev, userMsg]);
     const prompt = input.trim();
@@ -67,13 +64,13 @@ export default function AIStudio() {
         );
 
         const isImage = data.content?.startsWith('/uploads/');
-        const assistantMsg: ChatMessage = {
+        const assistantMsg: StudioChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: isImage ? '' : data.content,
           mediaUrl: isImage ? data.content : undefined,
           mediaType: isImage ? 'image' : 'text',
-          timestamp: new Date(),
+          timestamp: ts(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
       } else if (mode === 'veo') {
@@ -83,24 +80,24 @@ export default function AIStudio() {
           { timeout: 600000 }
         );
 
-        const assistantMsg: ChatMessage = {
+        const assistantMsg: StudioChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: '',
           mediaUrl: data.content,
           mediaType: 'video',
-          timestamp: new Date(),
+          timestamp: ts(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
       }
       toast({ title: 'Conteúdo gerado!', description: 'A IA finalizou a geração.' });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro desconhecido';
-      const errorMsg: ChatMessage = {
+      const errorMsg: StudioChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: `Erro na geração: ${message}`,
-        timestamp: new Date(),
+        timestamp: ts(),
       };
       setMessages((prev) => [...prev, errorMsg]);
       toast({ title: 'Erro', description: message, variant: 'destructive' });
@@ -122,9 +119,7 @@ export default function AIStudio() {
   };
 
   const resetStudio = () => {
-    setMode(null);
-    setMessages([]);
-    setInput('');
+    resetStudioStore();
     setIsGenerating(false);
   };
 

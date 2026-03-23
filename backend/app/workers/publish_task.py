@@ -19,6 +19,7 @@ from app.services.cloud_run_domain_mapping import DomainMappingError, ensure_map
 from app.services.dns_service import DnsError, dns_configured
 from app.services.github_publish_service import GitHubPublishError, publish_site_files
 from app.services.job_service import append_log, get_job, mark_failed, mark_running, mark_success
+from app.services.notification_service import create_user_notification
 from app.services.site_generator import SITES_DIR
 from app.services.site_static_bundle import split_html_to_static_files
 
@@ -265,6 +266,36 @@ async def _arq_publish_site_impl(job_id: str) -> None:
 
             await append_log(db, jid, "Publicação concluída.")
             await mark_success(db, jid, result_dict)
+
+            if deploy_ok and user_id and site_url:
+                from app.core.config import settings
+
+                rd = (settings.ROOT_DOMAIN or "").strip().lstrip(".")
+                sn = (slug_norm or "").strip().lower() if slug_norm else ""
+                if sn and rd:
+                    pretty_url = f"https://{sn}.{rd}"
+                    body = (
+                        f"Parabéns! Seu site está no ar: {pretty_url}. "
+                        "Pode levar até 45 minutos para o endereço ficar totalmente disponível na internet. "
+                        "Enquanto isso, use a pré-visualização na página Criar site."
+                    )
+                    notif_link: str | None = pretty_url
+                else:
+                    body = (
+                        "Parabéns! Seu site foi publicado. "
+                        "Pode levar até 45 minutos para o endereço personalizado ficar disponível. "
+                        "Use a pré-visualização na página Criar site para ver o resultado agora."
+                    )
+                    notif_link = None
+                await create_user_notification(
+                    db,
+                    user_id=str(user_id),
+                    kind="site_published",
+                    title="Site publicado com sucesso",
+                    body=body,
+                    link=notif_link,
+                )
+
             await db.commit()
 
         except Exception as exc:

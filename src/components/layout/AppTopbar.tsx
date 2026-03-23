@@ -31,33 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiGlobalSearch, type SearchResult } from '@/lib/billingApi';
 import { useToast } from '@/hooks/use-toast';
-
-const notificacoesMock = [
-  {
-    id: '1',
-    titulo: 'Post publicado com sucesso',
-    mensagem: 'Seu post no Instagram foi publicado.',
-    tipo: 'sucesso' as const,
-    lida: false,
-    criadoEm: '2026-03-02T10:00:00',
-  },
-  {
-    id: '2',
-    titulo: 'Campanha finalizada',
-    mensagem: 'A campanha "Black Friday" foi encerrada.',
-    tipo: 'info' as const,
-    lida: false,
-    criadoEm: '2026-03-01T15:30:00',
-  },
-  {
-    id: '3',
-    titulo: 'Limite de geração IA',
-    mensagem: 'Você usou 80% do seu limite mensal.',
-    tipo: 'aviso' as const,
-    lida: true,
-    criadoEm: '2026-02-28T09:00:00',
-  },
-];
+import { useNotifications } from '@/hooks/useNotifications';
 
 // Search type labels in PT-BR
 const searchTypeLabels: Record<string, string> = {
@@ -74,6 +48,12 @@ export default function AppTopbar() {
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(false);
   const { toast } = useToast();
+  const {
+    items: notificacoes,
+    unreadCount: naoLidas,
+    markRead,
+    markAllRead,
+  } = useNotifications();
 
   // ── Workspace creation dialog ─────────────────────────────────────────
   const [wsDialogOpen, setWsDialogOpen] = useState(false);
@@ -160,8 +140,6 @@ export default function AppTopbar() {
     setDarkMode(!darkMode);
     document.documentElement.classList.toggle('dark');
   };
-
-  const naoLidas = notificacoesMock.filter((n) => !n.lida).length;
 
   return (
     <header className="h-14 md:h-16 border-b border-border bg-background/80 backdrop-blur-sm flex items-center justify-between px-3 md:px-6 sticky top-0 z-30">
@@ -287,39 +265,51 @@ export default function AppTopbar() {
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-0">
-            <div className="p-4 border-b">
+            <div className="p-4 border-b flex items-center justify-between gap-2">
               <h4 className="font-semibold text-sm">Notificações</h4>
+              {naoLidas > 0 && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => void markAllRead()}>
+                  Marcar todas como lidas
+                </Button>
+              )}
             </div>
             <div className="max-h-80 overflow-y-auto">
-              {notificacoesMock.map((n) => (
-                <div
-                  key={n.id}
-                  className={`p-4 border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors ${
-                    !n.lida ? 'bg-accent/30' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <Badge
-                      variant={
-                        n.tipo === 'sucesso'
-                          ? 'default'
-                          : n.tipo === 'aviso'
-                          ? 'secondary'
-                          : 'outline'
-                      }
-                      className="text-[10px] shrink-0 mt-0.5"
+              {notificacoes.length === 0 ? (
+                <p className="p-4 text-sm text-muted-foreground text-center">Nenhuma notificação ainda.</p>
+              ) : (
+                notificacoes.map((n) => {
+                  const badgeVariant =
+                    n.kind.includes('canceled') || n.kind.includes('failed') ? 'secondary' : n.kind.includes('plan') ? 'outline' : 'default';
+                  return (
+                    <button
+                      type="button"
+                      key={n.id}
+                      className={`w-full text-left p-4 border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors ${
+                        !n.read ? 'bg-accent/30' : ''
+                      }`}
+                      onClick={() => {
+                        if (n.link) {
+                          window.open(n.link, '_blank', 'noopener,noreferrer');
+                        }
+                        if (!n.read) void markRead(n.id);
+                      }}
                     >
-                      {n.tipo}
-                    </Badge>
-                    <div>
-                      <p className="text-sm font-medium">{n.titulo}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {n.mensagem}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      <div className="flex items-start gap-2">
+                        <Badge variant={badgeVariant} className="text-[10px] shrink-0 mt-0.5 max-w-[5rem] truncate">
+                          {n.kind.replace(/_/g, ' ')}
+                        </Badge>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{n.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap">{n.body}</p>
+                          <p className="text-[10px] text-muted-foreground/80 mt-1">
+                            {new Date(n.created_at).toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </PopoverContent>
         </Popover>

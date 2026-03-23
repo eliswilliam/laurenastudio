@@ -45,6 +45,9 @@ class User(Base):
     password_resets: Mapped[list["PasswordReset"]] = relationship(  # noqa: F821
         "PasswordReset", back_populates="user", cascade="all, delete-orphan"
     )
+    notifications: Mapped[list["UserNotification"]] = relationship(  # noqa: F821
+        "UserNotification", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email}>"

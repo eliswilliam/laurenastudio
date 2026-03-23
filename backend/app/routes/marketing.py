@@ -16,6 +16,9 @@ from app.core.dependencies import (
 from app.db.session import get_db
 from app.models.ai_generation import AIGeneration
 from app.models.subscription import Subscription
+from app.models.user import User
+from app.routes.auth import get_current_user
+from app.services import notification_service
 from app.schemas.ai import (
     MarketingImageRequest,
     MarketingImageResponse,
@@ -41,6 +44,7 @@ async def marketing_image(
     payload: MarketingImageRequest,
     workspace_id: str = Depends(get_workspace_id),
     subscription: Subscription = Depends(verify_active_subscription),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> MarketingImageResponse:
     usage = await check_and_increment_usage(db, workspace_id, "image", subscription)
@@ -72,6 +76,15 @@ async def marketing_image(
     db.add(record)
     await db.commit()
 
+    await notification_service.create_user_notification(
+        db,
+        user_id=current_user.id,
+        kind="marketing_image",
+        title="Imagem publicitária pronta",
+        body=f"Sua imagem para a marca «{payload.brand_name.strip()}» foi gerada com sucesso.",
+    )
+    await db.commit()
+
     return MarketingImageResponse(
         image_url=result.get("image_url"),
         ai_text=result.get("ai_text"),
@@ -90,6 +103,7 @@ async def marketing_video(
     payload: MarketingVideoRequest,
     workspace_id: str = Depends(get_workspace_id),
     subscription: Subscription = Depends(verify_active_subscription),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> MarketingVideoResponse:
     usage = await check_and_increment_usage(db, workspace_id, "video", subscription)
@@ -120,6 +134,15 @@ async def marketing_video(
         style="marketing",
     )
     db.add(record)
+    await db.commit()
+
+    await notification_service.create_user_notification(
+        db,
+        user_id=current_user.id,
+        kind="marketing_video",
+        title="Vídeo publicitário pronto",
+        body=f"Seu vídeo para a marca «{payload.brand_name.strip()}» foi gerado com sucesso.",
+    )
     await db.commit()
 
     return MarketingVideoResponse(

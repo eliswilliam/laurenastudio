@@ -9,6 +9,7 @@ from app.models.ai_generation import AIGeneration
 from app.models.media import Media
 from app.models.site_project import GeneratedSite, SiteDeployment, SiteProject, SitePrompt
 from app.models.background_job import BackgroundJob
+from app.models.user_notification import UserNotification
 
 __all__ = [
     "User",
@@ -25,4 +26,5 @@ __all__ = [
     "GeneratedSite",
     "SiteDeployment",
     "BackgroundJob",
+    "UserNotification",
 ]

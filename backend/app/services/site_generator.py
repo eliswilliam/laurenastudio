@@ -45,6 +45,27 @@ def sanitize_href_for_static_preview(url: str | None) -> str:
         return "#"
     return u
 
+
+def sanitize_external_href(url: str | None) -> str:
+    """Allow only https: links (Pexels attribution, etc.)."""
+    if url is None:
+        return "#"
+    u = str(url).strip()
+    if u.startswith("https://"):
+        return u
+    return "#"
+
+
+def sanitize_img_src(url: str | None) -> str | None:
+    """Only allow https images (Pexels / placehold.co hotlinks)."""
+    if url is None:
+        return None
+    u = str(url).strip()
+    if u.startswith("https://"):
+        return u
+    return None
+
+
 SITES_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "sites"
 SITES_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -105,6 +126,14 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
     .card h3 { font-size: 1.25rem; margin-bottom: 8px; }
     .card p { color: var(--text-muted); font-size: .95rem; }
 
+    .stock-figure { margin: 0 auto 28px; max-width: 880px; }
+    .stock-figure img {
+      border-radius: var(--radius); width: 100%; max-height: 480px; object-fit: cover;
+      box-shadow: 0 4px 24px rgba(0,0,0,.1);
+    }
+    .photo-credit { font-size: .75rem; color: var(--text-muted); margin-top: 10px; text-align: center; }
+    .photo-credit a { text-decoration: underline; }
+
     /* Hero */
     .hero { padding: 120px 0 100px; text-align: center; }
     .hero h1 { font-size: clamp(2.5rem, 5vw, 3.75rem); font-weight: 700; line-height: 1.15; margin-bottom: 20px; }
@@ -134,6 +163,16 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
   </style>
 </head>
 <body>
+{% macro stock_figure(sec) -%}
+{% if sec.get('stock_image_url') %}
+<div class="stock-figure">
+  <img src="{{ sec.stock_image_url }}" alt="" loading="lazy" width="880" height="495">
+  {% if sec.get('stock_photo_by') and sec.get('stock_image_source') == 'pexels' %}
+  <p class="photo-credit">Photo by <a href="{{ sec.stock_photo_by_url }}" target="_blank" rel="noopener noreferrer">{{ sec.stock_photo_by }}</a> on <a href="https://www.pexels.com/" target="_blank" rel="noopener noreferrer">Pexels</a></p>
+  {% endif %}
+</div>
+{% endif %}
+{%- endmacro %}
 {% for section in sections %}
 {% set bg_class = '' %}
 {% if section.background == 'dark' %}{% set bg_class = 'bg-dark' %}
@@ -144,6 +183,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 {% if section.type == 'hero' %}
 <section class="hero {{ bg_class }}">
   <div class="container">
+    {{ stock_figure(section) }}
     <h1>{{ section.heading }}</h1>
     {% if section.subheading %}<p>{{ section.subheading }}</p>{% endif %}
     {% if section.cta_text %}<a href="{{ section.cta_url or '#' }}" class="btn btn-primary">{{ section.cta_text }}</a>{% endif %}
@@ -161,6 +201,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 {% elif section.type == 'faq' %}
 <section class="{{ bg_class }}">
   <div class="container">
+    {{ stock_figure(section) }}
     <h2 class="section-heading text-center">{{ section.heading }}</h2>
     {% if section.subheading %}<p class="section-sub text-center mx-auto">{{ section.subheading }}</p>{% endif %}
     <div style="max-width:720px;margin:0 auto">
@@ -177,6 +218,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 {% elif section.type == 'pricing' %}
 <section class="{{ bg_class }}">
   <div class="container">
+    {{ stock_figure(section) }}
     <h2 class="section-heading text-center">{{ section.heading }}</h2>
     {% if section.subheading %}<p class="section-sub text-center mx-auto">{{ section.subheading }}</p>{% endif %}
     <div class="grid grid-3">
@@ -194,6 +236,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 {% elif section.type == 'cta' %}
 <section class="{{ bg_class or 'bg-gradient' }}" style="text-align:center">
   <div class="container">
+    {{ stock_figure(section) }}
     <h2 class="section-heading">{{ section.heading }}</h2>
     {% if section.subheading %}<p class="section-sub mx-auto" style="color:inherit;opacity:.85">{{ section.subheading }}</p>{% endif %}
     {% if section.cta_text %}<a href="{{ section.cta_url or '#' }}" class="btn btn-primary" style="margin-top:12px">{{ section.cta_text }}</a>{% endif %}
@@ -203,6 +246,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 {% elif section.type == 'contact' %}
 <section class="{{ bg_class }}">
   <div class="container" style="max-width:640px">
+    {{ stock_figure(section) }}
     <h2 class="section-heading text-center">{{ section.heading }}</h2>
     {% if section.subheading %}<p class="section-sub text-center mx-auto">{{ section.subheading }}</p>{% endif %}
     <form onsubmit="event.preventDefault();alert('Mensagem enviada!')" style="display:grid;gap:16px">
@@ -217,6 +261,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 {% else %}
 <section class="{{ bg_class }}">
   <div class="container">
+    {{ stock_figure(section) }}
     <h2 class="section-heading text-center">{{ section.heading }}</h2>
     {% if section.subheading %}<p class="section-sub text-center mx-auto">{{ section.subheading }}</p>{% endif %}
     {% if section.get("items") %}
@@ -250,8 +295,20 @@ def generate_html(structure: dict) -> str:
     """Render the JSON structure into a complete HTML string."""
     data = copy.deepcopy(structure)
     for section in data.get("sections", []):
-        if isinstance(section, dict) and "cta_url" in section:
+        if not isinstance(section, dict):
+            continue
+        if "cta_url" in section:
             section["cta_url"] = sanitize_href_for_static_preview(section.get("cta_url"))
+        section["stock_photo_by_url"] = sanitize_external_href(section.get("stock_photo_by_url"))
+        section["stock_photo_page_url"] = sanitize_external_href(section.get("stock_photo_page_url"))
+        if section.get("stock_image_url"):
+            safe_src = sanitize_img_src(section.get("stock_image_url"))
+            if safe_src:
+                section["stock_image_url"] = safe_src
+            else:
+                section.pop("stock_image_url", None)
+                section.pop("stock_photo_by", None)
+                section.pop("stock_image_source", None)
     return _template.render(
         site_name=data.get("site_name", "Meu Site"),
         description=data.get("description", ""),

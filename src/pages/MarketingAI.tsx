@@ -1,5 +1,10 @@
 import { useState, useRef, useCallback } from 'react';
 import {
+  useMarketingAIStore,
+  type MarketingImageResult,
+  type MarketingVideoResult,
+} from '@/store/useMarketingAIStore';
+import {
   Megaphone,
   ImageIcon,
   Video,
@@ -32,24 +37,6 @@ import {
   YouTubeIcon,
 } from '@/components/shared/SocialIcons';
 
-type GenerationType = 'image' | 'video' | null;
-type VideoMode = 'text_to_video' | 'image_to_video';
-
-interface MarketingImageResult {
-  image_url: string | null;
-  ai_text: string | null;
-  usage_after: number;
-  limit: number;
-  message: string;
-}
-
-interface MarketingVideoResult {
-  video_url: string;
-  usage_after: number;
-  limit: number;
-  message: string;
-}
-
 const shareChannels = [
   { key: 'facebook', Icon: FacebookIcon, label: 'Facebook', color: 'hover:text-blue-600' },
   { key: 'instagram', Icon: InstagramIcon, label: 'Instagram', color: 'hover:text-pink-500' },
@@ -61,17 +48,27 @@ const shareChannels = [
 ] as const;
 
 export default function MarketingAI() {
-  const [selectedType, setSelectedType] = useState<GenerationType>(null);
-  const [videoMode, setVideoMode] = useState<VideoMode>('text_to_video');
-  const [brandName, setBrandName] = useState('');
-  const [adText, setAdText] = useState('');
-  const [prompt, setPrompt] = useState('');
+  const selectedType = useMarketingAIStore((s) => s.selectedType);
+  const setSelectedType = useMarketingAIStore((s) => s.setSelectedType);
+  const videoMode = useMarketingAIStore((s) => s.videoMode);
+  const setVideoMode = useMarketingAIStore((s) => s.setVideoMode);
+  const brandName = useMarketingAIStore((s) => s.brandName);
+  const setBrandName = useMarketingAIStore((s) => s.setBrandName);
+  const adText = useMarketingAIStore((s) => s.adText);
+  const setAdText = useMarketingAIStore((s) => s.setAdText);
+  const prompt = useMarketingAIStore((s) => s.prompt);
+  const setPrompt = useMarketingAIStore((s) => s.setPrompt);
+  const referenceMime = useMarketingAIStore((s) => s.referenceMime);
+  const setReferenceMime = useMarketingAIStore((s) => s.setReferenceMime);
+  const imageResult = useMarketingAIStore((s) => s.imageResult);
+  const setImageResult = useMarketingAIStore((s) => s.setImageResult);
+  const videoResult = useMarketingAIStore((s) => s.videoResult);
+  const setVideoResult = useMarketingAIStore((s) => s.setVideoResult);
+  const resetFormStore = useMarketingAIStore((s) => s.resetForm);
+
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
-  const [referenceMime, setReferenceMime] = useState('image/png');
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [imageResult, setImageResult] = useState<MarketingImageResult | null>(null);
-  const [videoResult, setVideoResult] = useState<MarketingVideoResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -151,14 +148,8 @@ export default function MarketingAI() {
   };
 
   const resetForm = () => {
-    setSelectedType(null);
-    setVideoMode('text_to_video');
-    setBrandName('');
-    setAdText('');
-    setPrompt('');
+    resetFormStore();
     removeImage();
-    setImageResult(null);
-    setVideoResult(null);
   };
 
   const backendBase = api.defaults.baseURL?.replace('/api/v1', '') || '';

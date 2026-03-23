@@ -16,6 +16,9 @@ from app.core.dependencies import (
 from app.db.session import get_db
 from app.models.ai_generation import AIGeneration
 from app.models.subscription import Subscription
+from app.models.user import User
+from app.routes.auth import get_current_user
+from app.services import notification_service
 from app.schemas.ai import AIGenerateRequest, AIGenerateResponse
 from app.services.ai_service import generate_image, generate_text, generate_video
 
@@ -37,6 +40,7 @@ async def generate(
     payload: AIGenerateRequest,
     workspace_id: str = Depends(get_workspace_id),
     subscription: Subscription = Depends(verify_active_subscription),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AIGenerateResponse:
     # Validate resource type
@@ -75,7 +79,7 @@ async def generate(
         logger.exception("AI generation failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"AI generation failed: {exc}",
+            detail=f"Falha na geração com IA: {exc}",
         )
 
     # ── Persist to database ──────────────────────────────────────────────
@@ -89,6 +93,25 @@ async def generate(
     )
     db.add(record)
     await db.commit()
+
+    if payload.resource_type == "image":
+        await notification_service.create_user_notification(
+            db,
+            user_id=current_user.id,
+            kind="ai_image",
+            title="Imagem gerada",
+            body="Sua imagem foi gerada com sucesso no AI Studio.",
+        )
+        await db.commit()
+    elif payload.resource_type == "video":
+        await notification_service.create_user_notification(
+            db,
+            user_id=current_user.id,
+            kind="ai_video",
+            title="Vídeo gerado",
+            body="Seu vídeo foi gerado com sucesso no AI Studio.",
+        )
+        await db.commit()
 
     # Map resource type to usage field
     field_map = {

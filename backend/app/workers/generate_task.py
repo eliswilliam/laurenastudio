@@ -13,8 +13,10 @@ from sqlalchemy.orm import selectinload
 
 from app.db.worker_db import WorkerSessionLocal
 from app.models.site_project import GeneratedSite, SiteProject
+from app.core.config import settings
 from app.services.job_service import append_log, get_job, mark_failed, mark_running, mark_success
-from app.services.site_ai_service import generate_site_structure
+from app.services.site_ai_service import GeminiGenerationError, generate_site_structure
+from app.services.pexels_service import enrich_site_structure_with_pexels
 from app.services.site_generator import generate_html, save_site
 
 logger = logging.getLogger(__name__)
@@ -74,6 +76,25 @@ async def _arq_generate_site_impl(job_id: str) -> None:
 
         try:
             structure = await generate_site_structure(brief)
+        except GeminiGenerationError as exc:
+            logger.warning("Gemini structure blocked or invalid: %s", exc.reason)
+            err_msg = exc.user_message
+            await append_log(db, jid, f"Falha na IA: {err_msg}")
+            project.status = "error"
+            if project.site:
+                project.site.status = "error"
+                project.site.error_message = err_msg
+            else:
+                db.add(
+                    GeneratedSite(
+                        project_id=project.id,
+                        status="error",
+                        error_message=err_msg,
+                    )
+                )
+            await mark_failed(db, jid, err_msg)
+            await db.commit()
+            raise
         except Exception as exc:
             logger.exception("Gemini structure failed")
             await append_log(db, jid, f"Falha na IA: {exc}")
@@ -92,6 +113,21 @@ async def _arq_generate_site_impl(job_id: str) -> None:
             await mark_failed(db, jid, str(exc))
             await db.commit()
             raise
+
+        # Pexels: search API → first photo URL per section (non-footer), then Jinja injects <img src="https://…">
+        if settings.SITE_USE_PEXELS_STOCK:
+            await append_log(db, jid, "A pesquisar fotos de stock (Pexels)…")
+            await db.commit()
+
+            try:
+                structure = await enrich_site_structure_with_pexels(structure, brief)
+            except Exception as exc:
+                logger.exception("Pexels enrichment failed, continuing without stock images")
+                await append_log(db, jid, f"Aviso: fotos stock indisponíveis ({exc}). A continuar…")
+                await db.commit()
+        else:
+            await append_log(db, jid, "Fotos Pexels desativadas (SITE_USE_PEXELS_STOCK).")
+            await db.commit()
 
         await append_log(db, jid, "A compilar HTML com Jinja2…")
         await db.commit()

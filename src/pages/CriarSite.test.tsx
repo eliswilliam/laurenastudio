@@ -29,6 +29,12 @@ vi.mock("@/lib/api", () => {
       logs: [{ ts: new Date().toISOString(), message: "Geração concluída." }],
     })),
     default: {
+      get: vi.fn(async (url: string) => {
+        if (url === "/sites/" || url === "/sites") {
+          return { data: [] };
+        }
+        throw new Error(`Unknown GET ${url}`);
+      }),
       post: vi.fn(async (url: string, body: any) => {
         if (url === "/sites/chat") {
           callCount++;

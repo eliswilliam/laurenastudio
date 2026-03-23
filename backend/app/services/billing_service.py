@@ -15,6 +15,7 @@ from sqlalchemy.orm import selectinload
 from app.models.plan import Plan
 from app.models.subscription import Subscription
 from app.models.usage_tracking import UsageTracking
+from app.services import notification_service
 from app.schemas.billing import (
     ActivatePlanResponse,
     BillingStatusResponse,
@@ -117,6 +118,7 @@ async def activate_plan(
 
     # Upsert subscription
     sub = await _get_subscription(db, workspace_id)
+    old_plan_display = sub.plan.display_name if sub and sub.plan else None
     if sub:
         sub.plan_id = plan.id
         sub.status = "active"
@@ -165,6 +167,29 @@ async def activate_plan(
     await db.refresh(sub)
     await db.refresh(usage)
 
+    owner_id = await notification_service.workspace_owner_id(db, workspace_id)
+    if owner_id:
+        if old_plan_display and old_plan_display != plan.display_name:
+            await notification_service.create_user_notification(
+                db,
+                user_id=owner_id,
+                kind="plan_change",
+                title="Plano alterado",
+                body=(
+                    f"Seu plano foi alterado de «{old_plan_display}» para «{plan.display_name}». "
+                    "Os limites de uso foram atualizados."
+                ),
+            )
+        else:
+            await notification_service.create_user_notification(
+                db,
+                user_id=owner_id,
+                kind="plan_activated",
+                title="Plano ativado",
+                body=f"Seu plano «{plan.display_name}» está ativo. Obrigado por assinar!",
+            )
+        await db.commit()
+
     return ActivatePlanResponse(
         message=f"Plan '{plan.display_name}' activated successfully.",
         subscription=SubscriptionRead.model_validate(sub),
@@ -204,9 +229,21 @@ async def cancel_subscription(
             logger.error("Failed to cancel Stripe subscription: %s", e)
             # Continue with local cancellation even if Stripe fails
 
+    owner_id = await notification_service.workspace_owner_id(db, workspace_id)
+
     sub.status = "canceled"
     await db.commit()
     await db.refresh(sub)
+
+    if owner_id:
+        await notification_service.create_user_notification(
+            db,
+            user_id=owner_id,
+            kind="plan_canceled",
+            title="Assinatura cancelada",
+            body="Sua assinatura foi encerrada. Recursos do plano pago não estão mais disponíveis.",
+        )
+        await db.commit()
 
     return CancelSubscriptionResponse(
         message="Subscription canceled. Access blocked immediately.",
@@ -232,6 +269,8 @@ async def change_plan(
             detail="No active subscription to change. Activate a plan first.",
         )
 
+    old_plan_display = sub.plan.display_name if sub.plan else None
+
     plan = await _get_plan_by_name(db, plan_name)
     now = datetime.now(timezone.utc)
     period_end = now + timedelta(days=30)
@@ -254,6 +293,20 @@ async def change_plan(
     await db.refresh(sub)
     if usage:
         await db.refresh(usage)
+
+    owner_id = await notification_service.workspace_owner_id(db, workspace_id)
+    if owner_id and old_plan_display and old_plan_display != plan.display_name:
+        await notification_service.create_user_notification(
+            db,
+            user_id=owner_id,
+            kind="plan_change",
+            title="Plano alterado",
+            body=(
+                f"Seu plano foi alterado de «{old_plan_display}» para «{plan.display_name}». "
+                "Os contadores de uso foram zerados para o novo período."
+            ),
+        )
+        await db.commit()
 
     return ActivatePlanResponse(
         message=f"Plan changed to '{plan.display_name}' successfully.",

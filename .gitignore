@@ -79,6 +79,9 @@ docker_images_list.txt
 *.pid
 .socket
 
+# ── Local Pexels API reference clone (nested git repo; not used by the app) ───
+pexels-api-py/
+
 # ── External backups (parent directory) ────────────────────────────────────────
 ../laurenafoncionel*/
 ../laurenastudio.backup*/

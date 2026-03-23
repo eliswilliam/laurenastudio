@@ -1,6 +1,12 @@
 import json
-from pydantic import field_validator
+from pathlib import Path
+
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# backend/.env — absolute path so PEXELS_API_KEY etc. load even if cwd is not backend/
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
+_ENV_FILE = _BACKEND_ROOT / ".env"
 
 
 # Azure App Service can inject empty-string env vars for settings that exist
@@ -16,7 +22,7 @@ _FIELD_DEFAULTS = {
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_FILE),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -74,6 +80,14 @@ class Settings(BaseSettings):
     GOOGLE_CREDENTIALS_JSON: str = ""
     # Gemini model for site-builder chat + JSON structure (text). Override via .env if needed.
     GEMINI_TEXT_MODEL: str = "gemini-2.5-flash"
+
+    # ── Pexels (stock photos for generated sites; https://www.pexels.com/api/) ─
+    PEXELS_API_KEY: str = Field(
+        default="",
+        validation_alias=AliasChoices("PEXELS_API_KEY", "PEXELS_TOKEN"),
+    )
+    # Azure / prod: set false to skip all Pexels HTTP calls during site generation (HTML unchanged otherwise).
+    SITE_USE_PEXELS_STOCK: bool = True
 
     # ── Publish to GitHub (API-only; PAT needs repo + workflow scopes) ─────────
     GITHUB_TOKEN: str = ""

@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Loader2, Wand2, Download, ExternalLink, Rocket } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { Send, Loader2, Wand2, Download, ExternalLink, Rocket, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,11 @@ import { type JobStatus, type Mensagem, MENSAGEM_ABERTURA_TEXTO } from '@/lib/cr
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCriarSiteJobStore, type SiteResult } from '@/store/useCriarSiteJobStore';
 import { getPublishConfig, getPublishJobStatus, postPublish } from '@/lib/publishApi';
+import {
+  fetchSiteProjectsList,
+  fetchSiteProjectStatus,
+  type SiteProjectSummary,
+} from '@/lib/siteProjectsApi';
 
 const ID = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -55,7 +60,28 @@ function slugValid(s: string): boolean {
   return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(t);
 }
 
+/** URL público apenas (subdomínio); não expõe GitHub nem Cloud Run. */
+function userFacingSiteUrl(slug: string | null | undefined, siteUrl: string | null | undefined): string | null {
+  const s = (slug ?? '').trim().toLowerCase();
+  if (s && slugValid(s)) {
+    return `https://${s}.${ROOT_DOMAIN}`;
+  }
+  const u = (siteUrl ?? '').trim();
+  if (u && !/run\.app|github\.com/i.test(u)) {
+    return u;
+  }
+  return null;
+}
 
+/** Remove linhas antigas com links técnicos do texto exibido no chat. */
+function stripInfraFromBotText(text: string): string {
+  return text
+    .split('\n')
+    .filter((line) => !/github\.com|\.run\.app|Cloud Run|GitHub|Actions \(ver|workflow GitHub/i.test(line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 export default function CriarSite() {
   const usuario = useAuthStore((s) => s.usuario);
@@ -77,8 +103,6 @@ export default function CriarSite() {
   const setProjectId = useCriarSiteJobStore((s) => s.setProjectId);
   const siteResult = useCriarSiteJobStore((s) => s.siteResult);
   const setSiteResult = useCriarSiteJobStore((s) => s.setSiteResult);
-  const githubUrl = useCriarSiteJobStore((s) => s.githubUrl);
-  const setGithubUrl = useCriarSiteJobStore((s) => s.setGithubUrl);
   const publicSiteUrl = useCriarSiteJobStore((s) => s.publicSiteUrl);
   const setPublicSiteUrl = useCriarSiteJobStore((s) => s.setPublicSiteUrl);
   const publishSlug = useCriarSiteJobStore((s) => s.publishSlug);
@@ -89,6 +113,152 @@ export default function CriarSite() {
   const [generateJob, setGenerateJob] = useState<JobStatus | null>(null);
   const [publishJob, setPublishJob] = useState<JobStatus | null>(null);
   const fim = useRef<HTMLDivElement>(null);
+
+  const [projects, setProjects] = useState<SiteProjectSummary[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [pollProjectId, setPollProjectId] = useState<string | null>(null);
+
+  const refreshProjects = useCallback(async () => {
+    setProjectsLoading(true);
+    try {
+      const list = await fetchSiteProjectsList();
+      setProjects(list);
+    } catch {
+      setProjects([]);
+    } finally {
+      setProjectsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshProjects();
+  }, [projectId, refreshProjects]);
+
+  const openProjectFromBackend = useCallback(
+    async (pid: string) => {
+      setSessionLoading(true);
+      setErro(null);
+      try {
+        clearGenerateJob();
+        clearPublishJob();
+        const s = await fetchSiteProjectStatus(pid);
+        const msgs: Mensagem[] = [ABERTURA];
+        for (const p of s.prompts) {
+          if (p.role !== 'user' && p.role !== 'assistant') continue;
+          msgs.push({
+            id: p.id,
+            papel: p.role === 'user' ? 'user' : 'bot',
+            texto: p.content,
+          });
+        }
+        setLista(msgs);
+        setProjectId(pid);
+        if (s.preview_url) {
+          setSiteResult({
+            previewUrl: s.preview_url,
+            downloadUrl: s.download_url ?? `/api/v1/sites/${pid}/download`,
+          });
+        } else {
+          setSiteResult(null);
+        }
+        setPublicSiteUrl(userFacingSiteUrl(s.publish_slug, s.site_url));
+        setPublishSlug(s.publish_slug ?? '');
+        setAGerar(false);
+        setAPublicar(false);
+        if (s.status === 'generating') {
+          setAGerar(true);
+          setPollProjectId(pid);
+        } else {
+          setPollProjectId(null);
+        }
+      } catch (e: unknown) {
+        setErro(e instanceof Error ? e.message : 'Erro ao carregar o projeto.');
+      } finally {
+        setSessionLoading(false);
+      }
+    },
+    [
+      clearGenerateJob,
+      clearPublishJob,
+      setLista,
+      setProjectId,
+      setSiteResult,
+      setPublicSiteUrl,
+      setPublishSlug,
+    ]
+  );
+
+  useEffect(() => {
+    if (!pollProjectId) return;
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const finish = () => {
+      if (intervalId !== undefined) clearInterval(intervalId);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      try {
+        const s = await fetchSiteProjectStatus(pollProjectId);
+        if (cancelled) return;
+        if (s.status === 'ready' && s.preview_url) {
+          finish();
+          const previewUrl = s.preview_url;
+          const downloadUrl = s.download_url ?? `/api/v1/sites/${pollProjectId}/download`;
+          setSiteResult({ previewUrl, downloadUrl });
+          setPublicSiteUrl(userFacingSiteUrl(s.publish_slug, s.site_url));
+          setPublishSlug(s.publish_slug ?? '');
+          setLista((prev) => {
+            const marker = 'Site gerado com sucesso';
+            if (prev.some((m) => m.texto.includes(marker))) return prev;
+            return [
+              ...prev,
+              {
+                id: ID(),
+                papel: 'bot',
+                texto:
+                  'Site gerado com sucesso! Use os botões abaixo para ver a preview ou fazer download.',
+              },
+            ];
+          });
+          setPollProjectId(null);
+          setAGerar(false);
+          void refreshProjects();
+        } else if (s.status === 'error') {
+          finish();
+          const err = s.error_message || 'Erro na geração.';
+          setErro(err);
+          setLista((prev) => [
+            ...prev,
+            { id: ID(), papel: 'bot', texto: `Erro na geração: ${err}` },
+          ]);
+          setPollProjectId(null);
+          setAGerar(false);
+        }
+      } catch {
+        if (!cancelled) {
+          finish();
+          setPollProjectId(null);
+          setAGerar(false);
+        }
+      }
+    };
+
+    void tick();
+    intervalId = setInterval(() => void tick(), POLL_MS);
+    return () => {
+      cancelled = true;
+      finish();
+    };
+  }, [pollProjectId, setLista, setSiteResult, setPublicSiteUrl, setPublishSlug, refreshProjects]);
+
+  const iniciarNovoSite = () => {
+    setPollProjectId(null);
+    resetAll();
+  };
+
   const nUser = lista.filter((m) => m.papel === 'user').length;
   const emConversa = nUser > 0;
 
@@ -197,32 +367,25 @@ export default function CriarSite() {
         if (j.status === 'success' && j.result) {
           finish();
           const r = j.result as Record<string, unknown>;
-          const gh = String(r.github ?? '');
           const site = String(r.siteUrl ?? '').trim() || null;
           const deployOk = Boolean(r.deployOk ?? r.success);
-          const actions = String(r.actionsUrl ?? '').trim();
-          const dnsOk = Boolean(r.dnsApplied);
-          const cr = String(r.cloudRun ?? '').trim();
-
-          setGithubUrl(gh);
-          setPublicSiteUrl(site);
+          const slug = publishSlug.trim().toLowerCase();
+          const vis = userFacingSiteUrl(slug || null, site);
+          setPublicSiteUrl(vis);
 
           let textoSucesso = '';
-          if (deployOk && site) {
-            const partes = [`Publicação concluída!`, `Site: ${site}`];
-            if (cr && cr !== site) {
-              partes.push(`Cloud Run (directo): ${cr}`);
-            }
-            if (!dnsOk) {
-              partes.push(
-                `Nota: o subdomínio (https://slug.${ROOT_DOMAIN}) é criado pela API com Cloudflare depois do deploy — não pelo workflow GitHub. ` +
-                  `Para o URL bonito, defina no .env da API: CLOUDFLARE_TOKEN, CLOUDFLARE_ZONE_ID e ROOT_DOMAIN (e use GET /api/publish/config para slug obrigatório).`
-              );
-            }
-            partes.push(`GitHub: ${gh}`);
-            textoSucesso = partes.join('\n');
+          if (deployOk && vis) {
+            textoSucesso =
+              `Publicação concluída! O seu site público: ${vis}\n\n` +
+              'Pode levar até 45 minutos para o endereço ficar totalmente disponível. ' +
+              'Enquanto isso, use a pré-visualização acima.';
+          } else if (deployOk) {
+            textoSucesso =
+              'Publicação concluída! O seu site foi publicado. ' +
+              'Pode levar até 45 minutos para o endereço personalizado ficar disponível — use a pré-visualização enquanto isso.';
           } else {
-            textoSucesso = `Repositório privado criado: ${gh}${actions ? `\nActions (ver o deploy): ${actions}` : ''}\nO URL público ainda não foi detetado a tempo — abra Actions ou confira IAM no GCP.`;
+            textoSucesso =
+              'A publicação terminou com avisos. Use a pré-visualização para validar o site; o URL público pode demorar alguns minutos.';
           }
 
           const msg: Mensagem = {
@@ -262,7 +425,7 @@ export default function CriarSite() {
       cancelled = true;
       finish();
     };
-  }, [publishJobId, clearPublishJob]);
+  }, [publishJobId, clearPublishJob, publishSlug, setPublicSiteUrl]);
 
   async function enviar() {
     const t = rascunho.trim();
@@ -311,7 +474,6 @@ export default function CriarSite() {
     setAGerar(true);
     setErro(null);
     setSiteResult(null);
-    setGithubUrl(null);
     setPublicSiteUrl(null);
     setPublishSlug('');
 
@@ -345,7 +507,6 @@ export default function CriarSite() {
     if (!projectId || !usuario?.id || aPublicar) return;
     setAPublicar(true);
     setErro(null);
-    setGithubUrl(null);
     setPublicSiteUrl(null);
 
     const slug = publishSlug.trim().toLowerCase();
@@ -384,10 +545,72 @@ export default function CriarSite() {
   return (
     <div
       className={cn(
-        'animate-fade-in w-full max-w-[42rem] mx-auto flex flex-col',
+        'animate-fade-in w-full max-w-6xl mx-auto flex flex-col md:flex-row gap-4 md:gap-6',
         'min-h-[calc(100dvh-8.5rem)] md:min-h-[calc(100dvh-7rem)]'
       )}
     >
+      <aside className="w-full md:w-56 shrink-0 flex flex-col gap-2 border-b md:border-b-0 md:border-r border-border/60 pb-3 md:pb-0 md:pr-4">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <History className="w-4 h-4 shrink-0" />
+          <span className="text-xs font-medium uppercase tracking-wide">Histórico (conta)</span>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full justify-start rounded-xl text-xs h-9"
+          onClick={iniciarNovoSite}
+        >
+          + Novo site
+        </Button>
+        <div className="flex-1 min-h-[120px] max-h-[40vh] md:max-h-[min(70vh,calc(100dvh-14rem))] overflow-y-auto space-y-1 pr-1">
+          {projectsLoading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              A carregar…
+            </div>
+          ) : projects.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Os projetos aparecem aqui após a primeira mensagem. O mesmo estado fica na sua conta em qualquer
+              dispositivo.
+            </p>
+          ) : (
+            projects.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => void openProjectFromBackend(p.id)}
+                className={cn(
+                  'w-full text-left rounded-lg px-2.5 py-2 text-xs transition-colors',
+                  'hover:bg-muted/80 border border-transparent',
+                  projectId === p.id && 'bg-muted/60 border-border/80'
+                )}
+              >
+                <span className="font-medium line-clamp-2 text-foreground">{p.name}</span>
+                <span className="block text-[10px] text-muted-foreground mt-0.5">
+                  {new Date(p.created_at).toLocaleString(undefined, {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })}
+                  {p.has_site ? ' · com site' : ''}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </aside>
+
+      <div
+        className={cn(
+          'flex flex-col flex-1 min-w-0 max-w-[42rem] w-full mx-auto relative',
+          sessionLoading && 'opacity-55 pointer-events-none'
+        )}
+      >
+      {sessionLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/40 rounded-lg">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
       {emConversa && (
         <header className="flex flex-wrap items-center justify-between gap-2 gap-y-3 shrink-0 pb-3 md:pb-4">
           <h1 className="text-sm font-medium text-muted-foreground truncate">{TITULO_PAGINA}</h1>
@@ -396,7 +619,7 @@ export default function CriarSite() {
                 variant="ghost"
                 size="sm"
                 className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-normal"
-                onClick={resetAll}
+                onClick={iniciarNovoSite}
               >
                 Novo Site
               </Button>
@@ -493,34 +716,19 @@ export default function CriarSite() {
           </div>
         )}
 
-        {(githubUrl || publicSiteUrl) && emConversa && (
+        {publicSiteUrl && emConversa && (
           <div className="mb-3 shrink-0 space-y-2">
-            {publicSiteUrl && (
-              <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-center">
-                <p className="text-xs text-muted-foreground">Site público</p>
-                <a
-                  href={publicSiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-emerald-700 dark:text-emerald-400 underline-offset-4 hover:underline break-all"
-                >
-                  {publicSiteUrl}
-                </a>
-              </div>
-            )}
-            {githubUrl && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-center">
-                <p className="text-xs text-muted-foreground">GitHub</p>
-                <a
-                  href={githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-primary underline-offset-4 hover:underline break-all"
-                >
-                  {githubUrl}
-                </a>
-              </div>
-            )}
+            <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-center">
+              <p className="text-xs text-muted-foreground">O seu site</p>
+              <a
+                href={publicSiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-emerald-700 dark:text-emerald-400 underline-offset-4 hover:underline break-all"
+              >
+                {publicSiteUrl}
+              </a>
+            </div>
           </div>
         )}
 
@@ -593,7 +801,7 @@ export default function CriarSite() {
                 {m.papel === 'bot' ? (
                   <div className="max-w-[95%] md:max-w-2xl">
                     <p className="whitespace-pre-wrap text-[15px] sm:text-base leading-[1.65] text-foreground">
-                      {m.texto}
+                      {stripInfraFromBotText(m.texto)}
                     </p>
                   </div>
                 ) : (
@@ -615,7 +823,7 @@ export default function CriarSite() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
                 {aPublicar
-                  ? 'A publicar em segundo plano (GitHub → Cloud Run). Pode fechar esta página — o progresso continua.'
+                  ? 'A publicar em segundo plano. Pode fechar esta página — o progresso continua.'
                   : aGerar
                     ? 'A gerar o site em segundo plano. Pode fechar esta página — o progresso continua.'
                     : LOADING_TEXTO}
@@ -679,6 +887,7 @@ export default function CriarSite() {
         <p className="text-center text-[11px] text-muted-foreground/80 mt-2.5 px-2">
           {DICA_TECLADO}
         </p>
+      </div>
       </div>
     </div>
   );

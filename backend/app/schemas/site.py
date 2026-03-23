@@ -54,6 +54,14 @@ class DeploymentInfo(BaseModel):
     error_message: str | None = None
 
 
+class SitePromptItem(BaseModel):
+    """One persisted chat line (user or assistant) for restoring the Criar site UI."""
+
+    id: str
+    role: str  # user | assistant
+    content: str
+
+
 class SiteStatusResponse(BaseModel):
     project_id: str
     project_name: str
@@ -70,6 +78,7 @@ class SiteStatusResponse(BaseModel):
     site_url: str | None = None
     publication_status: str | None = None
     deployments: list[DeploymentInfo] = Field(default_factory=list)
+    prompts: list[SitePromptItem] = Field(default_factory=list)
 
 
 # ── Projects list ────────────────────────────────────────────────────────────

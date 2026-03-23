@@ -6,7 +6,9 @@ structured JSON describing the full site (sections, content, SEO).
 import asyncio
 import json
 import logging
+from collections.abc import Iterator
 from functools import partial
+from typing import Any
 
 from google.genai import types
 
@@ -16,6 +18,129 @@ from app.services.ai_service import _get_client
 _GEMINI_TEXT = settings.GEMINI_TEXT_MODEL
 
 logger = logging.getLogger(__name__)
+
+# Filtros de segurança ativos (substitui OFF). Equilíbrio entre proteção e falsos positivos.
+_GEMINI_SAFETY_THRESHOLD = types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
+
+
+def _gemini_safety_settings() -> list[types.SafetySetting]:
+    return [
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold=_GEMINI_SAFETY_THRESHOLD,
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold=_GEMINI_SAFETY_THRESHOLD,
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold=_GEMINI_SAFETY_THRESHOLD,
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold=_GEMINI_SAFETY_THRESHOLD,
+        ),
+    ]
+
+
+class GeminiGenerationError(Exception):
+    """Resposta bloqueada, vazia ou inválida — mensagem já adequada ao utilizador (PT)."""
+
+    def __init__(self, user_message: str, *, reason: str = "unknown") -> None:
+        self.user_message = user_message
+        self.reason = reason
+        super().__init__(user_message)
+
+
+def _msg_prompt_blocked() -> str:
+    return (
+        "O seu pedido não pôde ser processado pelos filtros de segurança. "
+        "Reformule o briefing sem conteúdo ofensivo, ilegal ou perigoso e tente novamente."
+    )
+
+
+def _msg_output_blocked() -> str:
+    return (
+        "A resposta foi bloqueada pelos filtros de segurança. "
+        "Ajuste a descrição do site e tente novamente."
+    )
+
+
+def _msg_empty_or_model_stop() -> str:
+    return (
+        "A IA não devolveu texto. Tente reformular o pedido ou aguarde um momento e tente novamente."
+    )
+
+
+def _collect_stream_text(
+    stream: Iterator[types.GenerateContentResponse],
+    *,
+    context: str,
+) -> str:
+    """
+    Agrega texto do stream e trata prompt bloqueado, finish_reason e resposta vazia.
+    `context` é só para logs (ex.: "chat", "site_structure").
+    """
+    text_parts: list[str] = []
+    last_finish: types.FinishReason | None = None
+
+    for chunk in stream:
+        if chunk.prompt_feedback:
+            pf = chunk.prompt_feedback
+            br = pf.block_reason
+            if br is not None and br != types.BlockedReason.BLOCKED_REASON_UNSPECIFIED:
+                logger.warning(
+                    "Gemini [%s] prompt_feedback block_reason=%s message=%s",
+                    context,
+                    br,
+                    getattr(pf, "block_reason_message", None),
+                )
+                raise GeminiGenerationError(_msg_prompt_blocked(), reason="prompt_blocked")
+
+        if not chunk.candidates:
+            continue
+
+        cand = chunk.candidates[0]
+        if cand.finish_reason is not None:
+            last_finish = cand.finish_reason
+
+        content = cand.content
+        if content and content.parts:
+            for part in content.parts:
+                if part.text:
+                    text_parts.append(part.text)
+
+    raw = "".join(text_parts).strip()
+    if raw:
+        return raw
+
+    # Resposta vazia: interpretar finish_reason
+    fr = last_finish
+    if fr in (
+        types.FinishReason.SAFETY,
+        types.FinishReason.PROHIBITED_CONTENT,
+        types.FinishReason.IMAGE_SAFETY,
+        types.FinishReason.IMAGE_PROHIBITED_CONTENT,
+    ):
+        logger.warning("Gemini [%s] empty output finish_reason=%s", context, fr)
+        raise GeminiGenerationError(_msg_output_blocked(), reason="output_blocked")
+
+    if fr == types.FinishReason.MAX_TOKENS:
+        raise GeminiGenerationError(
+            "A resposta da IA foi cortada por limite de tamanho. Use um briefing mais curto ou divida em passos.",
+            reason="max_tokens",
+        )
+
+    if fr == types.FinishReason.RECITATION:
+        raise GeminiGenerationError(
+            "A IA não pôde concluir a resposta por restrições de conteúdo. Reformule o pedido.",
+            reason="recitation",
+        )
+
+    logger.warning("Gemini [%s] empty text, finish_reason=%s", context, fr)
+    raise GeminiGenerationError(_msg_empty_or_model_stop(), reason="empty_response")
+
 
 SITE_SYSTEM_PROMPT = """\
 You are an expert web designer and developer.
@@ -38,8 +163,7 @@ JSON schema:
           "title": "string",
           "text": "string",
           "icon": "string (Lucide icon name, optional)",
-          "price": "string (optional)",
-          "image_prompt": "string (optional, prompt to generate an image for this item)"
+          "price": "string (optional)"
         }
       ],
       "cta_text": "string (optional)",
@@ -54,6 +178,7 @@ Rules:
 - Generate realistic placeholder text (not lorem ipsum).
 - Adapt the structure to the user's industry.
 - ALL text must be in the SAME language the user wrote in.
+- Do not include image URLs or image generation prompts; stock photos are added later from the Pexels API.
 - This ships as ONE static index.html (no extra pages). For cta_url: use "#" or "#section-id"
   for fake navigation, or a full https:// URL for a real external link. NEVER use root-relative
   paths like "/shop" or "/contact" — they break the preview.
@@ -65,12 +190,7 @@ def _build_site_config() -> types.GenerateContentConfig:
         temperature=0.7,
         top_p=0.9,
         max_output_tokens=8192,
-        safety_settings=[
-            types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"),
-            types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="OFF"),
-            types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="OFF"),
-            types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="OFF"),
-        ],
+        safety_settings=_gemini_safety_settings(),
         system_instruction=[types.Part.from_text(text=SITE_SYSTEM_PROMPT)],
     )
 
@@ -87,19 +207,23 @@ def _sync_generate_site_structure(brief: str) -> dict:
         ),
     ]
 
-    text_parts: list[str] = []
-    for chunk in client.models.generate_content_stream(
-        model=_GEMINI_TEXT,
-        contents=contents,
-        config=config,
-    ):
-        if not chunk.candidates:
-            continue
-        for part in chunk.candidates[0].content.parts:
-            if part.text:
-                text_parts.append(part.text)
-
-    raw = "".join(text_parts).strip()
+    try:
+        raw = _collect_stream_text(
+            client.models.generate_content_stream(
+                model=_GEMINI_TEXT,
+                contents=contents,
+                config=config,
+            ),
+            context="site_structure",
+        )
+    except GeminiGenerationError:
+        raise
+    except Exception as exc:
+        logger.exception("Gemini stream failed (site structure)")
+        raise GeminiGenerationError(
+            "Erro ao contactar a IA. Tente novamente dentro de alguns minutos.",
+            reason="api_error",
+        ) from exc
 
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[-1]
@@ -111,10 +235,16 @@ def _sync_generate_site_structure(brief: str) -> dict:
         structure = json.loads(raw)
     except json.JSONDecodeError as exc:
         logger.error("Gemini returned invalid JSON: %s… — %s", raw[:300], exc)
-        raise ValueError(f"AI returned invalid JSON: {exc}") from exc
+        raise GeminiGenerationError(
+            "A IA devolveu um formato inválido. Tente gerar o site novamente.",
+            reason="invalid_json",
+        ) from exc
 
     if "sections" not in structure:
-        raise ValueError("AI response missing 'sections' key")
+        raise GeminiGenerationError(
+            "A IA devolveu uma estrutura incompleta. Tente reformular o briefing.",
+            reason="missing_sections",
+        )
 
     return structure
 
@@ -147,12 +277,7 @@ def _sync_chat_reply(messages: list[dict], latest_user: str) -> str:
         temperature=0.8,
         top_p=0.9,
         max_output_tokens=512,
-        safety_settings=[
-            types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"),
-            types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="OFF"),
-            types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="OFF"),
-            types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="OFF"),
-        ],
+        safety_settings=_gemini_safety_settings(),
         system_instruction=[types.Part.from_text(text=system_text)],
     )
 
@@ -163,19 +288,25 @@ def _sync_chat_reply(messages: list[dict], latest_user: str) -> str:
             types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])])
         )
 
-    text_parts: list[str] = []
-    for chunk in client.models.generate_content_stream(
-        model=_GEMINI_TEXT,
-        contents=contents,
-        config=config,
-    ):
-        if not chunk.candidates:
-            continue
-        for part in chunk.candidates[0].content.parts:
-            if part.text:
-                text_parts.append(part.text)
+    try:
+        text = _collect_stream_text(
+            client.models.generate_content_stream(
+                model=_GEMINI_TEXT,
+                contents=contents,
+                config=config,
+            ),
+            context="chat",
+        )
+    except GeminiGenerationError:
+        raise
+    except Exception as exc:
+        logger.exception("Gemini stream failed (chat)")
+        raise GeminiGenerationError(
+            "Erro ao contactar a IA. Verifique a ligação e tente novamente.",
+            reason="api_error",
+        ) from exc
 
-    return "".join(text_parts).strip() or "Pode continuar a descrever o site."
+    return text or "Pode continuar a descrever o site."
 
 
 async def generate_site_structure(brief: str) -> dict:

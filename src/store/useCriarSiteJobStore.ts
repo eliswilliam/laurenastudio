@@ -19,7 +19,6 @@ interface CriarSiteJobState {
   lista: Mensagem[];
   projectId: string | null;
   siteResult: SiteResult | null;
-  githubUrl: string | null;
   publicSiteUrl: string | null;
   publishSlug: string;
 
@@ -28,10 +27,9 @@ interface CriarSiteJobState {
   setLista: (listaOrFn: Mensagem[] | ((prev: Mensagem[]) => Mensagem[])) => void;
   setProjectId: (id: string | null) => void;
   setSiteResult: (result: SiteResult | null) => void;
-  setGithubUrl: (url: string | null) => void;
   setPublicSiteUrl: (url: string | null) => void;
   setPublishSlug: (slug: string) => void;
-  
+
   clearGenerateJob: () => void;
   clearPublishJob: () => void;
   resetAll: () => void;
@@ -45,7 +43,6 @@ export const useCriarSiteJobStore = create<CriarSiteJobState>()(
       lista: [ABERTURA],
       projectId: null,
       siteResult: null,
-      githubUrl: null,
       publicSiteUrl: null,
       publishSlug: '',
 
@@ -54,22 +51,21 @@ export const useCriarSiteJobStore = create<CriarSiteJobState>()(
       setLista: (fn) => set((state) => ({ lista: typeof fn === 'function' ? fn(state.lista) : fn })),
       setProjectId: (id) => set({ projectId: id }),
       setSiteResult: (result) => set({ siteResult: result }),
-      setGithubUrl: (url) => set({ githubUrl: url }),
       setPublicSiteUrl: (url) => set({ publicSiteUrl: url }),
       setPublishSlug: (slug) => set({ publishSlug: slug }),
 
       clearGenerateJob: () => set({ generateJobId: null }),
       clearPublishJob: () => set({ publishJobId: null }),
-      resetAll: () => set({
-        generateJobId: null,
-        publishJobId: null,
-        lista: [ABERTURA],
-        projectId: null,
-        siteResult: null,
-        githubUrl: null,
-        publicSiteUrl: null,
-        publishSlug: ''
-      })
+      resetAll: () =>
+        set({
+          generateJobId: null,
+          publishJobId: null,
+          lista: [ABERTURA],
+          projectId: null,
+          siteResult: null,
+          publicSiteUrl: null,
+          publishSlug: '',
+        }),
     }),
     { name: 'laurena-criar-site-jobs' }
   )

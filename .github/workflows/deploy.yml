@@ -42,6 +42,7 @@ jobs:
           docker run \
             --detach \
             --name test-app \
+            --env SKIP_ALEMBIC=1 \
             --publish 8080:8080 \
             ${{ env.COMBINED_IMAGE }}:${{ steps.meta.outputs.tag }}
 

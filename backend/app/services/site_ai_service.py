@@ -16,6 +16,8 @@ from app.core.config import settings
 from app.services.ai_service import _get_client
 
 _GEMINI_TEXT = settings.GEMINI_TEXT_MODEL
+# Modèle utilisé uniquement pour la génération de la structure JSON du site (Gerar site), pas pour le chat.
+_GEMINI_SITE_STRUCTURE = settings.GEMINI_SITE_GENERATION_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +149,10 @@ You are an expert web designer and developer.
 The user describes a website they want to build.
 You MUST reply with a single JSON object (no markdown fences, no extra text).
 
+The output is ONE single-page static site (index.html only). Navigation must use in-page anchors
+only: every internal link must be "#your-section-id" matching a section_id you define (same page,
+smooth scroll). Do NOT invent multiple HTML pages or root paths.
+
 JSON schema:
 {
   "site_name": "string",
@@ -156,6 +162,8 @@ JSON schema:
   "sections": [
     {
       "type": "hero" | "features" | "about" | "pricing" | "faq" | "gallery" | "menu" | "testimonials" | "contact" | "cta" | "footer" | "custom",
+      "section_id": "string (required, unique, kebab-case, ASCII, e.g. hero, sobre, servicos, contacto, rodape)",
+      "nav_label": "string (optional, short label for the sticky top nav, max ~24 chars, same language as content)",
       "heading": "string",
       "subheading": "string (optional)",
       "items": [
@@ -173,15 +181,31 @@ JSON schema:
   ]
 }
 
+Modern single-page structure (STRICT order — follow this mental model):
+1) First section MUST be type "hero" (full-width top banner: main title + short value proposition).
+2) Then 2–6 middle sections: features, about, gallery, menu, testimonials, pricing, faq, etc.
+   Use clear section types; do not merge unrelated content into one blob.
+3) Put "contact" and/or a strong "cta" (call-to-action) NEAR THE END, before the footer.
+4) Last section MUST be exactly ONE "footer" (site-wide links, copyright, legal line — compact).
+
+Semantic roles:
+- hero = top of page only (never duplicate as a second hero).
+- footer = site footer only (last section, not used as a generic text block).
+
+section_id and nav_label:
+- Every section MUST have a unique section_id (kebab-case, no spaces).
+- Set nav_label on each section that should appear in the top navigation (usually all except you may
+  shorten the footer label e.g. "Legal" / "Info").
+- For cta_url pointing to another block on the same page, use "#section_id" e.g. "#contacto".
+
 Rules:
-- Include at least: hero, one content section, and footer.
+- Include at least: hero, one substantive content section (features/about/custom), and footer.
 - Generate realistic placeholder text (not lorem ipsum).
 - Adapt the structure to the user's industry.
 - ALL text must be in the SAME language the user wrote in.
 - Do not include image URLs or image generation prompts; stock photos are added later from the Pexels API.
-- This ships as ONE static index.html (no extra pages). For cta_url: use "#" or "#section-id"
-  for fake navigation, or a full https:// URL for a real external link. NEVER use root-relative
-  paths like "/shop" or "/contact" — they break the preview.
+- For cta_url: use "#" or "#section-id" for same-page targets, or a full https:// URL for external links.
+  NEVER use root-relative paths like "/shop" or "/contact" — they break the preview.
 - Return ONLY valid JSON, nothing else."""
 
 
@@ -210,7 +234,7 @@ def _sync_generate_site_structure(brief: str) -> dict:
     try:
         raw = _collect_stream_text(
             client.models.generate_content_stream(
-                model=_GEMINI_TEXT,
+                model=_GEMINI_SITE_STRUCTURE,
                 contents=contents,
                 config=config,
             ),

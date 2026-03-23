@@ -6,6 +6,7 @@ Uses Jinja2 with an embedded template for zero external dependencies.
 import copy
 import json
 import logging
+import re
 import shutil
 import zipfile
 from io import BytesIO
@@ -66,6 +67,32 @@ def sanitize_img_src(url: str | None) -> str | None:
     return None
 
 
+def _assign_section_anchors(sections: list) -> None:
+    """Stable HTML id + short nav label for single-page anchor navigation."""
+    seen: set[str] = set()
+    for i, section in enumerate(sections):
+        if not isinstance(section, dict):
+            continue
+        raw = (section.get("section_id") or "").strip().lower()
+        raw = re.sub(r"[^a-z0-9-]+", "-", raw).strip("-")[:50]
+        if not raw or len(raw) < 2:
+            raw = f"sec-{i}"
+        if raw[0].isdigit():
+            raw = "s-" + raw
+        base = raw
+        n = 0
+        while raw in seen:
+            n += 1
+            raw = f"{base}-{n}"
+        seen.add(raw)
+        section["_anchor_id"] = raw
+
+        label = (section.get("nav_label") or section.get("heading") or "").strip()
+        if len(label) > 36:
+            label = label[:33].rstrip() + "…"
+        section["_nav_label"] = label
+
+
 SITES_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "sites"
 SITES_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -92,6 +119,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
       --radius: 12px;
       --font: '{{ font }}', system-ui, sans-serif;
     }
+    html { scroll-behavior: smooth; }
     body { font-family: var(--font); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
     a { color: var(--primary); text-decoration: none; }
     img { max-width: 100%; height: auto; display: block; }
@@ -126,13 +154,34 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
     .card h3 { font-size: 1.25rem; margin-bottom: 8px; }
     .card p { color: var(--text-muted); font-size: .95rem; }
 
+    .site-header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .header-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px; padding-top: 14px; padding-bottom: 14px;
+    }
+    .site-logo { font-weight: 700; font-size: 1.125rem; color: var(--text); }
+    .site-logo:hover { color: var(--primary); }
+    .site-nav {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;
+      gap: 8px 18px;
+    }
+    .site-nav a {
+      font-size: .875rem; font-weight: 500; color: var(--text-muted);
+      padding: 4px 0; border-bottom: 2px solid transparent;
+    }
+    .site-nav a:hover { color: var(--primary); border-bottom-color: var(--primary); }
+    main section[id], footer[id] { scroll-margin-top: 88px; }
+
     .stock-figure { margin: 0 auto 28px; max-width: 880px; }
     .stock-figure img {
       border-radius: var(--radius); width: 100%; max-height: 480px; object-fit: cover;
       box-shadow: 0 4px 24px rgba(0,0,0,.1);
     }
-    .photo-credit { font-size: .75rem; color: var(--text-muted); margin-top: 10px; text-align: center; }
-    .photo-credit a { text-decoration: underline; }
 
     /* Hero */
     .hero { padding: 120px 0 100px; text-align: center; }
@@ -159,21 +208,33 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
       section { padding: 56px 0; }
       .hero { padding: 80px 0 64px; }
       .section-heading { font-size: 1.75rem; }
+      .site-nav { justify-content: flex-start; }
     }
   </style>
 </head>
 <body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="#top" class="site-logo">{{ site_name }}</a>
+    <nav class="site-nav" aria-label="Navigation">
+      {% for section in sections %}
+      {% if section.get('_nav_label') %}
+      <a href="#{{ section._anchor_id }}">{{ section._nav_label }}</a>
+      {% endif %}
+      {% endfor %}
+    </nav>
+  </div>
+</header>
+<main id="top">
 {% macro stock_figure(sec) -%}
 {% if sec.get('stock_image_url') %}
 <div class="stock-figure">
-  <img src="{{ sec.stock_image_url }}" alt="" loading="lazy" width="880" height="495">
-  {% if sec.get('stock_photo_by') and sec.get('stock_image_source') == 'pexels' %}
-  <p class="photo-credit">Photo by <a href="{{ sec.stock_photo_by_url }}" target="_blank" rel="noopener noreferrer">{{ sec.stock_photo_by }}</a> on <a href="https://www.pexels.com/" target="_blank" rel="noopener noreferrer">Pexels</a></p>
-  {% endif %}
+  <img src="{{ sec.stock_image_url }}" alt="{{ sec.heading or '' }}" loading="lazy" width="880" height="495">
 </div>
 {% endif %}
 {%- endmacro %}
 {% for section in sections %}
+{% if section.type != 'footer' %}
 {% set bg_class = '' %}
 {% if section.background == 'dark' %}{% set bg_class = 'bg-dark' %}
 {% elif section.background == 'primary' %}{% set bg_class = 'bg-primary' %}
@@ -181,7 +242,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 {% elif loop.index0 % 2 == 1 %}{% set bg_class = 'bg-alt' %}{% endif %}
 
 {% if section.type == 'hero' %}
-<section class="hero {{ bg_class }}">
+<section class="hero {{ bg_class }}" id="{{ section._anchor_id }}">
   <div class="container">
     {{ stock_figure(section) }}
     <h1>{{ section.heading }}</h1>
@@ -190,16 +251,8 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
   </div>
 </section>
 
-{% elif section.type == 'footer' %}
-<footer class="{{ bg_class }}">
-  <div class="container">
-    <p>{{ section.heading }}</p>
-    {% if section.subheading %}<p style="margin-top:4px">{{ section.subheading }}</p>{% endif %}
-  </div>
-</footer>
-
 {% elif section.type == 'faq' %}
-<section class="{{ bg_class }}">
+<section class="{{ bg_class }}" id="{{ section._anchor_id }}">
   <div class="container">
     {{ stock_figure(section) }}
     <h2 class="section-heading text-center">{{ section.heading }}</h2>
@@ -216,7 +269,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 </section>
 
 {% elif section.type == 'pricing' %}
-<section class="{{ bg_class }}">
+<section class="{{ bg_class }}" id="{{ section._anchor_id }}">
   <div class="container">
     {{ stock_figure(section) }}
     <h2 class="section-heading text-center">{{ section.heading }}</h2>
@@ -234,7 +287,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 </section>
 
 {% elif section.type == 'cta' %}
-<section class="{{ bg_class or 'bg-gradient' }}" style="text-align:center">
+<section class="{{ bg_class or 'bg-gradient' }}" id="{{ section._anchor_id }}" style="text-align:center">
   <div class="container">
     {{ stock_figure(section) }}
     <h2 class="section-heading">{{ section.heading }}</h2>
@@ -244,7 +297,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 </section>
 
 {% elif section.type == 'contact' %}
-<section class="{{ bg_class }}">
+<section class="{{ bg_class }}" id="{{ section._anchor_id }}">
   <div class="container" style="max-width:640px">
     {{ stock_figure(section) }}
     <h2 class="section-heading text-center">{{ section.heading }}</h2>
@@ -259,7 +312,7 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
 </section>
 
 {% else %}
-<section class="{{ bg_class }}">
+<section class="{{ bg_class }}" id="{{ section._anchor_id }}">
   <div class="container">
     {{ stock_figure(section) }}
     <h2 class="section-heading text-center">{{ section.heading }}</h2>
@@ -282,6 +335,23 @@ SITE_TEMPLATE = r"""<!DOCTYPE html>
   </div>
 </section>
 {% endif %}
+{% endif %}
+{% endfor %}
+</main>
+{% for section in sections %}
+{% if section.type == 'footer' %}
+{% set bg_class = '' %}
+{% if section.background == 'dark' %}{% set bg_class = 'bg-dark' %}
+{% elif section.background == 'primary' %}{% set bg_class = 'bg-primary' %}
+{% elif section.background == 'gradient' %}{% set bg_class = 'bg-gradient' %}
+{% elif loop.index0 % 2 == 1 %}{% set bg_class = 'bg-alt' %}{% endif %}
+<footer class="{{ bg_class }}" id="{{ section._anchor_id }}">
+  <div class="container">
+    <p>{{ section.heading }}</p>
+    {% if section.subheading %}<p style="margin-top:4px">{{ section.subheading }}</p>{% endif %}
+  </div>
+</footer>
+{% endif %}
 {% endfor %}
 </body>
 </html>"""
@@ -294,13 +364,13 @@ _template = _env.from_string(SITE_TEMPLATE)
 def generate_html(structure: dict) -> str:
     """Render the JSON structure into a complete HTML string."""
     data = copy.deepcopy(structure)
-    for section in data.get("sections", []):
+    sections = data.get("sections", [])
+    _assign_section_anchors(sections)
+    for section in sections:
         if not isinstance(section, dict):
             continue
         if "cta_url" in section:
             section["cta_url"] = sanitize_href_for_static_preview(section.get("cta_url"))
-        section["stock_photo_by_url"] = sanitize_external_href(section.get("stock_photo_by_url"))
-        section["stock_photo_page_url"] = sanitize_external_href(section.get("stock_photo_page_url"))
         if section.get("stock_image_url"):
             safe_src = sanitize_img_src(section.get("stock_image_url"))
             if safe_src:

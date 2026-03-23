@@ -95,6 +95,10 @@ backend/
 | `STRIPE_PRICE_ID_BUSINESS` | Stripe Price ID for Business plan | `price_...` |
 | `FRONTEND_URL` | Frontend base URL (redirects) | `http://localhost:8080` |
 | `BACKEND_URL` | Backend base URL (OAuth callback) | `http://localhost:8000` |
+| `GOOGLE_INDEXING_ENABLED` | Active la notification Indexing API après Publicar (sous-domaine) | `true` (défaut) |
+| `GOOGLE_INDEXING_DEFER_SECONDS` | Délai avant l’appel Google (secondes) | `5400` (1 h 30) |
+
+Publication Cloud Run / DNS : `GCP_SA_KEY`, `GCP_PROJECT_ID`, `ROOT_DOMAIN`, Cloudflare — voir [docs/SITE_BUILDER.md](docs/SITE_BUILDER.md) et **`backend/.env.example`** (section Google Indexing : prérequis GCP + Search Console, redémarrage API + worker ARQ après `pip install`).
 
 ---
 

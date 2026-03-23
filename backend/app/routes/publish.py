@@ -22,7 +22,9 @@ from app.models.user import User
 from app.routes.auth import get_current_user
 from app.schemas.job import BackgroundJobResponse, PublishEnqueueResponse
 from app.schemas.publish import PublishRequest
-from app.services.arq_enqueue import enqueue_publish_job
+from app.core.config import settings
+from app.services.arq_enqueue import enqueue_google_index_site_job, enqueue_publish_job
+from app.services.google_indexing_service import should_schedule_indexing_for_publish
 from app.services.dns_service import dns_configured, validate_slug
 from app.services.job_service import create_job, get_job
 from app.services.site_generator import SITES_DIR
@@ -178,5 +180,16 @@ async def publish_site(
     await db.commit()
 
     await enqueue_publish_job(str(job.id))
+
+    if should_schedule_indexing_for_publish(
+        project_id=payload.project_id,
+        slug=slug_norm,
+    ):
+        await enqueue_google_index_site_job(payload.project_id, workspace_id)
+        logger.info(
+            "Google Indexing job scheduled in %ss for project_id=%s",
+            settings.GOOGLE_INDEXING_DEFER_SECONDS,
+            payload.project_id,
+        )
 
     return PublishEnqueueResponse(job_id=str(job.id))

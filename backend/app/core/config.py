@@ -92,8 +92,10 @@ class Settings(BaseSettings):
     GOOGLE_CLOUD_LOCATION: str = "us-central1"
     # Service account JSON for Vertex AI (used in Azure where no ADC file exists)
     GOOGLE_CREDENTIALS_JSON: str = ""
-    # Gemini model for site-builder chat + JSON structure (text). Override via .env if needed.
+    # Chat sur Criar site (réponses courtes). Override via .env si besoin.
     GEMINI_TEXT_MODEL: str = "gemini-2.5-flash"
+    # JSON « structure du site » au clic « Gerar site » (POST /sites/generate → worker). Pas le chat.
+    GEMINI_SITE_GENERATION_MODEL: str = "gemini-3.1-pro-preview"
 
     # ── Pexels (stock photos for generated sites; https://www.pexels.com/api/) ─
     PEXELS_API_KEY: str = Field(
@@ -122,6 +124,27 @@ class Settings(BaseSettings):
     CLOUDFLARE_ZONE_ID: str = ""
     CLOUDFLARE_ACCOUNT_ID: str = ""
     ROOT_DOMAIN: str = ""
+
+    # ── Google Indexing API (after Publicar on subdomain; GCP SA + Search Console owner) ─
+    GOOGLE_INDEXING_ENABLED: bool = True
+    # Seconds to wait after enqueue (default 5400 = 1h30) before notifying Google.
+    GOOGLE_INDEXING_DEFER_SECONDS: int = 5400
+
+    @field_validator("GOOGLE_INDEXING_ENABLED", mode="before")
+    @classmethod
+    def _coerce_google_indexing_enabled(cls, v: object) -> object:
+        if v is None or (isinstance(v, str) and v.strip() == ""):
+            return True
+        if isinstance(v, str):
+            return v.strip().lower() in ("1", "true", "yes", "on")
+        return v
+
+    @field_validator("GOOGLE_INDEXING_DEFER_SECONDS", mode="before")
+    @classmethod
+    def _coerce_google_indexing_defer(cls, v: object) -> object:
+        if v is None or (isinstance(v, str) and v.strip() == ""):
+            return 5400
+        return v
 
     # ── Session (required by Starlette SessionMiddleware for OAuth flow) ─────
     SESSION_SECRET_KEY: str = "CHANGE-ME-session-secret-use-openssl-rand-hex-32"

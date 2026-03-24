@@ -18,6 +18,7 @@ import {
   TrendingUp,
   CalendarDays,
   ArrowRight,
+  RefreshCw,
   Loader2,
   Megaphone,
   BarChart3,
@@ -80,12 +81,19 @@ export default function Dashboard() {
   const { usuario, planoNome, billingStatus, fetchBillingStatus } = useAuthStore();
   const { workspaces, workspaceLimit, fetchWorkspaces } = useWorkspaceStore();
   const [loading, setLoading] = useState(!billingStatus);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Always fetch fresh billing data on mount (critical after Stripe redirect)
   useEffect(() => {
     Promise.all([fetchBillingStatus(), fetchWorkspaces()]).finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchBillingStatus(), fetchWorkspaces()]);
+    setRefreshing(false);
+  };
 
   // ── Derived data ─────────────────────────────────────────────────────────
 
@@ -164,6 +172,10 @@ export default function Dashboard() {
               Plano {plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome}
             </Badge>
           )}
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
         </div>
       </div>
 

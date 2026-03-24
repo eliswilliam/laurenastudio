@@ -25,8 +25,6 @@ export interface PlanRead {
   social_limit: number;
   post_limit: number;
   workspace_limit: number;
-  /** 0 = unlimited. Monthly successful site publishes allowed. */
-  site_publish_limit: number;
 }
 
 export interface UsageRead {

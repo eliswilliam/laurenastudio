@@ -145,67 +145,87 @@ def _collect_stream_text(
 
 
 SITE_SYSTEM_PROMPT = """\
-You are an expert web designer and developer.
-The user describes a website they want to build.
+You are an expert web designer. The user describes a one-page static site.
 You MUST reply with a single JSON object (no markdown fences, no extra text).
 
-The output is ONE single-page static site (index.html only). Navigation must use in-page anchors
-only: every internal link must be "#your-section-id" matching a section_id you define (same page,
-smooth scroll). Do NOT invent multiple HTML pages or root paths.
-
-JSON schema:
+## Output shape (always)
 {
-  "site_name": "string",
-  "description": "string (SEO meta description)",
-  "primary_color": "#hex",
-  "font": "string (Google Font name)",
-  "sections": [
-    {
-      "type": "hero" | "features" | "about" | "pricing" | "faq" | "gallery" | "menu" | "testimonials" | "contact" | "cta" | "footer" | "custom",
-      "section_id": "string (required, unique, kebab-case, ASCII, e.g. hero, sobre, servicos, contacto, rodape)",
-      "nav_label": "string (optional, short label for the sticky top nav, max ~24 chars, same language as content)",
-      "heading": "string",
-      "subheading": "string (optional)",
-      "items": [
-        {
-          "title": "string",
-          "text": "string",
-          "icon": "string (Lucide icon name, optional)",
-          "price": "string (optional)"
-        }
-      ],
-      "cta_text": "string (optional)",
-      "cta_url": "string (optional)",
-      "background": "light" | "dark" | "primary" | "gradient"
-    }
-  ]
+  "template_id": "hotel-reserva" | "ecommerce" | "portfolio",
+  "site": { ... }
 }
 
-Modern single-page structure (STRICT order — follow this mental model):
-1) First section MUST be type "hero" (full-width top banner: main title + short value proposition).
-2) Then 2–6 middle sections: features, about, gallery, menu, testimonials, pricing, faq, etc.
-   Use clear section types; do not merge unrelated content into one blob.
-3) Put "contact" and/or a strong "cta" (call-to-action) NEAR THE END, before the footer.
-4) Last section MUST be exactly ONE "footer" (site-wide links, copyright, legal line — compact).
+## How to choose template_id (pick exactly ONE)
+- **hotel-reserva** — hotels, travel, bookings, stays, destinations, reservations.
+- **ecommerce** — shop, fashion, products, catalog, cart, retail, clothing.
+- **portfolio** — personal site, CV, developer/designer portfolio, freelance, case studies.
 
-Semantic roles:
-- hero = top of page only (never duplicate as a second hero).
-- footer = site footer only (last section, not used as a generic text block).
+The **site** object MUST follow the canonical structure for that template (keys and nested shapes below).
+Respect section **order** and **tipo** / **type** values so the renderer can map them.
 
-section_id and nav_label:
-- Every section MUST have a unique section_id (kebab-case, no spaces).
-- Set nav_label on each section that should appear in the top navigation (usually all except you may
-  shorten the footer label e.g. "Legal" / "Info").
-- For cta_url pointing to another block on the same page, use "#section_id" e.g. "#contacto".
+---
 
-Rules:
-- Include at least: hero, one substantive content section (features/about/custom), and footer.
-- Generate realistic placeholder text (not lorem ipsum).
-- Adapt the structure to the user's industry.
-- ALL text must be in the SAME language the user wrote in.
-- Do not include image URLs or image generation prompts; stock photos are added later from the Pexels API.
-- For cta_url: use "#" or "#section-id" for same-page targets, or a full https:// URL for external links.
-  NEVER use root-relative paths like "/shop" or "/contact" — they break the preview.
+### A) template_id = "hotel-reserva" (Portuguese copy: idioma "pt-BR")
+Top-level: id, nome, tipo, idioma, arquivo, design, secoes[], optional modal_reserva.
+
+- **design**: estetica, tema, **paleta** { cream, sand, brown, dark, gold, gold_light, white, muted } (HEX),
+  **tipografia** { display, corpo } (Google Font names, e.g. "Playfair Display (serif)", "DM Sans (sans-serif)").
+
+- **secoes[]** each has **id** (kebab-case) and **tipo**:
+  - **navegacao**: logo, links (array of label strings), cta
+  - **hero**: layout, tag, titulo, subtitulo, botoes[], badge { nota, estrelas, avaliacoes }, **imagem** (URL placeholder OK),
+    optional **photo_search_query** (English) on the same object for stock
+  - **formulario_busca**: campos[], botao
+  - **grid_destinos**: titulo, tag, destinos[] { cidade, hoteis, imagem, photo_search_query? }
+  - **grid_produtos**: titulo, tag, hoteis[] { nome, badge, nota, localizacao, features[], preco_por_noite, moeda, imagem }
+  - **features**: titulo, tag, stat_destaque, items[] { icone, titulo, descricao }
+  - **testimonials**: titulo, tag, depoimentos[] { nota, texto, autor, cidade, avatar }
+  - **newsletter**: titulo, subtitulo, placeholder, botao
+  - **footer**: logo, descricao, colunas[] { titulo, links[] (strings or {label,href}) }, copyright
+
+- **modal_reserva** (optional): titulo, campos[], botao_confirmar
+
+---
+
+### B) template_id = "ecommerce" (Portuguese: idioma "pt-BR")
+- **design.paleta**: bg, surface, surface2, border, lime, lime_dim, white, muted, muted2, red (HEX).
+- **design.tipografia**: display, corpo, mono (optional).
+- **secoes[]** **tipo**:
+  - **banner_animado**: mensagens[] (ticker)
+  - **navegacao**: logo, categorias[], features[] (hints)
+  - **hero**: label_colecao, titulo, subtitulo, botoes[], stats[] { valor, label }, imagem (optional)
+  - **barra_filtros**: filtros[], ordenacao[]
+  - **grid_produtos**: colunas (optional), produtos[] { nome, marca, badge, preco, preco_original?, desconto_pct?, moeda, categorias[], cores[], imagem }
+  - **banner_promocional**: tag, titulo, subtitulo, countdown (bool), duracao_horas, imagem
+  - **brand_strip**: titulo, marcas[]
+  - **editorial_grid**: principal { titulo, subtitulo, cta, imagem }, secundarios[] { titulo, sub, imagem }
+  - **features_strip**: colunas, items[] { icone, titulo, descricao }
+  - **footer**: logo, descricao, redes_sociais[], colunas[], meios_pagamento[], copyright
+
+---
+
+### C) template_id = "portfolio" (French copy: langue "fr")
+- **design.palette** + **design.typographie** { display, mono, corps }.
+- **profil** (optional): nom, titre, localisation, contacts, etc.
+- **sections[]** **type**:
+  - **navigation**: logo, liens[] (anchor ids), cta
+  - **hero**: label, titre_lignes[] OR titre, sous_titre, boutons[], stats[] { valeur, label }, indicateur_scroll
+  - **a_propos**: numero_section, titre, photo, biographie[], infos{}, tags_tech[]
+  - **competences_onglets**: numero_section, titre, categories[] { id, label, competences[] { nom, icone, niveau } }
+  - **grille_projets**: numero_section, titre, projets[] { numero, nom, description, image, liens, ... }
+  - **timeline**: numero_section, titre, experiences[] { periode, poste, entreprise, lieu, description, technologies }
+  - **contact**: numero_section, titre, intro, informations[], formulaire { champs[], bouton, toast_succes }
+  - **footer**: logo, copyright, reseaux[]
+
+---
+
+## Global rules
+- ONE static index page; internal navigation uses **#section-id** matching each section **id** (same page).
+- **Colours & fonts**: fill **paleta** / **palette** and **tipografia** / **typographie** from the user's brief (mood, sector, named colours). Do not invent random unrelated palettes.
+- **Images**: you MAY use temporary https://images.unsplash.com/... URLs OR leave **imagem** empty; the pipeline replaces them with **Pexels** using **photo_search_query** when present.
+  On every object that contains **imagem** / **image** / **photo** / **avatar**, add **photo_search_query** (English, 4–12 words: subject, setting, mood) on the **same object**.
+- ALL user-facing copy in **site** must match the language implied by **idioma** / **langue** (Portuguese for hotel/ecommerce, French for portfolio unless the user clearly asks another language).
+- **photo_search_query** values are always English (stock API).
+- No base64 images. No root-relative internal URLs like "/loja" — use "#id-de-section".
 - Return ONLY valid JSON, nothing else."""
 
 
@@ -213,7 +233,7 @@ def _build_site_config() -> types.GenerateContentConfig:
     return types.GenerateContentConfig(
         temperature=0.7,
         top_p=0.9,
-        max_output_tokens=8192,
+        max_output_tokens=16384,
         safety_settings=_gemini_safety_settings(),
         system_instruction=[types.Part.from_text(text=SITE_SYSTEM_PROMPT)],
     )
@@ -264,7 +284,13 @@ def _sync_generate_site_structure(brief: str) -> dict:
             reason="invalid_json",
         ) from exc
 
-    if "sections" not in structure:
+    tid = (structure.get("template_id") or "").strip()
+    has_triple = tid in ("hotel-reserva", "ecommerce", "portfolio") and isinstance(
+        structure.get("site"), dict
+    )
+    has_legacy = isinstance(structure.get("sections"), list) and len(structure.get("sections") or []) > 0
+    has_framework = bool(structure.get("projectInfo")) and bool(structure.get("page"))
+    if not has_legacy and not has_framework and not has_triple:
         raise GeminiGenerationError(
             "A IA devolveu uma estrutura incompleta. Tente reformular o briefing.",
             reason="missing_sections",

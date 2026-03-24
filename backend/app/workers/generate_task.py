@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.services.job_service import append_log, get_job, mark_failed, mark_running, mark_success
 from app.services.site_ai_service import GeminiGenerationError, generate_site_structure
 from app.services.pexels_service import enrich_site_structure_with_pexels
+from app.services.site_framework_adapter import normalize_site_structure
 from app.services.site_generator import generate_html, save_site
 
 logger = logging.getLogger(__name__)
@@ -113,6 +114,8 @@ async def _arq_generate_site_impl(job_id: str) -> None:
             await mark_failed(db, jid, str(exc))
             await db.commit()
             raise
+
+        structure = normalize_site_structure(structure)
 
         # Pexels: search API → first photo URL per section (non-footer), then Jinja injects <img src="https://…">
         if settings.SITE_USE_PEXELS_STOCK:

@@ -121,6 +121,8 @@ export default function CriarSite() {
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [pollProjectId, setPollProjectId] = useState<string | null>(null);
+  /** Pré-visualização + «Abrir no separador» só após gerar o site nesta sessão; oculto ao abrir o histórico. */
+  const [showPreviewChrome, setShowPreviewChrome] = useState(false);
 
   const refreshProjects = useCallback(async () => {
     setProjectsLoading(true);
@@ -169,6 +171,7 @@ export default function CriarSite() {
         setPublishSlug(s.publish_slug ?? '');
         setAGerar(false);
         setAPublicar(false);
+        setShowPreviewChrome(false);
         if (s.status === 'generating') {
           setAGerar(true);
           setPollProjectId(pid);
@@ -228,6 +231,7 @@ export default function CriarSite() {
           });
           setPollProjectId(null);
           setAGerar(false);
+          setShowPreviewChrome(true);
           void refreshProjects();
         } else if (s.status === 'error') {
           finish();
@@ -259,6 +263,7 @@ export default function CriarSite() {
 
   const iniciarNovoSite = () => {
     setPollProjectId(null);
+    setShowPreviewChrome(false);
     resetAll();
   };
 
@@ -317,6 +322,7 @@ export default function CriarSite() {
           };
           setLista((p) => [...p, pronto]);
           setAGerar(false);
+          setShowPreviewChrome(true);
           clearGenerateJob();
         } else if (j.status === 'failed') {
           finish();
@@ -479,6 +485,7 @@ export default function CriarSite() {
     setSiteResult(null);
     setPublicSiteUrl(null);
     setPublishSlug('');
+    setShowPreviewChrome(false);
 
     const gerando: Mensagem = {
       id: ID(),
@@ -630,17 +637,19 @@ export default function CriarSite() {
               </Button>
               {siteResult && (
               <>
+                {showPreviewChrome && previewAbsUrl && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-normal border-border/80"
                   asChild
                 >
-                  <a href={previewAbsUrl ?? siteResult.previewUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-3.5 h-3.5 opacity-70" />
                     Abrir no separador
                   </a>
                 </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -737,7 +746,7 @@ export default function CriarSite() {
           </div>
         )}
 
-        {siteResult && previewAbsUrl && emConversa && (
+        {siteResult && previewAbsUrl && emConversa && showPreviewChrome && (
           <div className="mb-4 shrink-0 rounded-xl border bg-muted/30 overflow-hidden">
             <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/80">
               Pré-visualização (HTML + CSS como no navegador)

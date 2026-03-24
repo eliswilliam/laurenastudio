@@ -39,8 +39,12 @@ def placeholder_image_url(label: str, width: int = 1200, height: int = 630) -> s
 
 def _section_to_search_query(sec: dict, site_name: str, brief: str) -> str:
     """
-    Build a short search string for Pexels from section + site context (no Gemini field).
+    Build a short search string for Pexels. Prefer model-provided photo_search_query (English).
     """
+    custom = (sec.get("photo_search_query") or sec.get("stock_image_keywords") or "").strip()
+    if custom:
+        return custom[:140]
+
     parts: list[str] = []
     sn = (site_name or "").strip()
     if sn:
@@ -62,7 +66,11 @@ def _section_to_search_query(sec: dict, site_name: str, brief: str) -> str:
     if len(words) < 2:
         words = ["business", "professional", "modern"]
     q = " ".join(words[:12])
-    return q[:140].strip() or "business"
+    out = q[:140].strip() or "business"
+    # Hero: bias toward wide editorial photography when the model did not set photo_search_query
+    if (sec.get("type") or "").lower() == "hero":
+        out = f"{out} wide landscape photography natural light professional"
+    return out[:140].strip()
 
 
 def _search_pexels_first_photo_sync(query: str) -> dict[str, Any] | None:
@@ -120,11 +128,98 @@ def _search_pexels_first_photo_sync(query: str) -> dict[str, Any] | None:
     }
 
 
+def _needs_image_replace(url: str) -> bool:
+    u = (url or "").strip()
+    if not u:
+        return True
+    low = u.lower()
+    if "images.pexels.com" in low or "pexels.com/photos" in low:
+        return False
+    if "unsplash.com" in low or "pravatar.cc" in low or "placehold.co" in low or "picsum.photos" in low:
+        return True
+    return False
+
+
+def _derive_photo_query(obj: dict[str, Any], brief: str, site_name: str) -> str:
+    pq = (obj.get("photo_search_query") or obj.get("photo_query") or "").strip()
+    if pq:
+        return pq[:140]
+    parts: list[str] = []
+    for key in (
+        "cidade",
+        "nome",
+        "titulo",
+        "nome",
+        "localizacao",
+        "marca",
+        "label",
+        "titulo",
+    ):
+        v = obj.get(key)
+        if isinstance(v, str) and v.strip():
+            parts.append(v.strip())
+    if not parts:
+        blob = f"{site_name} {(brief or '')[:120]}"
+        words = re.findall(r"[A-Za-zÀ-ÿ]{3,}", blob)[:10]
+        parts = words or ["professional", "photography"]
+    q = " ".join(parts[:12])
+    return (q + " professional photography")[:140].strip()
+
+
+def _sync_enrich_site_template(structure: dict, brief: str) -> dict:
+    """
+    Parcourt `site` (hôtel / e-commerce / portfolio) et remplace les URLs placeholder
+    (Unsplash, pravatar, vide) par des liens https Pexels.
+    """
+    data = copy.deepcopy(structure)
+    site = data.get("site")
+    if not isinstance(site, dict):
+        return data
+
+    site_name = (site.get("nome") or site.get("nom") or "Site").strip()
+    used_queries: set[str] = set()
+
+    def walk(obj: Any) -> None:
+        if isinstance(obj, dict):
+            pq_parent = (obj.get("photo_search_query") or obj.get("photo_query") or "").strip()
+            for k, v in list(obj.items()):
+                if k in ("photo_search_query", "photo_query"):
+                    continue
+                if k in ("imagem", "image", "photo", "avatar") and isinstance(v, str):
+                    if not _needs_image_replace(v):
+                        continue
+                    q = pq_parent or _derive_photo_query(obj, brief, site_name)
+                    if q in used_queries:
+                        q = f"{q} scene"
+                    used_queries.add(q)
+                    photo = _search_pexels_first_photo_sync(q)
+                    label = (
+                        str(obj.get("nome") or obj.get("titulo") or obj.get("cidade") or q)[:40]
+                    )
+                    if photo:
+                        obj[k] = photo["url"]
+                    else:
+                        obj[k] = placeholder_image_url(label)
+                elif isinstance(v, (dict, list)):
+                    walk(v)
+        elif isinstance(obj, list):
+            for item in obj:
+                walk(item)
+
+    walk(site)
+    return data
+
+
 def _sync_enrich_structure(structure: dict, brief: str) -> dict:
     """
     For each non-footer section, search Pexels once and set stock_image_* from API results.
-    No cap on number of sections. No Gemini photo_search_query — queries derived from content.
+    No cap on number of sections. Uses section photo_search_query when present; else derives from content.
     """
+    if structure.get("render_mode") == "site_template_v1" or (
+        structure.get("template_id") and isinstance(structure.get("site"), dict)
+    ):
+        return _sync_enrich_site_template(structure, brief)
+
     data = copy.deepcopy(structure)
     sections = data.get("sections")
     if not isinstance(sections, list):

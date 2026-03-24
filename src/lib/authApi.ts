@@ -17,13 +17,6 @@ export interface UserRead {
   bio?: string | null;
 }
 
-export interface WorkspaceRead {
-  id: string;
-  name: string;
-  owner_id: string;
-  created_at: string;
-}
-
 export interface TokenResponse {
   access_token: string;
   refresh_token?: string;
@@ -32,8 +25,8 @@ export interface TokenResponse {
 
 export interface AuthResponse {
   user: UserRead;
-  workspace: WorkspaceRead;
   tokens: TokenResponse;
+  tenant_id: string;
 }
 
 export interface ForgotPasswordResponse {
@@ -63,12 +56,12 @@ export interface UserUpdateRequest {
 export async function apiRegister(
   email: string,
   password: string,
-  workspace_name = 'My Workspace'
+  account_name = 'Minha conta'
 ): Promise<AuthResponse> {
   const res = await api.post<AuthResponse>('/auth/register', {
     email,
     password,
-    workspace_name,
+    account_name,
   });
   return res.data;
 }

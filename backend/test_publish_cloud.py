@@ -11,7 +11,7 @@ Exiger: Redis + worker ARQ en cours d'exécution, backend/.env avec REDIS_URL, G
 GCP_PROJECT_ID, GCP_SA_KEY, et clés Gemini pour generate.
 
 Contourner chat/génération (ex. Gemini indisponible dans Docker) :
-  TEST_EXISTING_PROJECT_ID=<uuid>  (dossier uploads/sites/<uuid>/index.html doit exister, projet du même workspace que le compte test)
+  TEST_EXISTING_PROJECT_ID=<uuid>  (dossier uploads/sites/<uuid>/index.html doit exister, projet du même tenant que le compte test)
 """
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def req(method: str, url: str, data: dict | None = None, token: str | None = Non
 def register_or_login() -> tuple[str, str, str]:
     s, d = req("POST", f"{API_V1}/auth/login", {"email": TEST_EMAIL, "password": TEST_PASSWORD}, timeout=30)
     if s == 200:
-        return d["tokens"]["access_token"], d["user"]["id"], d["workspace"]["id"]
+        return d["tokens"]["access_token"], d["user"]["id"], d["tenant_id"]
     print(f"    login failed ({s}), trying register…")
     s, d = req(
         "POST",
@@ -60,7 +60,7 @@ def register_or_login() -> tuple[str, str, str]:
         {
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD,
-            "full_name": "Test Publish",
+            "account_name": "Test Publish",
         },
         timeout=30,
     )
@@ -69,7 +69,7 @@ def register_or_login() -> tuple[str, str, str]:
         sys.exit(1)
     token = d["tokens"]["access_token"]
     user_id = d["user"]["id"]
-    ws_id = d["workspace"]["id"]
+    ws_id = d["tenant_id"]
     return token, user_id, ws_id
 
 
@@ -135,7 +135,7 @@ def main() -> None:
 
     print("[1] Auth")
     token, user_id, ws_id = register_or_login()
-    print(f"    user_id={user_id} workspace_id={ws_id}")
+    print(f"    user_id={user_id} tenant_id={ws_id}")
 
     print("[2] Activate plan (dev)")
     s_plans, plans = req("GET", f"{API_V1}/billing/plans", timeout=30)

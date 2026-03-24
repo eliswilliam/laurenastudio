@@ -65,7 +65,7 @@ export default function Registro() {
     if (!email || !senha) return;
     setCarregando(true);
     try {
-      const data = await apiRegister(email, senha, nome ? `${nome}'s Workspace` : 'My Workspace');
+      const data = await apiRegister(email, senha, nome ? `Conta de ${nome}` : 'Minha conta');
       login(
         {
           id: data.user.id,

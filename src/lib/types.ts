@@ -12,15 +12,6 @@ export interface Usuario {
   criadoEm: string;
 }
 
-export interface Workspace {
-  id: string;
-  nome: string;
-  logo?: string;
-  membros: number;
-  owner_id?: string;
-  created_at?: string;
-}
-
 // Dashboard
 export interface DashboardKPI {
   postsPublicados: number;

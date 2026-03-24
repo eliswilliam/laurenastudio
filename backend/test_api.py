@@ -40,8 +40,8 @@ def test_all():
         print("  ERROR:", d)
         return
     token = d["tokens"]["access_token"]
-    ws_id = d["workspace"]["id"]
-    print(f"  workspace_id={ws_id}")
+    ws_id = d["tenant_id"]
+    print(f"  tenant_id={ws_id}")
 
     # --- Plans ---
     s, d = req("GET", "/billing/plans")
@@ -63,12 +63,6 @@ def test_all():
     s, d = req("GET", "/billing/status", token=token, ws_header=ws_id)
     print(f"[BILLING] Status: {s}")
     print(f"  {str(d)[:200]}")
-
-    # --- Workspaces ---
-    s, d = req("GET", "/workspaces/", token=token)
-    print(f"[WORKSPACES] List: {s}")
-    if isinstance(d, dict):
-        print(f"  count={d.get('current_count')}, workspaces={len(d.get('workspaces', []))}")
 
     # --- Posts (create) ---
     s, d = req(

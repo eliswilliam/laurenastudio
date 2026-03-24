@@ -1,7 +1,7 @@
 """
 core/dependencies.py
 Shared FastAPI dependencies for subscription verification and usage control.
-Extracts workspace from the authenticated user's membership — never trusts
+Resolves the tenant id from the authenticated user's membership — never trusts
 the frontend.
 """
 from datetime import datetime, timezone
@@ -26,8 +26,8 @@ async def get_workspace_id(
     db: AsyncSession = Depends(get_db),
 ) -> str:
     """
-    Extract the user's primary workspace_id from their membership.
-    Never trusts workspace_id from the frontend — always derived from the token.
+    Primary tenant id from membership (subscriptions, usage, sites are scoped here).
+    Never trusts ids from the client — always derived from the token.
     """
     result = await db.execute(
         select(Membership)
@@ -39,7 +39,7 @@ async def get_workspace_id(
     if not membership:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No workspace found for this user.",
+            detail="Conta não encontrada para este utilizador.",
         )
     return membership.workspace_id
 
@@ -51,7 +51,7 @@ async def verify_active_subscription(
     db: AsyncSession = Depends(get_db),
 ) -> Subscription:
     """
-    Dependency that blocks access if the workspace has no active subscription.
+    Dependency that blocks access if the account has no active subscription.
     Returns the Subscription ORM object for downstream use.
     """
     result = await db.execute(

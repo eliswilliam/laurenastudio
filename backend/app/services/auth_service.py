@@ -33,7 +33,6 @@ from app.schemas.auth import (
     VerifyResetCodeResponse,
 )
 from app.schemas.user import UserRead, UserUpdateRequest
-from app.schemas.workspace import WorkspaceRead
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -68,10 +67,10 @@ async def register_user(db: AsyncSession, payload: RegisterRequest) -> AuthRespo
     db.add(user)
     await db.flush()  # flush to get the user.id without committing
 
-    # 3. Create default workspace
+    # 3. Internal tenant row (not exposed as "workspace" in the API)
     workspace = Workspace(
         id=str(uuid.uuid4()),
-        name=payload.workspace_name,
+        name=payload.account_name,
         owner_id=user.id,
     )
     db.add(workspace)
@@ -93,7 +92,7 @@ async def register_user(db: AsyncSession, payload: RegisterRequest) -> AuthRespo
         user_id=user.id,
         kind="auth_register",
         title="Conta criada com sucesso",
-        body="Bem-vindo(a) à Laurena Studio! Sua conta e workspace estão prontos.",
+        body="Bem-vindo(a) à Laurena Studio! Sua conta está pronta.",
     )
     await db.commit()
     await db.refresh(user)
@@ -107,8 +106,8 @@ async def register_user(db: AsyncSession, payload: RegisterRequest) -> AuthRespo
 
     return AuthResponse(
         user=UserRead.model_validate(user),
-        workspace=WorkspaceRead.model_validate(workspace),
         tokens=tokens,
+        tenant_id=workspace.id,
     )
 
 
@@ -136,10 +135,10 @@ async def login_user(db: AsyncSession, payload: LoginRequest) -> AuthResponse:
     workspace = result.scalars().first()
 
     if workspace is None:
-        # Edge-case: create default workspace on first login if missing
+        # Edge-case: create default tenant row on first login if missing
         workspace = Workspace(
             id=str(uuid.uuid4()),
-            name="My Workspace",
+            name="Minha conta",
             owner_id=user.id,
         )
         db.add(workspace)
@@ -171,8 +170,8 @@ async def login_user(db: AsyncSession, payload: LoginRequest) -> AuthResponse:
 
     return AuthResponse(
         user=UserRead.model_validate(user),
-        workspace=WorkspaceRead.model_validate(workspace),
         tokens=tokens,
+        tenant_id=workspace.id,
     )
 
 
@@ -397,7 +396,7 @@ async def facebook_oauth_login(db: AsyncSession, user_info: dict) -> AuthRespons
             given = email.split("@")[0]
             workspace = Workspace(
                 id=str(uuid.uuid4()),
-                name=f"{given}'s Workspace",
+                name=f"Conta de {given}",
                 owner_id=user.id,
             )
             db.add(workspace)
@@ -429,7 +428,7 @@ async def facebook_oauth_login(db: AsyncSession, user_info: dict) -> AuthRespons
     if workspace is None:
         workspace = Workspace(
             id=str(uuid.uuid4()),
-            name="My Workspace",
+            name="Minha conta",
             owner_id=user.id,
         )
         db.add(workspace)
@@ -450,8 +449,8 @@ async def facebook_oauth_login(db: AsyncSession, user_info: dict) -> AuthRespons
 
     return AuthResponse(
         user=UserRead.model_validate(user),
-        workspace=WorkspaceRead.model_validate(workspace),
         tokens=tokens,
+        tenant_id=workspace.id,
     )
 
 
@@ -498,7 +497,7 @@ async def google_oauth_login(db: AsyncSession, user_info: dict) -> AuthResponse:
             given = user_info.get("given_name") or email.split("@")[0]
             workspace = Workspace(
                 id=str(uuid.uuid4()),
-                name=f"{given}'s Workspace",
+                name=f"Conta de {given}",
                 owner_id=user.id,
             )
             db.add(workspace)
@@ -530,7 +529,7 @@ async def google_oauth_login(db: AsyncSession, user_info: dict) -> AuthResponse:
         # Edge-case: create workspace if missing
         workspace = Workspace(
             id=str(uuid.uuid4()),
-            name="My Workspace",
+            name="Minha conta",
             owner_id=user.id,
         )
         db.add(workspace)
@@ -551,6 +550,6 @@ async def google_oauth_login(db: AsyncSession, user_info: dict) -> AuthResponse:
 
     return AuthResponse(
         user=UserRead.model_validate(user),
-        workspace=WorkspaceRead.model_validate(workspace),
         tokens=tokens,
+        tenant_id=workspace.id,
     )

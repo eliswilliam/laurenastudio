@@ -1,7 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator
 
 from app.schemas.user import UserRead
-from app.schemas.workspace import WorkspaceRead
 
 
 # ── Request schemas ───────────────────────────────────────────────────────────
@@ -9,7 +8,7 @@ from app.schemas.workspace import WorkspaceRead
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
-    workspace_name: str = "My Workspace"
+    account_name: str = "Minha conta"
 
     @field_validator("password")
     @classmethod
@@ -56,8 +55,8 @@ class TokenResponse(BaseModel):
 
 class AuthResponse(BaseModel):
     user: UserRead
-    workspace: WorkspaceRead
     tokens: TokenResponse
+    tenant_id: str
 
 
 class ForgotPasswordResponse(BaseModel):

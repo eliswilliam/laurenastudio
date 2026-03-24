@@ -1,13 +1,33 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Send, Loader2, Wand2, Download, ExternalLink, Rocket, History } from 'lucide-react';
+import {
+  Send,
+  Loader2,
+  Wand2,
+  Download,
+  ExternalLink,
+  Rocket,
+  History,
+  Sparkles,
+  LayoutTemplate,
+  Globe,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import api, { getJobStatus } from '@/lib/api';
 import { type JobStatus, type Mensagem, MENSAGEM_ABERTURA_TEXTO } from '@/lib/criarSiteChat';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useCriarSiteJobStore, type SiteResult } from '@/store/useCriarSiteJobStore';
+import { useCriarSiteJobStore } from '@/store/useCriarSiteJobStore';
 import { getPublishConfig, getPublishJobStatus, postPublish } from '@/lib/publishApi';
 import {
   fetchSiteProjectsList,
@@ -45,6 +65,8 @@ const PLACEHOLDER_PROMPT =
   'Descreva o site que imagina: sector, páginas, público, estética, referências…';
 const LABEL_SUGESTOES = 'Ideias para começar';
 const TITULO_PAGINA = 'Crie o seu site';
+const SUBTITULO_FLUXO =
+  'Converse com a Laurena para o briefing → Gerar site → pré-visualizar → ajustar na conversa e gerar de novo → Publicar.';
 const BOTAO_GERAR = 'Gerar site';
 const BOTAO_PUBLICAR = 'Publicar';
 const DICA_TECLADO = 'Enter envia · Shift+Enter nova linha';
@@ -86,6 +108,32 @@ function stripInfraFromBotText(text: string): string {
     .trim();
 }
 
+/** Un seul panneau chat (mobile Tabs vs colonne desktop) pour éviter un double fil de messages. */
+function useIsWideLg() {
+  const [wide, setWide] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    if (typeof window.matchMedia === 'function') {
+      return window.matchMedia('(min-width: 1024px)').matches;
+    }
+    return window.innerWidth >= 1024;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (typeof window.matchMedia === 'function') {
+      const mq = window.matchMedia('(min-width: 1024px)');
+      const on = () => setWide(mq.matches);
+      on();
+      mq.addEventListener('change', on);
+      return () => mq.removeEventListener('change', on);
+    }
+    const onResize = () => setWide(window.innerWidth >= 1024);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return wide;
+}
+
 export default function CriarSite() {
   const usuario = useAuthStore((s) => s.usuario);
   const generateJobId = useCriarSiteJobStore((s) => s.generateJobId);
@@ -116,6 +164,7 @@ export default function CriarSite() {
   const [generateJob, setGenerateJob] = useState<JobStatus | null>(null);
   const [publishJob, setPublishJob] = useState<JobStatus | null>(null);
   const fim = useRef<HTMLDivElement>(null);
+  const fimMobile = useRef<HTMLDivElement>(null);
 
   const [projects, setProjects] = useState<SiteProjectSummary[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
@@ -123,6 +172,9 @@ export default function CriarSite() {
   const [pollProjectId, setPollProjectId] = useState<string | null>(null);
   /** Pré-visualização + «Abrir no separador» só após gerar o site nesta sessão; oculto ao abrir o histórico. */
   const [showPreviewChrome, setShowPreviewChrome] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'chat' | 'preview'>('chat');
+  const isWideLg = useIsWideLg();
 
   const refreshProjects = useCallback(async () => {
     setProjectsLoading(true);
@@ -264,11 +316,45 @@ export default function CriarSite() {
   const iniciarNovoSite = () => {
     setPollProjectId(null);
     setShowPreviewChrome(false);
+    setMobileTab('chat');
     resetAll();
   };
 
   const nUser = lista.filter((m) => m.papel === 'user').length;
   const emConversa = nUser > 0;
+
+  const filteredProjects = useMemo(
+    () => projects.filter((p) => p.name !== EXCLUDE_FROM_PROJECT_HISTORY_NAME),
+    [projects]
+  );
+
+  const messageNodes = useMemo(
+    () =>
+      lista.map((m) => (
+        <div key={m.id}>
+          {m.papel === 'bot' ? (
+            <div className="max-w-[95%] md:max-w-2xl">
+              <p className="whitespace-pre-wrap text-[15px] sm:text-base leading-[1.65] text-foreground">
+                {stripInfraFromBotText(m.texto)}
+              </p>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <div
+                className={cn(
+                  'max-w-[min(100%,32rem)] rounded-2xl px-4 py-3',
+                  'bg-muted/80 dark:bg-muted/50 text-foreground',
+                  'text-[15px] sm:text-base leading-relaxed'
+                )}
+              >
+                <p className="whitespace-pre-wrap">{m.texto}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )),
+    [lista]
+  );
 
   /** URL absoluta para iframe / links (proxy Vite em dev). */
   const previewAbsUrl = useMemo(() => {
@@ -279,8 +365,12 @@ export default function CriarSite() {
   }, [siteResult?.previewUrl]);
 
   useEffect(() => {
-    fim.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [lista, aEnviar, aGerar, aPublicar]);
+    if (isWideLg) {
+      fim.current?.scrollIntoView({ behavior: 'smooth' });
+    } else if (mobileTab === 'chat') {
+      fimMobile.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [lista, aEnviar, aGerar, aPublicar, mobileTab, isWideLg]);
 
   useEffect(() => {
     getPublishConfig()
@@ -555,66 +645,111 @@ export default function CriarSite() {
   return (
     <div
       className={cn(
-        'animate-fade-in w-full max-w-6xl mx-auto flex flex-col md:flex-row gap-4 md:gap-6',
-        'min-h-[calc(100dvh-8.5rem)] md:min-h-[calc(100dvh-7rem)]'
+        'animate-fade-in w-full max-w-7xl mx-auto flex flex-col px-3 sm:px-4',
+        'min-h-[calc(100dvh-8.5rem)] md:min-h-[calc(100dvh-7rem)]',
+        emConversa && !isWideLg && 'pb-[5.75rem]'
       )}
     >
-      <aside className="w-full md:w-56 shrink-0 flex flex-col gap-2 border-b md:border-b-0 md:border-r border-border/60 pb-3 md:pb-0 md:pr-4">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <History className="w-4 h-4 shrink-0" />
-          <span className="text-xs font-medium uppercase tracking-wide">Histórico (conta)</span>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full justify-start rounded-xl text-xs h-9"
-          onClick={iniciarNovoSite}
-        >
-          + Novo site
-        </Button>
-        <div className="flex-1 min-h-[120px] max-h-[40vh] md:max-h-[min(70vh,calc(100dvh-14rem))] overflow-y-auto space-y-1 pr-1">
-          {projectsLoading ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              A carregar…
-            </div>
-          ) : projects.filter((p) => p.name !== EXCLUDE_FROM_PROJECT_HISTORY_NAME).length === 0 ? (
-            <p className="text-[11px] text-muted-foreground leading-snug">
-              Os projetos aparecem aqui após a primeira mensagem. O mesmo estado fica na sua conta em qualquer
-              dispositivo.
+      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between shrink-0 py-3 border-b border-border/50">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-semibold tracking-tight">{TITULO_PAGINA}</h1>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 max-w-3xl leading-snug">
+              {SUBTITULO_FLUXO}
             </p>
-          ) : (
-            projects
-              .filter((p) => p.name !== EXCLUDE_FROM_PROJECT_HISTORY_NAME)
-              .map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => void openProjectFromBackend(p.id)}
-                className={cn(
-                  'w-full text-left rounded-lg px-2.5 py-2 text-xs transition-colors',
-                  'hover:bg-muted/80 border border-transparent',
-                  projectId === p.id && 'bg-muted/60 border-border/80'
-                )}
-              >
-                <span className="font-medium line-clamp-2 text-foreground">{p.name}</span>
-                <span className="block text-[10px] text-muted-foreground mt-0.5">
-                  {new Date(p.created_at).toLocaleString(undefined, {
-                    dateStyle: 'short',
-                    timeStyle: 'short',
-                  })}
-                  {p.has_site ? ' · com site' : ''}
-                </span>
-              </button>
-            ))
-          )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <SheetTrigger asChild>
+              <Button type="button" variant="outline" size="sm" className="gap-1.5">
+                <History className="w-4 h-4" />
+                Histórico
+              </Button>
+            </SheetTrigger>
+            <Button type="button" variant="ghost" size="sm" onClick={iniciarNovoSite}>
+              Novo site
+            </Button>
+          </div>
         </div>
-      </aside>
+        <SheetContent side="left" className="w-[min(100vw,420px)] flex flex-col gap-3">
+          <SheetHeader>
+            <SheetTitle>Histórico de projetos</SheetTitle>
+            <SheetDescription>Abra um projeto guardado na sua conta.</SheetDescription>
+          </SheetHeader>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              iniciarNovoSite();
+              setHistoryOpen(false);
+            }}
+          >
+            + Novo site
+          </Button>
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-1 pr-1">
+            {projectsLoading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                A carregar…
+              </div>
+            ) : filteredProjects.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                Os projetos aparecem aqui após a primeira mensagem.
+              </p>
+            ) : (
+              filteredProjects.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    void openProjectFromBackend(p.id);
+                    setHistoryOpen(false);
+                  }}
+                  className={cn(
+                    'w-full text-left rounded-lg px-2.5 py-2 text-xs transition-colors',
+                    'hover:bg-muted/80 border border-transparent',
+                    projectId === p.id && 'bg-muted/60 border-border/80'
+                  )}
+                >
+                  <span className="font-medium line-clamp-2 text-foreground">{p.name}</span>
+                  <span className="block text-[10px] text-muted-foreground mt-0.5">
+                    {new Date(p.created_at).toLocaleString(undefined, {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    })}
+                    {p.has_site ? ' · com site' : ''}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <nav
+        className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground overflow-x-auto py-2.5 shrink-0 border-b border-border/30"
+        aria-label="Fluxo do criador de sites"
+      >
+        <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
+          <Sparkles className="w-3.5 h-3.5" /> Briefing (IA)
+        </span>
+        <span aria-hidden>→</span>
+        <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
+          <Wand2 className="w-3.5 h-3.5" /> Gerar
+        </span>
+        <span aria-hidden>→</span>
+        <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
+          <LayoutTemplate className="w-3.5 h-3.5" /> Pré-visualizar
+        </span>
+        <span aria-hidden>→</span>
+        <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
+          <Globe className="w-3.5 h-3.5" /> Publicar
+        </span>
+      </nav>
 
       <div
         className={cn(
-          'flex flex-col flex-1 min-w-0 max-w-[42rem] w-full mx-auto relative',
+          'flex flex-col flex-1 min-w-0 w-full relative lg:grid lg:grid-cols-2 lg:gap-4 lg:items-stretch lg:min-h-0',
           sessionLoading && 'opacity-55 pointer-events-none'
         )}
       >
@@ -623,21 +758,11 @@ export default function CriarSite() {
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       )}
-      {emConversa && (
-        <header className="flex flex-wrap items-center justify-between gap-2 gap-y-3 shrink-0 pb-3 md:pb-4">
-          <h1 className="text-sm font-medium text-muted-foreground truncate">{TITULO_PAGINA}</h1>
-          <div className="flex items-center gap-2">
-            <Button
-                variant="ghost"
-                size="sm"
-                className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-normal"
-                onClick={iniciarNovoSite}
-              >
-                Novo Site
-              </Button>
-              {siteResult && (
-              <>
-                {showPreviewChrome && previewAbsUrl && (
+      {emConversa && isWideLg && (
+        <div className="lg:col-span-2 flex flex-wrap items-center justify-end gap-2 shrink-0 pb-3 border-b border-border/40 mb-3">
+          {siteResult && (
+            <>
+              {showPreviewChrome && previewAbsUrl && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -649,76 +774,75 @@ export default function CriarSite() {
                     Abrir no separador
                   </a>
                 </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-normal border-border/80"
-                  asChild
-                >
-                  <a href={siteResult.downloadUrl}>
-                    <Download className="w-3.5 h-3.5 opacity-70" />
-                    Download
-                  </a>
-                </Button>
-                <div className="flex flex-col gap-1.5 min-w-0 sm:min-w-[11rem]">
-                  <label htmlFor="publish-slug" className="sr-only">
-                    Subdomínio do site
-                  </label>
-                  <Input
-                    id="publish-slug"
-                    type="text"
-                    inputMode="text"
-                    autoComplete="off"
-                    placeholder="meu-site"
-                    value={publishSlug}
-                    onChange={(e) =>
-                      setPublishSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
-                    }
-                    disabled={aPublicar}
-                    className="h-9 rounded-full text-xs border-border/80 bg-background/90"
-                  />
-                  {slugValid(publishSlug.trim()) && (
-                    <p className="text-[10px] text-muted-foreground truncate px-0.5">
-                      https://{publishSlug.trim().toLowerCase()}.{ROOT_DOMAIN}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-medium"
-                  onClick={publicar}
-                  disabled={aPublicar || !usuario?.id}
-                >
-                  {aPublicar ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Rocket className="w-3.5 h-3.5" />
-                  )}
-                  {BOTAO_PUBLICAR}
-                </Button>
-              </>
-            )}
-            <Button
-              variant={siteResult ? 'ghost' : 'default'}
-              size="sm"
-              className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-medium"
-              onClick={gerarSite}
-              disabled={aGerar || aPublicar || !projectId}
-            >
-              {aGerar ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Wand2 className="w-3.5 h-3.5" />
               )}
-              {BOTAO_GERAR}
-            </Button>
-          </div>
-        </header>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-normal border-border/80"
+                asChild
+              >
+                <a href={siteResult.downloadUrl}>
+                  <Download className="w-3.5 h-3.5 opacity-70" />
+                  Download
+                </a>
+              </Button>
+              <div className="flex flex-col gap-1.5 min-w-0 sm:min-w-[11rem]">
+                <label htmlFor="publish-slug" className="sr-only">
+                  Subdomínio do site
+                </label>
+                <Input
+                  id="publish-slug"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="off"
+                  placeholder="meu-site"
+                  value={publishSlug}
+                  onChange={(e) =>
+                    setPublishSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
+                  }
+                  disabled={aPublicar}
+                  className="h-9 rounded-full text-xs border-border/80 bg-background/90"
+                />
+                {slugValid(publishSlug.trim()) && (
+                  <p className="text-[10px] text-muted-foreground truncate px-0.5">
+                    https://{publishSlug.trim().toLowerCase()}.{ROOT_DOMAIN}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-medium"
+                onClick={publicar}
+                disabled={aPublicar || !usuario?.id}
+              >
+                {aPublicar ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Rocket className="w-3.5 h-3.5" />
+                )}
+                {BOTAO_PUBLICAR}
+              </Button>
+            </>
+          )}
+          <Button
+            variant={siteResult ? 'ghost' : 'default'}
+            size="sm"
+            className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-medium"
+            onClick={gerarSite}
+            disabled={aGerar || aPublicar || !projectId}
+          >
+            {aGerar ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Wand2 className="w-3.5 h-3.5" />
+            )}
+            {BOTAO_GERAR}
+          </Button>
+        </div>
       )}
 
-      <div className={cn('flex-1 flex flex-col min-h-0', !emConversa && 'justify-center')}>
+      <div className={cn('flex-1 flex flex-col min-h-0 lg:col-span-1', !emConversa && 'justify-center lg:col-span-2')}>
         {((generateJob?.logs?.length ?? 0) > 0 || (publishJob?.logs?.length ?? 0) > 0) && emConversa && (
           <div className="mb-3 shrink-0 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 max-h-32 overflow-y-auto text-[11px] font-mono text-muted-foreground space-y-0.5">
             {(generateJob?.logs ?? []).map((l, i) => (
@@ -746,32 +870,10 @@ export default function CriarSite() {
           </div>
         )}
 
-        {siteResult && previewAbsUrl && emConversa && showPreviewChrome && (
-          <div className="mb-4 shrink-0 rounded-xl border bg-muted/30 overflow-hidden">
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/80">
-              Pré-visualização (HTML + CSS como no navegador)
-            </p>
-            <iframe
-              title="Pré-visualização do site gerado"
-              src={previewAbsUrl}
-              className="w-full min-h-[320px] md:min-h-[420px] bg-white"
-              sandbox="allow-scripts allow-same-origin allow-forms"
-            />
-          </div>
-        )}
-
         {!emConversa ? (
           <div className="flex flex-col items-center justify-center px-3 sm:px-6 py-6 md:py-10">
             <div className="w-full max-w-xl text-center space-y-4 md:space-y-5 mb-8 md:mb-10">
-              <h2
-                className={cn(
-                  'text-[1.65rem] sm:text-3xl md:text-4xl font-medium tracking-tight',
-                  'text-foreground leading-[1.2]'
-                )}
-              >
-                {TITULO_PAGINA}
-              </h2>
-              <p className="text-muted-foreground text-[15px] sm:text-base leading-relaxed text-balance">
+              <p className="text-muted-foreground text-[15px] sm:text-base md:text-lg leading-relaxed text-balance">
                 {MENSAGEM_ABERTURA_TEXTO}
               </p>
             </div>
@@ -803,36 +905,14 @@ export default function CriarSite() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : isWideLg ? (
           <div
             className={cn(
-              'flex-1 overflow-y-auto min-h-0 pr-1 -mr-1 space-y-6 md:space-y-8',
+              'flex flex-1 flex-col overflow-y-auto min-h-0 pr-1 -mr-1 space-y-6 md:space-y-8',
               'pb-4'
             )}
           >
-            {lista.map((m) => (
-              <div key={m.id}>
-                {m.papel === 'bot' ? (
-                  <div className="max-w-[95%] md:max-w-2xl">
-                    <p className="whitespace-pre-wrap text-[15px] sm:text-base leading-[1.65] text-foreground">
-                      {stripInfraFromBotText(m.texto)}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex justify-end">
-                    <div
-                      className={cn(
-                        'max-w-[min(100%,32rem)] rounded-2xl px-4 py-3',
-                        'bg-muted/80 dark:bg-muted/50 text-foreground',
-                        'text-[15px] sm:text-base leading-relaxed'
-                      )}
-                    >
-                      <p className="whitespace-pre-wrap">{m.texto}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+            {messageNodes}
             {(aEnviar || aGerar || aPublicar) && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
@@ -845,63 +925,184 @@ export default function CriarSite() {
             )}
             <div ref={fim} className="h-px" />
           </div>
+        ) : (
+          <Tabs
+            value={mobileTab}
+            onValueChange={(v) => setMobileTab(v as 'chat' | 'preview')}
+            className="flex flex-1 flex-col min-h-0 min-w-0 -mx-0.5"
+          >
+            <TabsList className="grid w-full grid-cols-2 shrink-0 mb-2 h-9">
+              <TabsTrigger value="chat" className="text-xs">
+                Conversa
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="text-xs">
+                Pré-visualização
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent
+              value="chat"
+              className="flex-1 overflow-y-auto min-h-0 mt-0 data-[state=inactive]:hidden flex flex-col"
+            >
+              <div className="space-y-6 md:space-y-8 pr-1 -mr-1 pb-4 flex-1">
+                {messageNodes}
+                {(aEnviar || aGerar || aPublicar) && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
+                    {aPublicar
+                      ? 'A publicar em segundo plano. Pode fechar esta página — o progresso continua.'
+                      : aGerar
+                        ? 'A gerar o site em segundo plano. Pode fechar esta página — o progresso continua.'
+                        : LOADING_TEXTO}
+                  </div>
+                )}
+                <div ref={fimMobile} className="h-px" />
+              </div>
+            </TabsContent>
+            <TabsContent
+              value="preview"
+              className="flex-1 min-h-[min(60dvh,520px)] mt-0 flex flex-col data-[state=inactive]:hidden"
+            >
+              {siteResult && previewAbsUrl && showPreviewChrome ? (
+                <div className="flex flex-col flex-1 min-h-0 rounded-xl border bg-muted/30 overflow-hidden">
+                  <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/80 shrink-0">
+                    Pré-visualização (HTML + CSS como no navegador)
+                  </p>
+                  <iframe
+                    title="Pré-visualização do site gerado"
+                    src={previewAbsUrl}
+                    className="w-full flex-1 min-h-[280px] bg-white"
+                    sandbox="allow-scripts allow-same-origin allow-forms"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center text-sm text-muted-foreground min-h-[200px]">
+                  Gere o site para ver a pré-visualização aqui.
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         )}
+
+        {erro && (
+          <div className="mx-auto mb-2 max-w-md rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive text-center">
+            {erro}
+          </div>
+        )}
+
+        <div className="shrink-0 pt-3 md:pt-4 pb-1 bg-gradient-to-t from-background via-background to-transparent">
+          <div
+            className={cn(
+              'flex items-end gap-2 rounded-[1.35rem] border border-border/60',
+              'bg-muted/25 dark:bg-muted/15 shadow-sm',
+              'px-3 py-2.5 md:px-4 md:py-3',
+              'transition-shadow duration-200',
+              'focus-within:border-border focus-within:shadow-md focus-within:bg-muted/35 dark:focus-within:bg-muted/20'
+            )}
+          >
+            <Textarea
+              value={rascunho}
+              onChange={(e) => setRascunho(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  enviar();
+                }
+              }}
+              placeholder={PLACEHOLDER_PROMPT}
+              rows={1}
+              disabled={aEnviar || aGerar || aPublicar}
+              aria-label="Prompt para descrever o site"
+              className={cn(
+                'min-h-[44px] max-h-[200px] resize-none flex-1 border-0 bg-transparent p-1.5 md:p-2',
+                'text-[15px] leading-relaxed shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+                'placeholder:text-muted-foreground/55'
+              )}
+            />
+            <Button
+              type="button"
+              size="icon"
+              disabled={aEnviar || aGerar || aPublicar || !rascunho.trim()}
+              onClick={enviar}
+              aria-label="Enviar mensagem"
+              className={cn(
+                'shrink-0 h-9 w-9 rounded-full mb-0.5',
+                'bg-primary text-primary-foreground hover:bg-primary/90',
+                'disabled:opacity-40'
+              )}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-center text-[11px] text-muted-foreground/80 mt-2.5 px-2">
+            {DICA_TECLADO}
+          </p>
+        </div>
       </div>
 
-      {erro && (
-        <div className="mx-auto mb-2 max-w-md rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive text-center">
-          {erro}
+      {emConversa && isWideLg && (
+        <div className="flex flex-col min-h-0 min-w-0 rounded-xl border bg-muted/30 overflow-hidden">
+          <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/80 shrink-0">
+            Pré-visualização (HTML + CSS como no navegador)
+          </p>
+          {siteResult && previewAbsUrl && showPreviewChrome ? (
+            <iframe
+              title="Pré-visualização do site gerado"
+              src={previewAbsUrl}
+              className="w-full flex-1 min-h-0 bg-white"
+              sandbox="allow-scripts allow-same-origin allow-forms"
+            />
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground min-h-[200px]">
+              Gere o site para ver a pré-visualização aqui.
+            </div>
+          )}
         </div>
       )}
 
-      <div className="shrink-0 pt-3 md:pt-4 pb-1 bg-gradient-to-t from-background via-background to-transparent">
-        <div
-          className={cn(
-            'flex items-end gap-2 rounded-[1.35rem] border border-border/60',
-            'bg-muted/25 dark:bg-muted/15 shadow-sm',
-            'px-3 py-2.5 md:px-4 md:py-3',
-            'transition-shadow duration-200',
-            'focus-within:border-border focus-within:shadow-md focus-within:bg-muted/35 dark:focus-within:bg-muted/20'
-          )}
-        >
-          <Textarea
-            value={rascunho}
-            onChange={(e) => setRascunho(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                enviar();
-              }
-            }}
-            placeholder={PLACEHOLDER_PROMPT}
-            rows={1}
-            disabled={aEnviar || aGerar || aPublicar}
-            aria-label="Prompt para descrever o site"
-            className={cn(
-              'min-h-[44px] max-h-[200px] resize-none flex-1 border-0 bg-transparent p-1.5 md:p-2',
-              'text-[15px] leading-relaxed shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
-              'placeholder:text-muted-foreground/55'
+      {emConversa && !isWideLg && (
+        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/60 bg-background/95 backdrop-blur-md px-3 py-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-end gap-2">
+            {siteResult && (
+              <>
+                {showPreviewChrome && previewAbsUrl && (
+                  <Button variant="outline" size="sm" className="rounded-full h-9 text-xs shrink-0" asChild>
+                    <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                      Abrir
+                    </a>
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="rounded-full h-9 text-xs shrink-0" asChild>
+                  <a href={siteResult.downloadUrl}>
+                    <Download className="w-3.5 h-3.5 opacity-70" />
+                    ZIP
+                  </a>
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="rounded-full h-9 text-xs shrink-0"
+                  onClick={publicar}
+                  disabled={aPublicar || !usuario?.id}
+                >
+                  {aPublicar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
+                  {BOTAO_PUBLICAR}
+                </Button>
+              </>
             )}
-          />
-          <Button
-            type="button"
-            size="icon"
-            disabled={aEnviar || aGerar || aPublicar || !rascunho.trim()}
-            onClick={enviar}
-            aria-label="Enviar mensagem"
-            className={cn(
-              'shrink-0 h-9 w-9 rounded-full mb-0.5',
-              'bg-primary text-primary-foreground hover:bg-primary/90',
-              'disabled:opacity-40'
-            )}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+            <Button
+              variant={siteResult ? 'outline' : 'default'}
+              size="sm"
+              className="rounded-full h-9 text-xs font-medium shrink-0"
+              onClick={gerarSite}
+              disabled={aGerar || aPublicar || !projectId}
+            >
+              {aGerar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+              {BOTAO_GERAR}
+            </Button>
+          </div>
         </div>
-        <p className="text-center text-[11px] text-muted-foreground/80 mt-2.5 px-2">
-          {DICA_TECLADO}
-        </p>
-      </div>
+      )}
       </div>
     </div>
   );

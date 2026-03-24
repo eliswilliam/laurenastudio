@@ -21,7 +21,6 @@ class PlanRead(BaseModel):
     video_limit: int
     social_limit: int
     post_limit: int
-    workspace_limit: int
 
 
 # ── Subscription ──────────────────────────────────────────────────────────────

@@ -15,7 +15,11 @@ from app.db.worker_db import WorkerSessionLocal
 from app.models.site_project import GeneratedSite, SiteProject
 from app.core.config import settings
 from app.services.job_service import append_log, get_job, mark_failed, mark_running, mark_success
-from app.services.site_ai_service import GeminiGenerationError, generate_site_structure
+from app.services.site_ai_service import (
+    GeminiGenerationError,
+    build_site_generation_brief_from_prompts,
+    generate_site_structure,
+)
 from app.services.pexels_service import enrich_site_structure_with_pexels
 from app.services.site_framework_adapter import normalize_site_structure
 from app.services.site_generator import generate_html, save_site
@@ -58,7 +62,8 @@ async def _arq_generate_site_impl(job_id: str) -> None:
             await db.commit()
             raise RuntimeError("Projeto não encontrado.")
 
-        user_messages = [p.content for p in project.prompts if p.role == "user"]
+        plist = list(project.prompts)
+        user_messages = [p.content for p in plist if p.role == "user"]
         if not user_messages:
             await append_log(db, jid, "Erro: nenhuma mensagem do utilizador no briefing.")
             project.status = "error"
@@ -66,7 +71,7 @@ async def _arq_generate_site_impl(job_id: str) -> None:
             await db.commit()
             raise RuntimeError("Nenhuma descrição encontrada.")
 
-        brief = "\n\n".join(user_messages)
+        brief = build_site_generation_brief_from_prompts(plist)
         project.user_prompt = brief
         project.status = "generating"
         await db.flush()

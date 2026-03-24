@@ -36,7 +36,11 @@ from app.schemas.site import (
 )
 from app.schemas.job import BackgroundJobResponse
 from app.core.config import settings
-from app.services.site_ai_service import GeminiGenerationError, generate_chat_reply
+from app.services.site_ai_service import (
+    GeminiGenerationError,
+    build_site_generation_brief_from_prompts,
+    generate_chat_reply,
+)
 from app.services.site_generator import create_zip
 from app.services.job_service import create_job, get_job
 from app.services.arq_enqueue import enqueue_generate_job
@@ -131,11 +135,11 @@ async def generate_site(
     if not project:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Projeto não encontrado.")
 
-    user_messages = [p.content for p in project.prompts if p.role == "user"]
-    if not user_messages:
+    plist = list(project.prompts)
+    if not any(p.role == "user" for p in plist):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Nenhuma descrição encontrada. Envie mensagens primeiro.")
 
-    brief = "\n\n".join(user_messages)
+    brief = build_site_generation_brief_from_prompts(plist)
     project.user_prompt = brief
 
     project.status = "generating"

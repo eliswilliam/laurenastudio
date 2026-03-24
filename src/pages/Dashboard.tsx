@@ -43,7 +43,6 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { PLAN_DISPLAY_NAMES } from '@/data/planos';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -79,19 +78,18 @@ function formatDate(iso: string | null | undefined): string {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { usuario, planoNome, billingStatus, fetchBillingStatus } = useAuthStore();
-  const { workspaces, workspaceLimit, fetchWorkspaces } = useWorkspaceStore();
   const [loading, setLoading] = useState(!billingStatus);
   const [refreshing, setRefreshing] = useState(false);
 
   // Always fetch fresh billing data on mount (critical after Stripe redirect)
   useEffect(() => {
-    Promise.all([fetchBillingStatus(), fetchWorkspaces()]).finally(() => setLoading(false));
+    fetchBillingStatus().finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchBillingStatus(), fetchWorkspaces()]);
+    await fetchBillingStatus();
     setRefreshing(false);
   };
 
@@ -220,9 +218,6 @@ export default function Dashboard() {
             )}
             <p className="text-xs text-muted-foreground">
               Próxima cobrança: {formatDate(sub?.current_period_end)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Workspaces: {workspaces.length}/{workspaceLimit === 0 ? '∞' : workspaceLimit}
             </p>
           </CardContent>
         </Card>

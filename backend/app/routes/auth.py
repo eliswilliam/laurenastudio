@@ -81,8 +81,8 @@ async def get_current_user(
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
     description=(
-        "Creates a user account, generates a default workspace, "
-        "assigns the admin role, and returns JWT tokens."
+        "Creates a user account, sets up the tenant record for billing "
+        "and usage, assigns the admin role, and returns JWT tokens."
     ),
 )
 async def register(

@@ -3,7 +3,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.services.site_template_render._utils import font_query_name, google_fonts_link, jinja_env
+from app.services.site_template_render._utils import (
+    coerce_mapping_list,
+    font_query_name,
+    google_fonts_link,
+    jinja_env,
+)
 
 _TEMPLATE = jinja_env.from_string(
     """<!DOCTYPE html>
@@ -99,7 +104,11 @@ footer a{color:var(--gold_light)}
       <p class="hero-sub">{{ s.subtitulo|e }}</p>
       <div class="hero-actions">
         {% for b in s.botoes or [] %}
+        {% if b is mapping %}
+        <a class="btn {% if b.primario or b.primary or loop.first %}btn-primary{% else %}btn-outline{% endif %}" href="{{ (b.href or b.url or '#busca')|e }}">{{ (b.label or b.texto or '')|e }}</a>
+        {% else %}
         <a class="btn {% if loop.first %}btn-primary{% else %}btn-outline{% endif %}" href="#busca">{{ b|e }}</a>
+        {% endif %}
         {% endfor %}
       </div>
       {% if s.badge %}
@@ -289,11 +298,23 @@ _DEFAULT_HOTEL_PAL: dict[str, str] = {
 }
 
 
+def _normalize_hotel_secoes(secoes: list[Any]) -> None:
+    for sec in secoes:
+        if not isinstance(sec, dict):
+            continue
+        for key in ("botoes", "boutons", "stats"):
+            if isinstance(sec.get(key), list):
+                coerce_mapping_list(sec[key])
+        if sec.get("tipo") == "navegacao" and isinstance(sec.get("links"), list):
+            coerce_mapping_list(sec["links"])
+
+
 def render_hotel(site: dict[str, Any]) -> str:
     design = site.get("design") or {}
     paleta = {**_DEFAULT_HOTEL_PAL, **(design.get("paleta") or {})}
     tip = design.get("tipografia") or {}
     secoes = site.get("secoes") or []
+    _normalize_hotel_secoes(secoes)
     nav_sec = next((s for s in secoes if s.get("tipo") == "navegacao"), None)
     nav_hrefs = _nav_hrefs(secoes)
     nav: dict[str, Any] | None = None

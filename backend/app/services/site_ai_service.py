@@ -21,6 +21,34 @@ _GEMINI_SITE_STRUCTURE = settings.GEMINI_SITE_GENERATION_MODEL
 
 logger = logging.getLogger(__name__)
 
+
+def build_site_generation_brief_from_prompts(prompts: list[Any]) -> str:
+    """
+    Brief envoyé au modèle de structure (Gemini « site ») : conversation complète.
+    Avant : seuls les messages user étaient concaténés — les précisions convenues avec
+    Laurena (assistant) étaient perdues, donc les itérations « améliore le hero » ne
+    pouvaient pas être appliquées correctement.
+    """
+    if not prompts:
+        return ""
+    ordered = sorted(prompts, key=lambda p: p.created_at)
+    chunks: list[str] = []
+    for p in ordered:
+        if getattr(p, "role", None) not in ("user", "assistant"):
+            continue
+        who = "User" if p.role == "user" else "Assistant (Laurena)"
+        chunks.append(f"{who}:\n{str(p.content).strip()}")
+    if not chunks:
+        return ""
+    return (
+        "SITE GENERATION BRIEF — Full conversation. The JSON site generator MUST honor "
+        "the latest User messages for changes and corrections. Lines labeled Assistant (Laurena) "
+        "are agreed refinements, tone, and structure notes from the chat phase — treat them "
+        "as binding constraints together with User messages.\n\n"
+        + "\n\n---\n\n".join(chunks)
+    )
+
+
 # Filtros de segurança ativos (substitui OFF). Equilíbrio entre proteção e falsos positivos.
 _GEMINI_SAFETY_THRESHOLD = types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
 
@@ -145,7 +173,8 @@ def _collect_stream_text(
 
 
 SITE_SYSTEM_PROMPT = """\
-You are an expert web designer. The user describes a one-page static site.
+You are an expert web designer. The user input is a **full chat transcript** (User + Assistant).
+Apply the latest User requests for edits; Assistant (Laurena) lines are agreed refinements.
 You MUST reply with a single JSON object (no markdown fences, no extra text).
 
 ## Output shape (always)
@@ -191,8 +220,10 @@ Top-level: id, nome, tipo, idioma, arquivo, design, secoes[], optional modal_res
 - **design.tipografia**: display, corpo, mono (optional).
 - **secoes[]** **tipo**:
   - **banner_animado**: mensagens[] (ticker)
-  - **navegacao**: logo, categorias[], features[] (hints)
-  - **hero**: label_colecao, titulo, subtitulo, botoes[], stats[] { valor, label }, imagem (optional)
+  - **navegacao**: logo, categorias[] (strings OR { "label", "href"/"url" }), features[] (hints)
+  - **hero**: label_colecao (optional **label**), titulo, subtitulo, **botoes** as strings OR objects
+    `{ "label", "href" or "url", "primario" or "primary" (boolean) }`, **stats** as `{ "valor" or "value", "label" }`,
+    imagem (optional)
   - **barra_filtros**: filtros[], ordenacao[]
   - **grid_produtos**: colunas (optional), produtos[] { nome, marca, badge, preco, preco_original?, desconto_pct?, moeda, categorias[], cores[], imagem }
   - **banner_promocional**: tag, titulo, subtitulo, countdown (bool), duracao_horas, imagem
@@ -219,6 +250,7 @@ Top-level: id, nome, tipo, idioma, arquivo, design, secoes[], optional modal_res
 ---
 
 ## Global rules
+- For ecommerce/portfolio **buttons and nav links**: use JSON **objects** `{ "label": "...", "href": "#id" }` when you need custom anchors — never output Python-style repr text; the renderer maps **primario** / **primary** for button style.
 - ONE static index page; internal navigation uses **#section-id** matching each section **id** (same page).
 - **Colours & fonts**: fill **paleta** / **palette** and **tipografia** / **typographie** from the user's brief (mood, sector, named colours). Do not invent random unrelated palettes.
 - **Images**: you MAY use temporary https://images.unsplash.com/... URLs OR leave **imagem** empty; the pipeline replaces them with **Pexels** using **photo_search_query** when present.
@@ -304,22 +336,20 @@ def _sync_chat_reply(messages: list[dict], latest_user: str) -> str:
     client = _get_client()
 
     system_text = (
-        "You are Laurena, the site-building assistant inside Laurena Studio. "
+        "You are Laurena (Gemini chat / brief refinement), inside Laurena Studio. "
+        "Another model generates the actual HTML when the user clicks « Gerar site ». "
         "CRITICAL PRODUCT FACTS (never contradict): "
-        "The user can click the button « Gerar site » (or “Gerar site”) in the app. "
-        "That action generates a REAL multi-section static website: one HTML file with "
-        "embedded CSS (responsive) and light JavaScript (e.g. contact form). "
-        "They get a browser preview and a ZIP download. "
-        "You do NOT output full HTML in chat. You help refine the brief in natural language. "
-        "NEVER say you cannot build a website, never say sites are only imaginary or that you "
-        "only describe without producing something real—generation is done by the app. "
-        "BEHAVIOUR: Prefer short answers (2–4 sentences). "
-        "Do NOT ask one clarifying question after another. "
-        "If the user says things like “don’t ask”, “invent it”, “just create”, “no more questions”, "
-        "“go”, “make it”, immediately commit: invent brand name, sections, tone, colours in prose, "
-        "then tell them to click « Gerar site » now to generate the live preview. "
-        "If they ask “where is the site” / “cadê o site”, explain the site is generated when they "
-        "click « Gerar site », then open Preview. "
+        "« Gerar site » builds a REAL multi-section static site (HTML+CSS+JS), preview + ZIP. "
+        "You do NOT output full HTML in chat — you refine the brief in natural language. "
+        "ITERATION: After a preview exists, when the user asks to change colours, sections, copy, or layout, "
+        "acknowledge the change clearly and concretely (what will differ). "
+        "Always remind them to click « Gerar site » again so the generator applies the update — "
+        "chat alone does not change the live preview. "
+        "NEVER say you cannot build a website; the app generates it. "
+        "Prefer short answers (2–5 sentences). Do NOT chain many clarifying questions. "
+        "If the user says “don’t ask”, “just create”, “go”, commit with invented details, "
+        "then tell them to click « Gerar site » for the preview. "
+        "If they ask where the site is, say it appears after « Gerar site », then Preview. "
         "Reply in the SAME language the user writes in."
     )
 

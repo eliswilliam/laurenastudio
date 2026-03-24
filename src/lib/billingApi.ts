@@ -24,7 +24,6 @@ export interface PlanRead {
   video_limit: number;
   social_limit: number;
   post_limit: number;
-  workspace_limit: number;
 }
 
 export interface UsageRead {
@@ -94,7 +93,7 @@ export async function apiListPlans(): Promise<PlanRead[]> {
   return res.data;
 }
 
-/** Get billing status for the current workspace */
+/** Get billing status for the current account */
 export async function apiBillingStatus(): Promise<BillingStatusResponse> {
   const res = await api.get<BillingStatusResponse>('/billing/status');
   return res.data;
@@ -129,31 +128,6 @@ export interface CurrentSubscriptionResponse {
 
 export async function apiCurrentSubscription(): Promise<CurrentSubscriptionResponse> {
   const res = await api.get<CurrentSubscriptionResponse>('/billing/current-subscription');
-  return res.data;
-}
-
-// ── Workspace API ──────────────────────────────────────────────────────────
-
-export interface WorkspaceReadApi {
-  id: string;
-  name: string;
-  owner_id: string;
-  created_at: string;
-}
-
-export interface WorkspaceListResponse {
-  workspaces: WorkspaceReadApi[];
-  current_count: number;
-  workspace_limit: number;
-}
-
-export async function apiListWorkspaces(): Promise<WorkspaceListResponse> {
-  const res = await api.get<WorkspaceListResponse>('/workspaces');
-  return res.data;
-}
-
-export async function apiCreateWorkspace(name: string): Promise<WorkspaceReadApi> {
-  const res = await api.post<WorkspaceReadApi>('/workspaces/create', { name });
   return res.data;
 }
 

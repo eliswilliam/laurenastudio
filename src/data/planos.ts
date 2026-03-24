@@ -21,7 +21,7 @@ export const PLANOS: Plano[] = [
     recursos: [
       '100 gerações de texto com IA',
       '50 gerações de imagem',
-      '1 workspace',
+      'Todos os seus projetos num só lugar',
     ],
     restricoes: ['Este plano não inclui geração de vídeo'],
     limites: { postsmes: 50, geracoesIA: 150, membros: 1, armazenamento: '5GB' },
@@ -34,7 +34,7 @@ export const PLANOS: Plano[] = [
     recursos: [
       '300 gerações de texto com IA',
       '100 gerações de imagem',
-      'Até 3 workspaces',
+      'Colaboração para equipas em crescimento',
       'Geração de vídeo com modelo básico',
       'Financial AI: 100 requisições por mês',
       'Suporte básico',
@@ -51,7 +51,7 @@ export const PLANOS: Plano[] = [
     recursos: [
       'Geração de texto ilimitada',
       'Geração de imagem ilimitada',
-      'Workspaces ilimitados',
+      'Equipas e projetos à escala ilimitada',
       'Geração de vídeo: Veo 3 (10 por mês)',
       'Financial AI: requisições ilimitadas',
       'Suporte premium',

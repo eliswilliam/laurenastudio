@@ -3,7 +3,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.services.site_template_render._utils import font_query_name, google_fonts_link, jinja_env
+from app.services.site_template_render._utils import (
+    coerce_mapping_list,
+    font_query_name,
+    google_fonts_link,
+    jinja_env,
+)
 
 _DEFAULT_PAL = {
     "bg": "#0A0A0A",
@@ -36,8 +41,8 @@ a{color:var(--lime);text-decoration:none}
 img{max-width:100%;border-radius:8px;display:block}
 .container{max-width:1200px;margin:0 auto;padding:0 20px}
 .ticker{overflow:hidden;background:var(--lime);color:var(--bg);padding:8px 0;font-weight:700;font-size:.75rem;letter-spacing:.06em}
-.ticker-inner{display:flex;gap:48px;animation:scroll 28s linear infinite;white-space:nowrap}
-@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-inner{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;align-items:center;text-align:center}
+.tick-sep{opacity:.55}
 header{padding:16px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,10,.9);z-index:40}
 .header-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
 .logo{font-family:var(--fd);font-size:1.4rem;font-weight:700;letter-spacing:.08em}
@@ -70,14 +75,13 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
 <body>
 {% if ticker %}
 <div class="ticker"><div class="ticker-inner">
-{% for m in ticker %}<span>{{ m|e }}</span>{% endfor %}
-{% for m in ticker %}<span>{{ m|e }}</span>{% endfor %}
+{% for m in ticker %}<span class="tick-i">{{ m|e }}</span>{% if not loop.last %}<span class="tick-sep" aria-hidden="true"> · </span>{% endif %}{% endfor %}
 </div></div>
 {% endif %}
 <header>
   <div class="container header-row">
     <a href="#top" class="logo">{{ nome|e }}</a>
-    {% if nav_cats %}<nav class="nav-cats">{% for c in nav_cats %}<a href="#produtos">{{ c|e }}</a>{% endfor %}</nav>{% endif %}
+    {% if nav_cats %}<nav class="nav-cats">{% for c in nav_cats %}{% if c is mapping %}<a href="{{ (c.href or c.url or '#produtos')|e }}">{{ (c.label or c.nome or '')|e }}</a>{% else %}<a href="#produtos">{{ c|e }}</a>{% endif %}{% endfor %}</nav>{% endif %}
     <div>
       <button type="button" style="background:var(--surface2);border:1px solid var(--border);color:var(--white);padding:8px 12px;border-radius:6px;cursor:pointer" onclick="document.getElementById('cart').classList.add('open');document.getElementById('ov').classList.add('show')">Carrinho (<span id="cc">0</span>)</button>
     </div>
@@ -89,15 +93,25 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
 {% elif s.tipo == 'hero' %}
 <section class="hero container" id="{{ s.id|e }}">
   <div>
-    {% if s.label_colecao %}<p style="color:var(--lime);font-size:.75rem;margin-bottom:8px">{{ s.label_colecao|e }}</p>{% endif %}
+    {% if s.label_colecao or s.label %}<p style="color:var(--lime);font-size:.75rem;margin-bottom:8px">{{ (s.label_colecao or s.label)|e }}</p>{% endif %}
     <h1>{{ s.titulo|e }}</h1>
-    <p style="color:var(--muted);margin:16px 0">{{ s.subtitulo|e }}</p>
+    <p style="color:var(--muted);margin:16px 0">{{ (s.subtitulo or s.descricao or '')|e }}</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      {% for b in s.botoes or [] %}<a href="#produtos" style="border:1px solid var(--lime);padding:10px 16px;border-radius:6px">{{ b|e }}</a>{% endfor %}
+      {% for b in s.botoes or [] %}
+      {% if b is mapping %}
+      <a href="{{ (b.href or b.url or '#produtos')|e }}" style="padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:600;{% if b.primario or b.primary or b.primaire %}background:var(--lime);color:var(--bg);border:none{% else %}border:1px solid var(--lime);color:var(--lime);background:transparent{% endif %}">{{ (b.label or b.texto or '')|e }}</a>
+      {% else %}
+      <a href="#produtos" style="border:1px solid var(--lime);padding:10px 16px;border-radius:6px;color:var(--lime)">{{ b|e }}</a>
+      {% endif %}
+      {% endfor %}
     </div>
     {% if s.stats %}
-    <div style="display:flex;gap:24px;margin-top:24px;font-size:.85rem">
-      {% for st in s.stats %}<div><strong style="color:var(--lime)">{{ st.valor|e }}</strong><br>{{ st.label|e }}</div>{% endfor %}
+    <div style="display:flex;gap:24px;margin-top:24px;font-size:.85rem;flex-wrap:wrap">
+      {% for st in s.stats or [] %}
+      {% if st is mapping %}
+      <div><strong style="color:var(--lime)">{{ (st.valor or st.value or '')|e }}</strong><br><span style="color:var(--muted)">{{ (st.label or st.legenda or '')|e }}</span></div>
+      {% endif %}
+      {% endfor %}
     </div>
     {% endif %}
   </div>
@@ -115,16 +129,16 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
 <section class="container" id="{{ s.id|e }}">
   <div class="products" id="product-grid">
     {% for p in s.produtos or [] %}
-    <article class="product" data-cat="{{ (p.categorias or [])|join(',')|e }}">
+    <article class="product" data-cat="{{ ((p.categorias or [])|join(',') or (p.categoria or ''))|e }}">
       {% if p.badge %}<span class="badge-pos">{{ p.badge|e }}</span>{% endif %}
-      {% if p.imagem %}<img src="{{ p.imagem|e }}" alt="{{ p.nome|e }}" height="260" style="object-fit:cover;width:100%">{% endif %}
+      {% if p.imagem %}<img src="{{ p.imagem|e }}" alt="{{ (p.nome or p.titulo)|e }}" height="260" style="object-fit:cover;width:100%">{% endif %}
       <div class="meta">
-        <small style="opacity:.6">{{ p.marca|e }}</small>
-        <h3 style="font-size:1rem;margin:4px 0">{{ p.nome|e }}</h3>
+        <small style="opacity:.6">{{ (p.marca or p.categoria or p.tipo or '')|e }}</small>
+        <h3 style="font-size:1rem;margin:4px 0">{{ (p.nome or p.titulo)|e }}</h3>
         <p class="price">R$ {{ p.preco }}
         {% if p.preco_original %}<s style="opacity:.5;font-size:.85rem">R$ {{ p.preco_original }}</s>{% endif %}
         </p>
-        <button type="button" class="btn add-cart" data-name="{{ p.nome|e }}" data-price="{{ p.preco }}">Adicionar</button>
+        <button type="button" class="btn add-cart" data-name="{{ (p.nome or p.titulo)|e }}" data-price="{{ p.preco }}">Adicionar</button>
       </div>
     </article>
     {% endfor %}
@@ -184,7 +198,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
       {% for col in s.colunas or [] %}
       <div>
         <strong>{{ col.titulo|e }}</strong>
-        {% for lk in col.links or [] %}<div style="margin-top:6px"><a href="#">{% if lk is string %}{{ lk|e }}{% else %}{{ lk.label|e }}{% endif %}</a></div>{% endfor %}
+        {% for lk in col.links or [] %}<div style="margin-top:6px"><a href="{% if lk is mapping %}{{ (lk.href or lk.url or '#')|e }}{% else %}#{% endif %}">{% if lk is string %}{{ lk|e }}{% else %}{{ (lk.label or lk.texto or '')|e }}{% endif %}</a></div>{% endfor %}
       </div>
       {% endfor %}
     </div>
@@ -244,6 +258,21 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
 )
 
 
+def _normalize_ecommerce_secoes(secoes: list[Any]) -> None:
+    """Assure que chaque section a 'tipo' (alias FR/PT) et que boutons/liens ne sont pas des chaînes repr."""
+    for sec in secoes:
+        if not isinstance(sec, dict):
+            continue
+        if not sec.get("tipo") and sec.get("type"):
+            sec["tipo"] = sec["type"]
+        for key in ("botoes", "boutons", "stats"):
+            if isinstance(sec.get(key), list):
+                coerce_mapping_list(sec[key])
+        if sec.get("tipo") == "navegacao":
+            if isinstance(sec.get("categorias"), list):
+                coerce_mapping_list(sec["categorias"])
+
+
 def render_ecommerce(site: dict[str, Any]) -> str:
     design = site.get("design") or {}
     paleta = {**_DEFAULT_PAL, **(design.get("paleta") or {})}
@@ -252,6 +281,7 @@ def render_ecommerce(site: dict[str, Any]) -> str:
     fc = font_query_name(tip.get("corpo"))
     fonts_url = google_fonts_link(tip.get("display"), tip.get("corpo"))
     secoes = site.get("secoes") or []
+    _normalize_ecommerce_secoes(secoes)
     ticker_sec = next((s for s in secoes if s.get("tipo") == "banner_animado"), None)
     ticker = ticker_sec.get("mensagens") if ticker_sec else []
     nav_sec = next((s for s in secoes if s.get("tipo") == "navegacao"), None)

@@ -4,7 +4,13 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from app.services.site_template_render._utils import font_query_name, google_fonts_link, jinja_env
+from app.services.site_template_render._utils import (
+    coerce_mapping_list,
+    coerce_str_to_mapping,
+    font_query_name,
+    google_fonts_link,
+    jinja_env,
+)
 
 def _skill_bar_pct(niveau: Any) -> int:
     if isinstance(niveau, (int, float)):
@@ -53,6 +59,15 @@ def _normalize_portfolio_sections(sections: list[Any]) -> None:
             key = str(raw).strip().lower().replace(" ", "_")
             sec["type"] = _TIPO_TO_TYPE.get(key, raw)
         st = sec.get("type")
+        # Boutons / liens parfois sérialisés en chaîne repr-Python → dict réel pour Jinja
+        for key in ("boutons", "botoes", "stats"):
+            if isinstance(sec.get(key), list):
+                coerce_mapping_list(sec[key])
+        for key in ("liens", "links"):
+            if isinstance(sec.get(key), list):
+                coerce_mapping_list(sec[key])
+        if sec.get("cta") is not None:
+            sec["cta"] = coerce_str_to_mapping(sec["cta"])
         if st == "competences_onglets":
             for cat in sec.get("categories") or []:
                 if not isinstance(cat, dict):
@@ -165,7 +180,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
   <div style="display:flex;gap:10px;flex-wrap:wrap">
     {% for b in s.boutons or [] %}
       {% if b is mapping %}
-      <a href="{{ (b.url or b.href or '#')|e }}" style="padding:10px 18px;border-radius:8px;font-weight:600;{% if b.primaire or b.primary %}background:var(--cyan);color:var(--bg);{% else %}border:1px solid var(--cyan);color:var(--cyan);background:transparent{% endif %}">{{ (b.label or b.texte or '')|e }}</a>
+      <a href="{{ (b.url or b.href or '#')|e }}" style="padding:10px 18px;border-radius:8px;font-weight:600;{% if b.primaire or b.primary or b.primario %}background:var(--cyan);color:var(--bg);{% else %}border:1px solid var(--cyan);color:var(--cyan);background:transparent{% endif %}">{{ (b.label or b.texte or '')|e }}</a>
       {% else %}
       <a href="#projetos" style="background:var(--cyan);color:var(--bg);padding:10px 18px;border-radius:8px;font-weight:600">{{ b|e }}</a>
       {% endif %}

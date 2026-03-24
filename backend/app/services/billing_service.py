@@ -207,7 +207,7 @@ async def cancel_subscription(
     if not sub:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No subscription found for this workspace.",
+            detail="No subscription found for this account.",
         )
 
     if sub.status == "canceled":
@@ -412,7 +412,7 @@ async def get_current_subscription(
     if not sub:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhuma assinatura encontrada para este workspace.",
+            detail="Nenhuma assinatura encontrada para esta conta.",
         )
 
     plan = sub.plan

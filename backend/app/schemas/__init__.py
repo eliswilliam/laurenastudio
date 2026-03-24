@@ -7,7 +7,6 @@ from app.schemas.auth import (
     AuthResponse,
 )
 from app.schemas.user import UserRead
-from app.schemas.workspace import WorkspaceRead
 from app.schemas.billing import (
     PlanRead,
     SubscriptionRead,
@@ -30,7 +29,6 @@ __all__ = [
     "TokenResponse",
     "AuthResponse",
     "UserRead",
-    "WorkspaceRead",
     "PlanRead",
     "SubscriptionRead",
     "SubscriptionWithPlan",

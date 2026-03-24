@@ -25,7 +25,6 @@ from app.routes.social import router as social_router
 from app.routes.ads import router as ads_router
 from app.routes.analytics import router as analytics_router
 from app.routes.webhook import router as webhook_router
-from app.routes.workspaces import router as workspaces_router
 from app.routes.search import router as search_router
 from app.routes.media import router as media_router
 from app.routes.data_deletion import router as deletion_router
@@ -74,7 +73,6 @@ app.include_router(social_router, prefix="/api/v1")
 app.include_router(ads_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(webhook_router, prefix="/api/v1")
-app.include_router(workspaces_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(media_router, prefix="/api/v1")
 app.include_router(deletion_router, prefix="/api/v1")

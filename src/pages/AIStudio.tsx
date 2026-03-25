@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import api, { getAiVideoJobStatus, synthesizeSpeechWav } from '@/lib/api';
+import api, { getAiVideoJobStatus } from '@/lib/api';
 import AIInferenceAnimation from '@/components/shared/AIInferenceAnimation';
 
 export default function AIStudio() {
@@ -120,13 +120,21 @@ export default function AIStudio() {
         };
         setMessages((prev) => [...prev, assistantMsg]);
       } else if (mode === 'audio') {
-        const blob = await synthesizeSpeechWav(prompt);
-        const audioUrl = URL.createObjectURL(blob);
+        // Áudio = Azure Speech via POST /ai/generate (não usa chave Google / Gemini)
+        const { data } = await api.post<{ content?: string }>(
+          '/ai/generate',
+          { resource_type: 'audio', prompt, style: null, model: null },
+          { timeout: 120000 }
+        );
+        const audioPath = data.content?.trim();
+        if (!audioPath || !audioPath.startsWith('/uploads/')) {
+          throw new Error('Resposta de áudio inválida do servidor.');
+        }
         const assistantMsg: StudioChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: '',
-          mediaUrl: audioUrl,
+          mediaUrl: audioPath,
           mediaType: 'audio',
           timestamp: ts(),
         };

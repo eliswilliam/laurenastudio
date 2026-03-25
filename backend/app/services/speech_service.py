@@ -4,12 +4,27 @@ Azure Cognitive Services — speech synthesis (text to WAV in memory).
 from __future__ import annotations
 
 import logging
+import uuid
+from pathlib import Path
 
 import azure.cognitiveservices.speech as speechsdk
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+_GENERATED_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "generated"
+
+
+def save_speech_wav_to_uploads(text: str, voice_name: str | None = None) -> str:
+    """Azure TTS → fichier WAV em uploads/generated; retorna URL relativa /uploads/generated/…"""
+    _GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+    data = synthesize_speech_wav(text, voice_name)
+    name = f"{uuid.uuid4().hex}.wav"
+    path = _GENERATED_DIR / name
+    path.write_bytes(data)
+    logger.info("Saved Azure TTS file: %s (%d bytes)", name, len(data))
+    return f"/uploads/generated/{name}"
 
 
 def _normalize_endpoint(url: str) -> str:

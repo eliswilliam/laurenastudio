@@ -24,10 +24,7 @@ const HeroSection = () => {
           <div className="w-full max-w-xl text-white">
             <h1 className="font-inter text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-[1.35] tracking-tight animate-slide-down drop-shadow-lg mb-4 md:mb-6">
               Crie campanhas publicitárias e sites com{" "}
-              <span
-                className="relative inline-block align-baseline rounded-lg px-2 py-0.5 sm:px-2.5 sm:py-1 -mx-0.5 sm:-mx-0 backdrop-blur-xl bg-white/15 ring-1 ring-inset ring-white/25 shadow-sm text-[hsl(16,35%,12%)] [text-shadow:0_0_20px_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.15)] [box-decoration-break:clone]"
-                style={{ WebkitBoxDecorationBreak: "clone" }}
-              >
+              <span className="text-white font-semibold">
                 inteligência artificial
               </span>
             </h1>

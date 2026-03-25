@@ -1,9 +1,10 @@
 """
 routes/ai.py
 AI generation endpoints — protected by active subscription + usage limits.
-Uses Google Gemini for real text and image generation, persists results to DB.
+Uses Google Gemini for text/image; Veo for video; Azure Speech for audio only.
 Video (Veo) runs in an ARQ worker so HTTP returns 202 quickly (avoids nginx/Azure 504).
 """
+import asyncio
 import logging
 from uuid import UUID
 
@@ -31,6 +32,7 @@ from app.services import notification_service
 from app.services.ai_service import generate_image, generate_text
 from app.services.arq_enqueue import enqueue_ai_video_job
 from app.services.job_service import create_job, get_job
+from app.services.speech_service import save_speech_wav_to_uploads
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +60,9 @@ async def get_ai_video_job(
 @router.post(
     "/generate",
     response_model=None,
-    summary="Generate AI content (text, image, or video)",
+    summary="Generate AI content (text, image, video, or audio)",
     description=(
-        "Requires active subscription. Text and image return 200 with content. "
+        "Requires active subscription. Text and image use Gemini. Audio uses Azure Speech only. "
         "Video returns 202 with jobId — poll GET /ai/jobs/{job_id} until status is success."
     ),
 )
@@ -71,10 +73,10 @@ async def generate(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> JSONResponse | AIGenerateResponse:
-    if payload.resource_type not in ("text", "image", "video"):
+    if payload.resource_type not in ("text", "image", "video", "audio"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="resource_type must be 'text', 'image', or 'video'.",
+            detail="resource_type must be 'text', 'image', 'video', or 'audio'.",
         )
 
     usage = await check_and_increment_usage(
@@ -85,6 +87,7 @@ async def generate(
         "text": ("text_used", "text_limit"),
         "image": ("image_used", "image_limit"),
         "video": ("video_used", "video_limit"),
+        "audio": ("audio_used", "audio_limit"),
     }
     used_field, limit_field = field_map[payload.resource_type]
 
@@ -118,7 +121,47 @@ async def generate(
             content=body.model_dump(by_alias=True),
         )
 
-    # ── Text / image: synchronous ───────────────────────────────────────────
+    # ── Audio: Azure Speech only (never Gemini / Google API key) ─────────────
+    if payload.resource_type == "audio":
+        try:
+            generated_content = await asyncio.to_thread(
+                save_speech_wav_to_uploads,
+                payload.prompt,
+                payload.model,
+            )
+        except RuntimeError as exc:
+            logger.exception("Azure speech generation failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
+            ) from exc
+        except Exception as exc:
+            logger.exception("Azure speech generation failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Falha na síntese de voz: {exc}",
+            ) from exc
+
+        record = AIGeneration(
+            workspace_id=workspace_id,
+            resource_type="audio",
+            prompt=payload.prompt,
+            content=generated_content,
+            model_used=payload.model or "azure-speech",
+            style=payload.style,
+        )
+        db.add(record)
+        await db.commit()
+
+        return AIGenerateResponse(
+            resource_type="audio",
+            content=generated_content,
+            usage_after=getattr(usage, used_field),
+            limit=getattr(subscription.plan, limit_field),
+            message="Áudio gerado com sucesso.",
+        )
+
+    # ── Text / image: synchronous (Gemini) ───────────────────────────────────
     try:
         if payload.resource_type == "text":
             generated_content = await generate_text(

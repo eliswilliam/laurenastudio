@@ -43,6 +43,30 @@ export function formatApiError(error: unknown): string {
   return `Erro HTTP ${ax.response.status} (${ax.response.statusText || 'sem detalhe'})`;
 }
 
+/** True when the browser could not reach the API (backend down, proxy, DNS, timeout). */
+export function isUnreachableApiMessage(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes('sem ligação ao servidor') ||
+    m.includes('network error') ||
+    m.includes('timeout') ||
+    m.includes('expirou') ||
+    m.includes('econnaborted') ||
+    m.includes('err_network') ||
+    m.includes('failed to fetch') ||
+    // Proxy Vite quando o backend em :8000 não está a correr
+    /erro http 502|erro http 503|erro http 504|bad gateway|service unavailable|gateway timeout/i.test(
+      message
+    )
+  );
+}
+
+export function isLocalDevHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+}
+
 // Interceptor de token
 api.interceptors.request.use(
   (config) => {

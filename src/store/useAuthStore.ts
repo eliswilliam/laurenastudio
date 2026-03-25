@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { clearSessionOnLogout } from '@/lib/clearSessionOnLogout';
 import type { Usuario } from '@/lib/types';
 import { apiBillingStatus, type BillingStatusResponse } from '@/lib/billingApi';
+import { isLocalDevHost, isUnreachableApiMessage } from '@/lib/api';
 
 interface AuthState {
   usuario: Usuario | null;
@@ -72,7 +73,30 @@ export const useAuthStore = create<AuthState>()(
             set({ usuario: { ...usuario, plano: planName as Usuario['plano'] } });
           }
           return isActive;
-        } catch {
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          // Em localhost + dev: falha de rede (API parada / proxy) não deve apagar a assinatura
+          // guardada nem forçar «escolher-plano» como se não houvesse plano.
+          const grace =
+            import.meta.env.DEV &&
+            isLocalDevHost() &&
+            isUnreachableApiMessage(msg);
+          if (grace) {
+            const prevAtivo = get().temPlanoAtivo;
+            const prevNome = get().planoNome;
+            set({
+              billingChecked: true,
+              temPlanoAtivo: prevAtivo,
+              planoNome: prevNome,
+              billingStatus: null,
+            });
+            console.warn(
+              '[billing] API inacessível em desenvolvimento local — mantém-se o último estado de plano. ' +
+                'Confirme que o backend está em http://localhost:8000 e o Vite faz proxy de /api.',
+              msg
+            );
+            return prevAtivo;
+          }
           set({ billingChecked: true, temPlanoAtivo: false, planoNome: null, billingStatus: null });
           return false;
         }

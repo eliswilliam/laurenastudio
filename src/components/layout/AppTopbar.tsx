@@ -97,8 +97,8 @@ export default function AppTopbar() {
 
   return (
     <header className="h-14 md:h-16 border-b border-border bg-background/80 backdrop-blur-sm flex items-center justify-between px-3 md:px-6 sticky top-0 z-30">
-      {/* Lado esquerdo — marca + busca */}
-      <div className="flex items-center gap-2 md:gap-4 min-w-0">
+      {/* Lado esquerdo — marca + busca (busca visível em todos os breakpoints) */}
+      <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
         <div className="flex items-center gap-2 shrink-0 pr-1">
           <img
             src="/android-chrome-192x192.png"
@@ -110,11 +110,11 @@ export default function AppTopbar() {
           </span>
         </div>
 
-        <div className="relative hidden md:block" ref={searchRef}>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative flex-1 min-w-0 md:flex-initial" ref={searchRef}>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/80 pointer-events-none" />
           <Input
-            placeholder="Buscar posts, mídias, páginas..."
-            className="pl-9 w-72 h-9 bg-muted/50"
+            placeholder="Buscar páginas do painel, mídia, posts..."
+            className="pl-9 w-full min-w-0 h-9 bg-background/90 border-2 border-primary/45 text-foreground shadow-sm transition-colors hover:border-primary/70 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-0 md:w-72"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             onFocus={() => {
@@ -125,7 +125,7 @@ export default function AppTopbar() {
             <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
           )}
           {searchOpen && Object.keys(searchResults).length > 0 && (
-            <div className="absolute top-full left-0 mt-1 w-96 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 w-auto md:w-96 md:right-auto bg-popover border-2 border-primary/20 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
               {Object.entries(searchResults).map(([type, results]) => (
                 <div key={type}>
                   <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase bg-muted/30">
@@ -148,7 +148,7 @@ export default function AppTopbar() {
             </div>
           )}
           {searchOpen && searchQuery && Object.keys(searchResults).length === 0 && !searching && (
-            <div className="absolute top-full left-0 mt-1 w-72 bg-popover border border-border rounded-lg shadow-lg z-50 p-4 text-center text-sm text-muted-foreground">
+            <div className="absolute top-full left-0 right-0 mt-1 w-auto md:w-72 md:right-auto bg-popover border-2 border-primary/20 rounded-lg shadow-lg z-50 p-4 text-center text-sm text-muted-foreground">
               Nenhum resultado para "{searchQuery}"
             </div>
           )}
@@ -156,7 +156,7 @@ export default function AppTopbar() {
       </div>
 
       {/* Lado direito - Ações */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme}>
           {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </Button>

@@ -1,7 +1,11 @@
 /**
  * billingApi.ts: typed wrappers for the FastAPI /billing endpoints
  */
-import api from './api';
+import api, { isUnreachableApiMessage } from './api';
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 // ── Response types ─────────────────────────────────────────────────────────
 
@@ -96,10 +100,21 @@ export async function apiListPlans(): Promise<PlanRead[]> {
   return res.data;
 }
 
-/** Get billing status for the current account */
+/** Get billing status for the current account (retries on transient network failures). */
 export async function apiBillingStatus(): Promise<BillingStatusResponse> {
-  const res = await api.get<BillingStatusResponse>('/billing/status');
-  return res.data;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await api.get<BillingStatusResponse>('/billing/status');
+      return res.data;
+    } catch (e) {
+      lastError = e;
+      const msg = e instanceof Error ? e.message : '';
+      if (!isUnreachableApiMessage(msg) || attempt === 2) break;
+      await sleep(350 * (attempt + 1));
+    }
+  }
+  throw lastError;
 }
 
 /** Verify a Stripe Checkout Session and activate subscription if paid */

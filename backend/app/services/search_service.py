@@ -1,15 +1,16 @@
 """
 services/search_service.py
-Global search across posts, media, campaigns, social accounts, and system pages.
-Since posts/media/campaigns are not yet persisted, this searches system pages
-and any future tables that get created.
+Global search across dashboard pages (and placeholders for future entities).
+Routes and copy are aligned with src/App.tsx and the app sidebar.
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SearchResult(BaseModel):
-    type: str  # "page" | "post" | "media" | "campaign" | "social_account"
+    """One hit (type groups in the API response use plural keys, e.g. pages)."""
+
+    type: str = Field(description='Logical kind, e.g. "page"')
     title: str
     description: str | None = None
     url: str
@@ -21,18 +22,95 @@ class SearchResponse(BaseModel):
     results: dict[str, list[SearchResult]]
 
 
-# System pages available in the dashboard
-SYSTEM_PAGES = [
-    SearchResult(type="page", title="Dashboard", description="Painel de controle principal", url="/dashboard"),
-    SearchResult(type="page", title="Criar Post", description="Criar e publicar novo post", url="/criar-post"),
-    SearchResult(type="page", title="AI Studio", description="Gerar conteúdo com inteligência artificial", url="/ai-studio"),
-    SearchResult(type="page", title="Agendador", description="Agendar publicações nas redes sociais", url="/agendador"),
-    SearchResult(type="page", title="Analytics", description="Análise de métricas e desempenho", url="/analytics"),
-    SearchResult(type="page", title="Ads Analytics", description="Análise de campanhas de anúncios", url="/ads-analytics"),
-    SearchResult(type="page", title="Biblioteca de Mídia", description="Gerenciar imagens, vídeos e áudio", url="/midia"),
-    SearchResult(type="page", title="Pagamento", description="Gerenciar plano e assinatura", url="/pagamento"),
-    SearchResult(type="page", title="Configurações", description="Perfil, branding e contas sociais", url="/configuracoes"),
+# Dashboard / app routes — searchable title + description (PT keywords for discovery)
+SYSTEM_PAGES: list[SearchResult] = [
+    SearchResult(
+        type="page",
+        title="Dashboard",
+        description="Painel principal, início, visão geral, conta, uso do plano, assinatura",
+        url="/dashboard",
+    ),
+    SearchResult(
+        type="page",
+        title="Criar site",
+        description="Gerador de sites com IA, publicar, template, domínio, Cloud Run",
+        url="/criar-site",
+    ),
+    SearchResult(
+        type="page",
+        title="Marketing AI",
+        description="Campanhas, criativos, marca, anúncios, vídeo marketing",
+        url="/marketing-ai",
+    ),
+    SearchResult(
+        type="page",
+        title="AI Studio",
+        description="Gemini, Veo, áudio, inteligência artificial, gerar imagem e texto",
+        url="/ai-studio",
+    ),
+    SearchResult(
+        type="page",
+        title="Analytics",
+        description="Métricas, desempenho, gráficos, redes sociais",
+        url="/analytics",
+    ),
+    SearchResult(
+        type="page",
+        title="Ads Analytics",
+        description="Anúncios pagos, campanhas, ROAS, Google Meta",
+        url="/ads-analytics",
+    ),
+    SearchResult(
+        type="page",
+        title="Biblioteca de Mídia",
+        description="Imagens, vídeos, ficheiros, upload, stock",
+        url="/midia",
+    ),
+    SearchResult(
+        type="page",
+        title="Plano e pagamento",
+        description="Assinatura, Stripe, preços, upgrade, fatura, billing",
+        url="/pagamento",
+    ),
+    SearchResult(
+        type="page",
+        title="Configurações",
+        description="Perfil, utilizador, email, segurança, integrações",
+        url="/configuracoes",
+    ),
+    SearchResult(
+        type="page",
+        title="Pré-visualizar post",
+        description="Preview de publicação social",
+        url="/preview-post",
+    ),
+    SearchResult(
+        type="page",
+        title="Editor",
+        description="Editor de páginas e conteúdo",
+        url="/editor",
+    ),
+    SearchResult(
+        type="page",
+        title="Escolher plano",
+        description="Starter, Pro, Business, preços, checkout",
+        url="/escolher-plano",
+    ),
 ]
+
+
+def _page_matches(page: SearchResult, q: str) -> bool:
+    """Substring match or all significant tokens (length ≥ 2) present in title+description."""
+    q = q.lower().strip()
+    if not q:
+        return False
+    hay = f"{page.title} {(page.description or '')}".lower()
+    if q in hay:
+        return True
+    tokens = [t for t in q.split() if len(t) >= 2]
+    if not tokens:
+        return False
+    return all(t in hay for t in tokens)
 
 
 async def global_search(
@@ -40,34 +118,19 @@ async def global_search(
     workspace_id: str,
     query: str,
 ) -> SearchResponse:
-    q = query.lower().strip()
+    _ = db  # reserved for future SQL search (posts, media, …)
+    _ = workspace_id
+    q = query.strip()
     results: dict[str, list[SearchResult]] = {}
 
-    # 1. Search system pages
-    matching_pages = [
-        p for p in SYSTEM_PAGES
-        if q in p.title.lower() or (p.description and q in p.description.lower())
-    ]
+    matching_pages = [p for p in SYSTEM_PAGES if _page_matches(p, q)]
     if matching_pages:
         results["pages"] = matching_pages
 
-    # 2. Search posts (placeholder — will query posts table when it exists)
-    # TODO: Add actual post search when posts table is created
-    # For now, search mock for demonstration
-    results.setdefault("posts", [])
+    # Placeholders until backed by tables
+    # results["posts"] = …
 
-    # 3. Search media (placeholder)
-    results.setdefault("media", [])
-
-    # 4. Search campaigns (placeholder)
-    results.setdefault("campaigns", [])
-
-    # 5. Search social accounts (placeholder)
-    results.setdefault("social_accounts", [])
-
-    # Filter out empty categories
     results = {k: v for k, v in results.items() if v}
-
     total = sum(len(v) for v in results.values())
 
     return SearchResponse(query=query, total=total, results=results)

@@ -647,28 +647,60 @@ export default function CriarSite() {
       className={cn(
         'animate-fade-in w-full max-w-7xl mx-auto flex flex-col px-3 sm:px-4',
         'min-h-[calc(100dvh-8.5rem)] md:min-h-[calc(100dvh-7rem)]',
-        emConversa && !isWideLg && 'pb-[5.75rem]'
+        // Mobile: barra fixa acima do bottom nav (h-16) + margem — evita botões escondidos
+        emConversa && !isWideLg && 'max-md:pb-[10rem] md:pb-[5.75rem]'
       )}
     >
       <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between shrink-0 py-3 border-b border-border/50">
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-semibold tracking-tight">{TITULO_PAGINA}</h1>
-            <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 max-w-3xl leading-snug">
-              {SUBTITULO_FLUXO}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <SheetTrigger asChild>
-              <Button type="button" variant="outline" size="sm" className="gap-1.5">
-                <History className="w-4 h-4" />
-                Histórico
+        {/* Cabeçalho + passos: sempre visíveis ao scroll (sticky sob o AppTopbar) */}
+        <div
+          className={cn(
+            'sticky z-20 -mx-3 px-3 sm:-mx-4 sm:px-4',
+            'top-14 md:top-16',
+            'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/85',
+            'border-b border-border/60 shadow-[0_1px_0_0_hsl(var(--border)/0.4)]'
+          )}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between shrink-0 py-3">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold tracking-tight">{TITULO_PAGINA}</h1>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 max-w-3xl leading-snug">
+                {SUBTITULO_FLUXO}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+              <SheetTrigger asChild>
+                <Button type="button" variant="outline" size="sm" className="gap-1.5">
+                  <History className="w-4 h-4" />
+                  Histórico
+                </Button>
+              </SheetTrigger>
+              <Button type="button" variant="ghost" size="sm" onClick={iniciarNovoSite}>
+                Novo site
               </Button>
-            </SheetTrigger>
-            <Button type="button" variant="ghost" size="sm" onClick={iniciarNovoSite}>
-              Novo site
-            </Button>
+            </div>
           </div>
+
+          <nav
+            className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground overflow-x-auto py-2.5 shrink-0 border-t border-border/30"
+            aria-label="Fluxo do criador de sites"
+          >
+            <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
+              <BrainCircuit className="w-3.5 h-3.5" /> Briefing (IA)
+            </span>
+            <span aria-hidden>→</span>
+            <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
+              <Wand2 className="w-3.5 h-3.5" /> Gerar
+            </span>
+            <span aria-hidden>→</span>
+            <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
+              <LayoutTemplate className="w-3.5 h-3.5" /> Pré-visualizar
+            </span>
+            <span aria-hidden>→</span>
+            <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
+              <Globe className="w-3.5 h-3.5" /> Publicar
+            </span>
+          </nav>
         </div>
         <SheetContent side="left" className="w-[min(100vw,420px)] flex flex-col gap-3">
           <SheetHeader>
@@ -725,27 +757,6 @@ export default function CriarSite() {
           </div>
         </SheetContent>
       </Sheet>
-
-      <nav
-        className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground overflow-x-auto py-2.5 shrink-0 border-b border-border/30"
-        aria-label="Fluxo do criador de sites"
-      >
-        <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
-          <BrainCircuit className="w-3.5 h-3.5" /> Briefing (IA)
-        </span>
-        <span aria-hidden>→</span>
-        <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
-          <Wand2 className="w-3.5 h-3.5" /> Gerar
-        </span>
-        <span aria-hidden>→</span>
-        <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
-          <LayoutTemplate className="w-3.5 h-3.5" /> Pré-visualizar
-        </span>
-        <span aria-hidden>→</span>
-        <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
-          <Globe className="w-3.5 h-3.5" /> Publicar
-        </span>
-      </nav>
 
       <div
         className={cn(
@@ -1060,8 +1071,27 @@ export default function CriarSite() {
       )}
 
       {emConversa && !isWideLg && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/60 bg-background/95 backdrop-blur-md px-3 py-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-end gap-2">
+        <div
+          className={cn(
+            'fixed left-0 right-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-md',
+            'px-3 py-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]',
+            // Acima da MobileBottomNav (h-16, z-50) em viewport menor que md
+            'max-md:bottom-16 bottom-0'
+          )}
+        >
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center sm:justify-end gap-2">
+            {/* Gerar primeiro no mobile para não ficar fora do ecrã quando há vários botões */}
+            <Button
+              variant={siteResult ? 'outline' : 'default'}
+              size="sm"
+              className="rounded-full h-9 text-xs font-medium shrink-0 max-sm:order-first sm:order-last"
+              onClick={gerarSite}
+              disabled={aGerar || aPublicar || !projectId}
+            >
+              {aGerar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+              <span className="hidden min-[380px]:inline">{BOTAO_GERAR}</span>
+              <span className="inline min-[380px]:hidden">Gerar</span>
+            </Button>
             {siteResult && (
               <>
                 {showPreviewChrome && previewAbsUrl && (
@@ -1090,16 +1120,6 @@ export default function CriarSite() {
                 </Button>
               </>
             )}
-            <Button
-              variant={siteResult ? 'outline' : 'default'}
-              size="sm"
-              className="rounded-full h-9 text-xs font-medium shrink-0"
-              onClick={gerarSite}
-              disabled={aGerar || aPublicar || !projectId}
-            >
-              {aGerar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-              {BOTAO_GERAR}
-            </Button>
           </div>
         </div>
       )}

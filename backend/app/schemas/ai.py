@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 class AIGenerateRequest(BaseModel):
     """Request to generate AI content."""
-    resource_type: str  # "text" | "image" | "video"
+    resource_type: str  # "text" | "image" | "video" | "audio" (audio = Azure Speech only)
     prompt: str
     model: str | None = None
     style: str | None = None

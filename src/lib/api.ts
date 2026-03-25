@@ -79,4 +79,44 @@ export async function getAiVideoJobStatus(jobId: string): Promise<JobStatus> {
   return data;
 }
 
+/**
+ * POST /api/v1/ai/speech/synthesize — Azure TTS; returns WAV blob.
+ * Uses validateStatus so JSON error bodies on 4xx/5xx can be read from the blob.
+ */
+export async function synthesizeSpeechWav(
+  text: string,
+  voiceName?: string | null
+): Promise<Blob> {
+  const res = await api.post<Blob>(
+    '/ai/speech/synthesize',
+    { text, voice_name: voiceName ?? undefined },
+    {
+      responseType: 'blob',
+      validateStatus: () => true,
+    }
+  );
+
+  if (res.status === 401) {
+    localStorage.removeItem('auth_token');
+    window.location.href = '/login';
+    throw new Error('Sessão expirada');
+  }
+
+  if (res.status !== 200) {
+    let msg = `Erro HTTP ${res.status}`;
+    try {
+      const t = await res.data.text();
+      const j = JSON.parse(t) as { detail?: unknown };
+      if (typeof j.detail === 'string') msg = j.detail;
+      else if (Array.isArray(j.detail) && j.detail[0] && typeof j.detail[0] === 'object')
+        msg = String((j.detail[0] as { msg?: string }).msg ?? msg);
+    } catch {
+      /* keep msg */
+    }
+    throw new Error(msg);
+  }
+
+  return res.data;
+}
+
 export default api;

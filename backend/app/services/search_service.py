@@ -29,7 +29,7 @@ SYSTEM_PAGES = [
     SearchResult(type="page", title="Agendador", description="Agendar publicações nas redes sociais", url="/agendador"),
     SearchResult(type="page", title="Analytics", description="Análise de métricas e desempenho", url="/analytics"),
     SearchResult(type="page", title="Ads Analytics", description="Análise de campanhas de anúncios", url="/ads-analytics"),
-    SearchResult(type="page", title="Biblioteca de Mídia", description="Gerenciar imagens e vídeos", url="/midia"),
+    SearchResult(type="page", title="Biblioteca de Mídia", description="Gerenciar imagens, vídeos e áudio", url="/midia"),
     SearchResult(type="page", title="Pagamento", description="Gerenciar plano e assinatura", url="/pagamento"),
     SearchResult(type="page", title="Configurações", description="Perfil, branding e contas sociais", url="/configuracoes"),
 ]

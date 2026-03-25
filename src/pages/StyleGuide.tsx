@@ -9,7 +9,7 @@ const StyleGuide = () => {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
         <div className="mb-16 text-center space-y-6">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight animate-slide-down">
+          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-normal leading-tight tracking-[0.04em] animate-slide-down">
             Style Guide
           </h1>
           <p className="text-lg text-muted-foreground leading-relaxed animate-slide-up stagger-1">
@@ -23,31 +23,43 @@ const StyleGuide = () => {
           <div className="space-y-6">
             <div>
               <h1 className="text-5xl font-bold mb-2">Heading 1</h1>
-              <p className="text-sm text-muted-foreground">Font: Merriweather Bold, 3rem</p>
+              <p className="text-sm text-muted-foreground">Font: Syne Bold (sections) · demo sizes</p>
             </div>
             <div>
               <h2 className="text-4xl font-bold mb-2">Heading 2</h2>
-              <p className="text-sm text-muted-foreground">Font: Merriweather Bold, 2.25rem</p>
+              <p className="text-sm text-muted-foreground">Font: Syne Bold, 2.25rem</p>
             </div>
             <div>
               <h3 className="text-3xl font-bold mb-2">Heading 3</h3>
-              <p className="text-sm text-muted-foreground">Font: Merriweather Bold, 1.875rem</p>
+              <p className="text-sm text-muted-foreground">Font: Syne Bold, 1.875rem</p>
             </div>
             <div>
               <h4 className="text-2xl font-bold mb-2">Heading 4</h4>
-              <p className="text-sm text-muted-foreground">Font: Merriweather Bold, 1.5rem</p>
+              <p className="text-sm text-muted-foreground">Font: Syne Semibold, 1.5rem</p>
             </div>
             <div>
               <p className="text-lg mb-2">Body Large - This is paragraph text at a larger size for emphasis or introductory content.</p>
-              <p className="text-sm text-muted-foreground">Font: Inter Regular, 1.125rem</p>
+              <p className="text-sm text-muted-foreground">Font: DM Sans Regular/Light, 1.125rem · line-height 1.6</p>
             </div>
             <div>
               <p className="mb-2">Body Regular - This is standard paragraph text used throughout the site for comfortable reading.</p>
-              <p className="text-sm text-muted-foreground">Font: Inter Regular, 1rem</p>
+              <p className="text-sm text-muted-foreground">Font: DM Sans, 1rem</p>
             </div>
             <div>
               <p className="text-sm mb-2">Body Small - Used for captions, metadata, and supplementary information.</p>
-              <p className="text-sm text-muted-foreground">Font: Inter Regular, 0.875rem</p>
+              <p className="text-sm text-muted-foreground">Font: DM Sans, 0.875rem</p>
+            </div>
+            <div>
+              <p className="font-display text-4xl font-normal tracking-[0.04em] mb-2">Hero display — Bebas Neue</p>
+              <p className="text-sm text-muted-foreground">Font: Bebas Neue (titres hero, tracking +0.04em)</p>
+            </div>
+            <div>
+              <p className="font-editorial text-2xl italic mb-2">Editorial accent — manifeste ou citation</p>
+              <p className="text-sm text-muted-foreground">Font: Playfair Display Italic (parcimonieux)</p>
+            </div>
+            <div>
+              <p className="font-mono text-sm uppercase tracking-wider mb-2">00:02:34:12 — 4K/ProRes</p>
+              <p className="text-sm text-muted-foreground">Font: Space Mono (timecodes, métadonnées, UI technique)</p>
             </div>
           </div>
         </section>

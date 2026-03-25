@@ -148,6 +148,7 @@ async def activate_plan(
         usage.image_used = 0
         usage.video_used = 0
         usage.posts_used = 0
+        usage.audio_used = 0
         usage.period_start = now
         usage.period_end = period_end
     else:
@@ -158,6 +159,7 @@ async def activate_plan(
             image_used=0,
             video_used=0,
             posts_used=0,
+            audio_used=0,
             period_start=now,
             period_end=period_end,
         )
@@ -286,6 +288,7 @@ async def change_plan(
         usage.image_used = 0
         usage.video_used = 0
         usage.posts_used = 0
+        usage.audio_used = 0
         usage.period_start = now
         usage.period_end = period_end
 
@@ -359,6 +362,7 @@ async def get_billing_status(
             image_remaining=_remaining(usage.image_used, plan.image_limit),
             video_remaining=_remaining(usage.video_used, plan.video_limit),
             posts_remaining=_remaining(usage.posts_used, plan.post_limit),
+            audio_remaining=_remaining(usage.audio_used, plan.audio_limit),
         )
 
     return BillingStatusResponse(
@@ -398,6 +402,7 @@ async def get_usage(
         image_remaining=_remaining(usage.image_used, plan.image_limit),
         video_remaining=_remaining(usage.video_used, plan.video_limit),
         posts_remaining=_remaining(usage.posts_used, plan.post_limit),
+        audio_remaining=_remaining(usage.audio_used, plan.audio_limit),
     )
 
 

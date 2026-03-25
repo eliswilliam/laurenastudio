@@ -39,6 +39,9 @@ class Plan(Base):
     post_limit: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0
     )  # 0 = unlimited
+    audio_limit: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )  # 0 = unlimited (e.g. Business)
 
     # ── Relationships ────────────────────────────────────────────────────────
     subscriptions: Mapped[list["Subscription"]] = relationship(  # noqa: F821

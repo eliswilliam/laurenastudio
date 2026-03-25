@@ -10,7 +10,7 @@ import {
   Video,
   Upload,
   X,
-  Sparkles,
+  BrainCircuit,
   Download,
   ArrowLeft,
   Pencil,
@@ -224,7 +224,7 @@ export default function MarketingAI() {
           </div>
           <h1 className="text-3xl font-bold">Marketing AI</h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Utilize a Laurena AI para criar imagens e vídeos publicitários para sua empresa em poucos minutos.
+            Utilize a Laurena AI para criar imagens, vídeos e áudio publicitários para sua empresa em poucos minutos.
           </p>
         </div>
 
@@ -242,7 +242,7 @@ export default function MarketingAI() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 text-primary text-sm font-medium">
-                  <Sparkles className="w-4 h-4" />
+                  <BrainCircuit className="w-4 h-4" />
                   Gemini 2.5
                 </div>
               </CardContent>
@@ -262,7 +262,7 @@ export default function MarketingAI() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 text-primary text-sm font-medium">
-                  <Sparkles className="w-4 h-4" />
+                  <BrainCircuit className="w-4 h-4" />
                   Veo 3
                 </div>
               </CardContent>
@@ -434,7 +434,7 @@ export default function MarketingAI() {
                 onClick={handleGenerate}
                 disabled={loading || !brandName.trim() || !adText.trim()}
               >
-                <Sparkles className="w-5 h-5" />
+                <BrainCircuit className="w-5 h-5" />
                 {selectedType === 'image' ? 'Gerar Imagem Publicitária' : 'Gerar Vídeo Publicitário'}
               </Button>
             </CardContent>

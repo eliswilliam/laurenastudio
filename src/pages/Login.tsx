@@ -80,7 +80,7 @@ export default function Login() {
             <span className="font-bagel text-3xl tracking-[0.2em] text-white drop-shadow-sm">LAURENA</span>
           </div>
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-white/60">Studio com IA</p>
-          <h1 className="text-balance text-4xl font-bold leading-[1.12] tracking-tight xl:text-[2.65rem]">
+          <h1 className="text-balance text-4xl font-bold leading-[1.35] tracking-tight xl:text-[2.65rem]">
             Crie campanhas publicitárias e sites{' '}
             <span className="relative inline-block">
               <span className="relative z-10 bg-gradient-to-r from-white to-white/85 bg-clip-text text-transparent">
@@ -90,7 +90,7 @@ export default function Login() {
             </span>
           </h1>
           <p className="mt-6 max-w-[34rem] text-base leading-relaxed text-white/82 md:text-lg">
-            Aqui você cria imagens e vídeos para suas campanhas de anúncio, gera textos e conteúdos visuais e cria sites
+            Aqui você cria imagens, vídeos e áudio para suas campanhas de anúncio, gera textos e conteúdos visuais e cria sites
             completos sem programar.{' '}
             <span className="font-medium text-white">Tudo com inteligência artificial.</span>
           </p>
@@ -99,12 +99,12 @@ export default function Login() {
               {
                 icon: Megaphone,
                 title: 'Campanhas',
-                desc: 'Imagens e vídeos para anúncios',
+                desc: 'Imagens, vídeos e áudio para anúncios',
               },
               {
                 icon: Layers,
                 title: 'Conteúdo',
-                desc: 'Textos, imagens e vídeos',
+                desc: 'Textos, imagens, vídeos e áudio',
               },
               {
                 icon: Globe,

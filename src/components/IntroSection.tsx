@@ -1,16 +1,16 @@
-import { Megaphone, Layers, Globe2, Sparkles } from "lucide-react";
+import { Megaphone, Layers, Globe2, BrainCircuit } from "lucide-react";
 
 const pillars = [
   {
     icon: Megaphone,
     title: "Campanhas",
-    subtitle: "Imagens e vídeos para anúncios",
+    subtitle: "Imagens, vídeos e áudio para anúncios",
     iconBg: "bg-blue-500/12 text-blue-600 dark:text-blue-400",
   },
   {
     icon: Layers,
     title: "Conteúdo",
-    subtitle: "Textos, imagens, vídeo",
+    subtitle: "Textos, imagens, vídeo e áudio",
     iconBg: "bg-primary/12 text-primary",
   },
   {
@@ -20,7 +20,7 @@ const pillars = [
     iconBg: "bg-amber-500/12 text-amber-700 dark:text-amber-400",
   },
   {
-    icon: Sparkles,
+    icon: BrainCircuit,
     title: "IA",
     subtitle: "Gemini e Veo",
     iconBg: "bg-violet-500/12 text-violet-600 dark:text-violet-400",
@@ -45,12 +45,12 @@ const IntroSection = () => {
         <div className="relative grid gap-10 p-6 sm:p-8 md:gap-12 md:p-10 lg:grid-cols-[1fr_minmax(0,1fr)] lg:items-center lg:gap-14 lg:p-12">
           {/* Coluna texto + pilares */}
           <div className="relative z-[1] flex flex-col">
-            <h2 className="text-2xl font-bold leading-[1.2] tracking-tight text-foreground sm:text-3xl md:text-4xl lg:text-[2.35rem]">
+            <h2 className="text-2xl font-bold leading-snug tracking-[-0.01em] text-foreground sm:text-3xl md:text-4xl lg:text-[2.35rem]">
               Da ideia ao resultado,{" "}
               <span className="text-primary">sem atrito</span>
             </h2>
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base md:text-lg">
-              Crie campanhas completas com imagens, vídeos e textos gerados por IA, tudo pensado para anúncios que convertem. Faça o deploy do seu site na web em poucos minutos, sem escrever uma linha de código.
+            <p className="mt-4 max-w-xl text-sm font-light leading-[1.6] text-muted-foreground sm:text-base md:text-lg">
+              Crie campanhas completas com imagens, vídeos, áudio e textos gerados por IA, tudo pensado para anúncios que convertem. Faça o deploy do seu site na web em poucos minutos, sem escrever uma linha de código.
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:mt-10">

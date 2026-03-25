@@ -89,6 +89,7 @@ async def _reset_usage_if_needed(
         usage.image_used = 0
         usage.video_used = 0
         usage.posts_used = 0
+        usage.audio_used = 0
         usage.period_start = now
         from datetime import timedelta
         usage.period_end = now + timedelta(days=30)
@@ -103,6 +104,7 @@ RESOURCE_MAP = {
     "image": ("image_used", "image_limit"),
     "video": ("video_used", "video_limit"),
     "post": ("posts_used", "post_limit"),
+    "audio": ("audio_used", "audio_limit"),
 }
 
 

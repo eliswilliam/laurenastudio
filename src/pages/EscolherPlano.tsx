@@ -11,7 +11,7 @@ import {
   Crown,
   Building2,
   Loader2,
-  Sparkles,
+  BrainCircuit,
   X,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -99,7 +99,7 @@ export default function EscolherPlano() {
         {/* Title */}
         <div className="text-center mb-8 sm:mb-10 space-y-3">
           <Badge className="inline-flex gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium">
-            <Sparkles className="w-4 h-4" />
+            <BrainCircuit className="w-4 h-4" />
             Falta pouco
           </Badge>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">

@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { BrainCircuit } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const steps = [
@@ -9,7 +9,7 @@ const steps = [
 ];
 
 interface Props {
-  type?: 'image' | 'video' | 'text';
+  type?: 'image' | 'video' | 'text' | 'audio';
 }
 
 export default function AIInferenceAnimation({ type = 'image' }: Props) {
@@ -37,7 +37,7 @@ export default function AIInferenceAnimation({ type = 'image' }: Props) {
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-            <Sparkles className="w-7 h-7 text-primary animate-pulse" />
+            <BrainCircuit className="w-7 h-7 text-primary animate-pulse" />
           </div>
         </div>
       </div>
@@ -65,7 +65,9 @@ export default function AIInferenceAnimation({ type = 'image' }: Props) {
         <p className="text-sm text-muted-foreground">
           {type === 'video'
             ? 'A geração de vídeo pode levar até 5 minutos.'
-            : 'A geração pode demorar alguns instantes…'}
+            : type === 'audio'
+              ? 'A síntese de voz (Azure) costuma levar poucos segundos.'
+              : 'A geração pode demorar alguns instantes…'}
         </p>
       </div>
 

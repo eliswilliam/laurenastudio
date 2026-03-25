@@ -172,6 +172,12 @@ class Settings(BaseSettings):
     STRIPE_PRICE_ID_PRO: str = ""
     STRIPE_PRICE_ID_BUSINESS: str = ""
 
+    # ── Azure Cognitive Services — Speech (text-to-speech) ───────────────────
+    # Key + endpoint from Azure Portal (Speech resource). Never commit real keys.
+    AZURE_SPEECH_KEY: str = ""
+    AZURE_SPEECH_ENDPOINT: str = ""
+    AZURE_SPEECH_VOICE: str = "en-US-Ava:DragonHDLatestNeural"
+
     # ── CORS ─────────────────────────────────────────────────────────────
     # Stored as a comma-separated string for env-var compatibility
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:8080"

@@ -133,15 +133,25 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    /* subpixel-antialiased: evita “sumir” descendentes (pé do g) que antialiased pode causar no Windows/WebKit */
+    @apply bg-background text-foreground font-sans text-base font-normal subpixel-antialiased leading-[1.6];
   }
 
   html {
     scroll-behavior: smooth;
   }
 
+  /* Interligne folgado + overflow visible: cabeça e pé de letras (g, j, p, q, y) com Syne */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-sans font-semibold tracking-tight;
+    @apply font-section font-semibold tracking-tight overflow-visible;
+    line-height: 1.45;
+  }
+
+  /* Corpo e UI: reserva vertical mínima para descendentes em PT */
+  p,
+  li,
+  .prose {
+    line-height: 1.65;
   }
 }
 

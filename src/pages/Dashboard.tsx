@@ -7,8 +7,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileText,
-  Sparkles,
+  Music,
+  BrainCircuit,
   ImageIcon,
   Video,
   CreditCard,
@@ -18,7 +18,6 @@ import {
   TrendingUp,
   CalendarDays,
   ArrowRight,
-  RefreshCw,
   Loader2,
   Megaphone,
   BarChart3,
@@ -64,6 +63,10 @@ function pct(used: number, limit: number): number {
   return Math.min(Math.round((used / limit) * 100), 100);
 }
 
+function limitLabel(limit: number): string {
+  return limit <= 0 ? 'Ilimitado' : String(limit);
+}
+
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '-';
   return new Date(iso).toLocaleDateString('pt-BR', {
@@ -79,7 +82,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { usuario, planoNome, billingStatus, fetchBillingStatus } = useAuthStore();
   const [loading, setLoading] = useState(!billingStatus);
-  const [refreshing, setRefreshing] = useState(false);
 
   // Always fetch fresh billing data on mount (critical after Stripe redirect)
   useEffect(() => {
@@ -87,20 +89,14 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchBillingStatus();
-    setRefreshing(false);
-  };
-
   // ── Derived data ─────────────────────────────────────────────────────────
 
   const sub = billingStatus?.subscription ?? null;
   const plan = sub?.plan ?? null;
   const usage = billingStatus?.usage ?? null;
 
-  const postsUsed = usage?.usage?.posts_used ?? 0;
-  const postsLimit = usage?.limits?.post_limit ?? 0;
+  const audioUsed = usage?.usage?.audio_used ?? 0;
+  const audioLimit = usage?.limits?.audio_limit ?? 0;
   const textUsed = usage?.usage?.text_used ?? 0;
   const textLimit = usage?.limits?.text_limit ?? 0;
   const imageUsed = usage?.usage?.image_used ?? 0;
@@ -110,7 +106,7 @@ export default function Dashboard() {
 
   // Build usage pie for the chart
   const usagePieData = [
-    { name: 'Posts', value: postsUsed, color: '#8b5cf6' },
+    { name: 'Áudio IA', value: audioUsed, color: '#8b5cf6' },
     { name: 'Texto IA', value: textUsed, color: '#3b82f6' },
     { name: 'Imagem IA', value: imageUsed, color: '#10b981' },
     { name: 'Vídeo IA', value: videoUsed, color: '#f59e0b' },
@@ -118,7 +114,7 @@ export default function Dashboard() {
 
   // Usage bar data
   const usageBarData = [
-    { name: 'Posts', usado: postsUsed, limite: postsLimit },
+    { name: 'Áudio IA', usado: audioUsed, limite: audioLimit },
     { name: 'Texto IA', usado: textUsed, limite: textLimit },
     { name: 'Imagem IA', usado: imageUsed, limite: imageLimit },
     { name: 'Vídeo IA', usado: videoUsed, limite: videoLimit },
@@ -160,21 +156,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {planoNome && (
-            <Badge
-              variant="outline"
-              className={`gap-1.5 px-3 py-1.5 text-sm font-semibold capitalize ${planColors[planoNome] ?? ''}`}
-            >
-              {planIcons[planoNome] ?? <CreditCard className="w-4 h-4" />}
-              Plano {plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome}
-            </Badge>
-          )}
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-        </div>
+        {planoNome && (
+          <Badge
+            variant="outline"
+            className={`gap-1.5 px-3 py-1.5 text-sm font-semibold capitalize ${planColors[planoNome] ?? ''}`}
+          >
+            {planIcons[planoNome] ?? <CreditCard className="w-4 h-4" />}
+            Plano {plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome}
+          </Badge>
+        )}
       </div>
 
       {/* ── Account & Subscription Info ───────────────────────────────── */}
@@ -239,7 +229,7 @@ export default function Dashboard() {
               Criar site
             </Button>
             <Button size="sm" variant="outline" onClick={() => navigate('/ai-studio')} className="justify-start">
-              <Sparkles className="w-4 h-4 mr-2" />
+              <BrainCircuit className="w-4 h-4 mr-2" />
               Gerar com IA
             </Button>
             <Button size="sm" variant="ghost" onClick={() => navigate('/pagamento')} className="justify-start">
@@ -253,13 +243,13 @@ export default function Dashboard() {
       {/* ── KPI Cards: Usage ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard
-          icon={<FileText className="w-5 h-5 text-purple-500" />}
-          label="Posts Publicados"
-          value={postsUsed}
-          limit={postsLimit}
+          icon={<Music className="w-5 h-5 text-violet-500" />}
+          label="Áudio gerado (IA)"
+          value={audioUsed}
+          limit={audioLimit}
         />
         <KpiCard
-          icon={<Sparkles className="w-5 h-5 text-blue-500" />}
+          icon={<BrainCircuit className="w-5 h-5 text-blue-500" />}
           label="Gerações Texto IA"
           value={textUsed}
           limit={textLimit}
@@ -318,9 +308,9 @@ export default function Dashboard() {
           <CardContent>
             {usagePieData.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[250px] text-muted-foreground">
-                <Sparkles className="w-10 h-10 mb-3 opacity-40" />
+                <BrainCircuit className="w-10 h-10 mb-3 opacity-40" />
                 <p className="text-sm">Nenhum uso registrado ainda.</p>
-                <p className="text-xs mt-1">Comece criando posts ou gerando conteúdo com IA!</p>
+                <p className="text-xs mt-1">Comece gerando áudio, texto ou imagens com IA!</p>
               </div>
             ) : (
               <div className="h-[250px]">
@@ -406,6 +396,7 @@ interface KpiCardProps {
 }
 
 function KpiCard({ icon, label, value, limit }: KpiCardProps) {
+  const unlimited = limit <= 0;
   const percentage = pct(value, limit);
   return (
     <Card className="rounded-xl hover:shadow-md transition-shadow">
@@ -414,12 +405,16 @@ function KpiCard({ icon, label, value, limit }: KpiCardProps) {
           <span className="text-muted-foreground text-xs font-medium">{label}</span>
           {icon}
         </div>
-        <div className="flex items-end gap-1">
+        <div className="flex items-end gap-1 flex-wrap">
           <span className="text-2xl font-bold">{value}</span>
-          <span className="text-muted-foreground text-sm mb-0.5">/ {limit}</span>
+          <span className="text-muted-foreground text-sm mb-0.5">
+            / {limitLabel(limit)}
+          </span>
         </div>
-        <Progress value={percentage} className="h-2" />
-        <p className="text-xs text-muted-foreground">{percentage}% utilizado</p>
+        {!unlimited && <Progress value={percentage} className="h-2" />}
+        <p className="text-xs text-muted-foreground">
+          {unlimited ? 'Sem limite mensal' : `${percentage}% utilizado`}
+        </p>
       </CardContent>
     </Card>
   );
@@ -432,20 +427,25 @@ interface UsageRowProps {
 }
 
 function UsageRow({ label, used, limit }: UsageRowProps) {
+  const unlimited = limit <= 0;
   const percentage = pct(used, limit);
-  const isHigh = percentage >= 80;
+  const isHigh = !unlimited && percentage >= 80;
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium">{label}</span>
         <span className={`text-xs ${isHigh ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>
-          {used} / {limit} ({percentage}%)
+          {unlimited
+            ? `${used} / Ilimitado`
+            : `${used} / ${limit} (${percentage}%)`}
         </span>
       </div>
-      <Progress
-        value={percentage}
-        className={`h-2.5 ${isHigh ? '[&>div]:bg-red-500' : ''}`}
-      />
+      {!unlimited && (
+        <Progress
+          value={percentage}
+          className={`h-2.5 ${isHigh ? '[&>div]:bg-red-500' : ''}`}
+        />
+      )}
     </div>
   );
 }

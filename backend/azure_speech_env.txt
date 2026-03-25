@@ -1,0 +1,10 @@
+# Variables Azure Speech — à copier dans backend/.env
+# Ne commitez pas de vraie clé dans ce fichier si vous le versionnez.
+#
+# AZURE_SPEECH_KEY=<clé_1_ou_2_du_portail_Azure_Speech>
+# AZURE_SPEECH_ENDPOINT=https://laurena-resource.cognitiveservices.azure.com/
+# AZURE_SPEECH_VOICE=en-US-Ava:DragonHDLatestNeural
+
+AZURE_SPEECH_KEY=ta_nouvelle_clé
+AZURE_SPEECH_ENDPOINT=https://laurena-resource.cognitiveservices.azure.com/
+AZURE_SPEECH_VOICE=en-US-Ava:DragonHDLatestNeural

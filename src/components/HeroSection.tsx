@@ -6,10 +6,14 @@ import HeroInferenceDemo from "@/components/HeroInferenceDemo";
 const HeroSection = () => {
   return (
     <section className="relative rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-card animate-fade-in border border-border h-[calc(100vh-5.5rem)] min-h-[400px] flex flex-col">
-      {/* Imagem hero / fundo principal */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url(/aza.jpeg)" }}
+      {/* Imagem hero — <img> + preload no index para prioridade do browser (L mais rápido que background-image) */}
+      <img
+        src="/aza.jpeg"
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        fetchPriority="high"
+        decoding="async"
+        loading="eager"
       />
       {/* Overlay leve para legibilidade do texto sem esconder a imagem */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/25 to-transparent" />
@@ -18,14 +22,17 @@ const HeroSection = () => {
         {/* Lado esquerdo: conteúdo sobre a imagem hero */}
         <div className="relative flex flex-col justify-center items-start p-4 sm:p-6 md:p-10 lg:p-12 min-h-0 overflow-hidden order-2 md:order-1">
           <div className="w-full max-w-xl text-white">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-[1.2] tracking-tight animate-slide-down drop-shadow-lg mb-4 md:mb-6">
+            <h1 className="font-inter text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-[1.35] tracking-tight animate-slide-down drop-shadow-lg mb-4 md:mb-6">
               Crie campanhas publicitárias e sites com{" "}
-              <span className="text-foreground [text-shadow:0_0_20px_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.15)]">
+              <span
+                className="relative inline-block align-baseline rounded-lg px-2 py-0.5 sm:px-2.5 sm:py-1 -mx-0.5 sm:-mx-0 backdrop-blur-xl bg-white/15 ring-1 ring-inset ring-white/25 shadow-sm text-[hsl(16,35%,12%)] [text-shadow:0_0_20px_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.15)] [box-decoration-break:clone]"
+                style={{ WebkitBoxDecorationBreak: "clone" }}
+              >
                 inteligência artificial
               </span>
             </h1>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed animate-slide-up drop-shadow-md mb-6 md:mb-8 text-[hsl(40,30%,96%)]">
-              Aqui você cria imagens e vídeos para suas campanhas de anúncios, gera textos e conteúdo criativo e cria sites completos sem programar. Tudo com IA.
+            <p className="font-inter text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed animate-slide-up drop-shadow-md mb-6 md:mb-8 text-[hsl(40,30%,96%)]">
+              Aqui você cria imagens, vídeos e áudio para suas campanhas de anúncios, gera textos e conteúdo criativo e cria sites completos sem programar. Tudo com IA.
             </p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 animate-slide-up">
               <Button asChild size="lg" className="rounded-full px-6 sm:px-8 sm:w-auto hover:scale-105 transition-all gap-2">
@@ -51,7 +58,9 @@ const HeroSection = () => {
           </div>
           <div className="absolute bottom-3 right-3 md:bottom-5 md:right-5 bg-background rounded-xl border border-border shadow-lg px-2 py-1.5 md:px-3 md:py-2 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-medium">Ao vivo</span>
+            <span className="font-mono text-[11px] font-normal uppercase tracking-widest text-foreground/90">
+              Ao vivo
+            </span>
           </div>
         </div>
       </div>

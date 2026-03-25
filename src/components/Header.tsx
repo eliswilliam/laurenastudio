@@ -40,7 +40,7 @@ const Header = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-2">
+          <nav className="hidden md:flex items-center gap-2 font-section">
             <a href="#funcionalidades" className="text-sm font-medium hover:bg-muted/60 rounded-full px-4 py-2 transition-all">
               Funcionalidades
             </a>
@@ -82,7 +82,7 @@ const Header = () => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-border animate-fade-in">
-            <nav className="flex flex-col gap-3">
+            <nav className="flex flex-col gap-3 font-section">
               <a href="#funcionalidades" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-primary transition-colors">
                 Funcionalidades
               </a>

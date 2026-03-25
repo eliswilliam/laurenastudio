@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   PenSquare,
   Image,
-  Sparkles,
+  BrainCircuit,
   Send,
   Save,
   CalendarDays,
@@ -67,7 +67,7 @@ export default function CriarPost() {
           </p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => navigate('/ai-studio')}>
-          <Sparkles className="w-4 h-4" />
+          <BrainCircuit className="w-4 h-4" />
           Gerar com IA
         </Button>
       </div>

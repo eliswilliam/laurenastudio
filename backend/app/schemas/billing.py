@@ -21,6 +21,7 @@ class PlanRead(BaseModel):
     video_limit: int
     social_limit: int
     post_limit: int
+    audio_limit: int  # 0 = unlimited
 
 
 # ── Subscription ──────────────────────────────────────────────────────────────
@@ -84,6 +85,7 @@ class UsageRead(BaseModel):
     image_used: int
     video_used: int
     posts_used: int
+    audio_used: int
     period_start: datetime
     period_end: datetime
 
@@ -95,6 +97,7 @@ class UsageWithLimits(BaseModel):
     image_remaining: int
     video_remaining: int
     posts_remaining: int
+    audio_remaining: int
 
 
 # ── Billing status (combined view) ──────────────────────────────────────────

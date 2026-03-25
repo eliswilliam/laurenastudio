@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAIStudioStore, type StudioChatMessage, type StudioMode } from '@/store/useAIStudioStore';
 import {
-  Sparkles,
+  BrainCircuit,
   ImageIcon,
   Video,
   Music,
@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import api, { getAiVideoJobStatus } from '@/lib/api';
+import api, { getAiVideoJobStatus, synthesizeSpeechWav } from '@/lib/api';
 import AIInferenceAnimation from '@/components/shared/AIInferenceAnimation';
 
 export default function AIStudio() {
@@ -119,6 +119,18 @@ export default function AIStudio() {
           timestamp: ts(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
+      } else if (mode === 'audio') {
+        const blob = await synthesizeSpeechWav(prompt);
+        const audioUrl = URL.createObjectURL(blob);
+        const assistantMsg: StudioChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: '',
+          mediaUrl: audioUrl,
+          mediaType: 'audio',
+          timestamp: ts(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
       }
       toast({ title: 'Conteúdo gerado!', description: 'A IA finalizou a geração.' });
     } catch (err: unknown) {
@@ -159,7 +171,7 @@ export default function AIStudio() {
       <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
         <div className="text-center space-y-3 pt-4">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-2">
-            <Sparkles className="w-8 h-8 text-primary" />
+            <BrainCircuit className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold">AI Studio</h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
@@ -178,11 +190,11 @@ export default function AIStudio() {
                 <div>
                   <h2 className="text-lg font-bold mb-1">Imagem & Texto</h2>
                   <p className="text-muted-foreground text-sm">
-                    Gere textos, imagens e conteúdo criativo em um chat interativo.
+                    Gere textos, imagens, áudio e conteúdo criativo em um chat interativo.
                   </p>
                 </div>
                 <Badge variant="secondary" className="gap-1">
-                  <Sparkles className="w-3 h-3" />
+                  <BrainCircuit className="w-3 h-3" />
                   Gemini 2.5
                 </Badge>
               </CardContent>
@@ -203,40 +215,43 @@ export default function AIStudio() {
                   </p>
                 </div>
                 <Badge variant="secondary" className="gap-1">
-                  <Sparkles className="w-3 h-3" />
+                  <BrainCircuit className="w-3 h-3" />
                   Veo 3.1
                 </Badge>
               </CardContent>
             </Card>
           </button>
 
-          {/* Audio: Coming Soon */}
-          <div className="relative">
-            <Card className="rounded-2xl border-2 border-dashed border-muted-foreground/20 h-full opacity-60">
+          {/* Audio: Azure TTS */}
+          <button type="button" onClick={() => setMode('audio')} className="group text-left">
+            <Card className="rounded-2xl border-2 border-transparent transition-all duration-200 hover:border-primary hover:shadow-lg hover:shadow-primary/10 cursor-pointer h-full">
               <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-                  <Music className="w-8 h-8 text-muted-foreground" />
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-violet-500/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <Music className="w-8 h-8 text-violet-600" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold mb-1">Áudio</h2>
                   <p className="text-muted-foreground text-sm">
-                    Geração de áudio e trilhas sonoras com IA.
+                    Síntese de voz neural (Azure AI Speech) a partir do seu texto.
                   </p>
                 </div>
-                <Badge variant="outline" className="gap-1 text-muted-foreground">
-                  Em breve
+                <Badge variant="secondary" className="gap-1">
+                  <Music className="w-3 h-3" />
+                  Azure TTS
                 </Badge>
               </CardContent>
             </Card>
-          </div>
+          </button>
         </div>
       </div>
     );
   }
 
   // ── Chat interface ─────────────────────────────────────────────────────────
-  const modeLabel = mode === 'gemini' ? 'Imagem & Texto' : 'Vídeo';
-  const modeModel = mode === 'gemini' ? 'Gemini 2.5' : 'Veo 3.1';
+  const modeLabel =
+    mode === 'gemini' ? 'Imagem & Texto' : mode === 'veo' ? 'Vídeo' : 'Áudio';
+  const modeModel =
+    mode === 'gemini' ? 'Gemini 2.5' : mode === 'veo' ? 'Veo 3.1' : 'Azure Neural TTS';
 
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-8rem)]">
@@ -248,14 +263,14 @@ export default function AIStudio() {
           </Button>
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
+              <BrainCircuit className="w-5 h-5 text-primary" />
               AI Studio · {modeLabel}
             </h1>
             <p className="text-sm text-muted-foreground">Modelo: {modeModel}</p>
           </div>
         </div>
         <Badge variant="secondary" className="gap-1">
-          <Sparkles className="w-3 h-3" />
+          <BrainCircuit className="w-3 h-3" />
           {modeModel}
         </Badge>
       </div>
@@ -267,8 +282,10 @@ export default function AIStudio() {
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
               {mode === 'gemini' ? (
                 <ImageIcon className="w-8 h-8 text-primary" />
-              ) : (
+              ) : mode === 'veo' ? (
                 <Video className="w-8 h-8 text-primary" />
+              ) : (
+                <Music className="w-8 h-8 text-violet-600" />
               )}
             </div>
             <div>
@@ -276,7 +293,9 @@ export default function AIStudio() {
               <p className="text-sm text-muted-foreground mt-1">
                 {mode === 'gemini'
                   ? 'Descreva o que deseja gerar: texto, imagem ou ambos.'
-                  : 'Descreva o vídeo que deseja criar.'}
+                  : mode === 'veo'
+                    ? 'Descreva o vídeo que deseja criar.'
+                    : 'Escreva o texto que deseja ouvir em voz sintética.'}
               </p>
             </div>
             {/* Quick suggestions */}
@@ -287,11 +306,17 @@ export default function AIStudio() {
                     'Gere um banner para promoção de verão',
                     'Crie uma imagem minimalista de logo tech',
                   ]
-                : [
-                    'Crie um vídeo de um pôr do sol na praia',
-                    'Gere um vídeo de transição suave de produto',
-                    'Crie um vídeo cinematográfico urbano',
-                  ]
+                : mode === 'veo'
+                  ? [
+                      'Crie um vídeo de um pôr do sol na praia',
+                      'Gere um vídeo de transição suave de produto',
+                      'Crie um vídeo cinematográfico urbano',
+                    ]
+                  : [
+                      'Olá! Bem-vindo ao Laurena Studio.',
+                      'Promoção de verão: cinquenta por cento em todos os artigos.',
+                      'Mensagem calma para o seu podcast de hoje.',
+                    ]
               ).map((suggestion) => (
                 <button
                   key={suggestion}
@@ -357,6 +382,23 @@ export default function AIStudio() {
                 </div>
               )}
 
+              {msg.mediaUrl && msg.mediaType === 'audio' && (
+                <div className="mt-2 space-y-2">
+                  <audio src={msg.mediaUrl} controls className="rounded-xl w-full max-w-md" />
+                  <a
+                    href={msg.mediaUrl}
+                    download="laurena-speech.wav"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
+                      <Download className="w-3 h-3" />
+                      Baixar WAV
+                    </Button>
+                  </a>
+                </div>
+              )}
+
               {msg.role === 'assistant' && msg.content && !msg.mediaUrl && (
                 <button
                   onClick={() => handleCopy(msg.content)}
@@ -383,7 +425,9 @@ export default function AIStudio() {
               <Bot className="w-4 h-4 text-primary" />
             </div>
             <div className="bg-card border rounded-2xl rounded-bl-md px-4 py-3 max-w-[75%]">
-              <AIInferenceAnimation type={mode === 'veo' ? 'video' : 'image'} />
+              <AIInferenceAnimation
+                type={mode === 'veo' ? 'video' : mode === 'audio' ? 'audio' : 'image'}
+              />
             </div>
           </div>
         )}
@@ -400,7 +444,9 @@ export default function AIStudio() {
               placeholder={
                 mode === 'gemini'
                   ? 'Descreva o que deseja gerar…'
-                  : 'Descreva o vídeo que deseja criar…'
+                  : mode === 'veo'
+                    ? 'Descreva o vídeo que deseja criar…'
+                    : 'Texto para síntese de voz…'
               }
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -425,7 +471,9 @@ export default function AIStudio() {
         <p className="text-xs text-muted-foreground mt-2 text-center">
           {mode === 'gemini'
             ? 'Gemini 2.5 gera texto e imagens com base no seu prompt.'
-            : 'Veo 3.1: a geração de vídeo pode levar até 5 minutos.'}
+            : mode === 'veo'
+              ? 'Veo 3.1: a geração de vídeo pode levar até 5 minutos.'
+              : 'Áudio: conta para o limite mensal de «Áudio IA» do seu plano.'}
         </p>
       </div>
     </div>

@@ -8,7 +8,7 @@ export interface StudioChatMessage {
   role: 'user' | 'assistant';
   content: string;
   mediaUrl?: string;
-  mediaType?: 'image' | 'video' | 'text';
+  mediaType?: 'image' | 'video' | 'text' | 'audio';
   /** ISO string — persist-friendly */
   timestamp: string;
 }

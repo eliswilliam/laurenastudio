@@ -34,6 +34,9 @@ email-validator>=2.1.1
 # Google Gemini AI
 google-genai>=1.0.0
 
+# Azure Speech (text-to-speech)
+azure-cognitiveservices-speech>=1.41.0
+
 # File uploads
 aiofiles>=24.1.0
 

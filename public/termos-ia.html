@@ -13,7 +13,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="./android-chrome-192x192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bagel+Fat+One&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Playfair+Display:ital@1&family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -32,10 +32,10 @@
     }
 
     body {
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: 'DM Sans', system-ui, sans-serif;
       background-color: var(--pampas);
       color: var(--warm-brown);
-      line-height: 1.75;
+      line-height: 1.6;
       min-height: 100vh;
     }
 
@@ -86,7 +86,13 @@
       padding: 3.5rem 1.5rem;
       text-align: center;
     }
-    .hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; margin-bottom: 0.75rem; color: #fff; }
+    .hero h1 {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
     .hero p { font-size: 1rem; color: rgba(255,255,255,0.88); max-width: 600px; margin: 0 auto; }
     .hero .badge {
       display: inline-block;

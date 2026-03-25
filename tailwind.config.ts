@@ -14,8 +14,12 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Merriweather', 'Georgia', 'serif'],
+        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        inter: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['"Bebas Neue"', 'Impact', 'system-ui', 'sans-serif'],
+        section: ['Syne', 'system-ui', 'sans-serif'],
+        editorial: ['"Playfair Display"', 'Georgia', 'serif'],
+        mono: ['"Space Mono"', 'ui-monospace', 'monospace'],
         bagel: ['"Bagel Fat One"', 'cursive'],
       },
       colors: {
@@ -67,6 +71,11 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      /* Evita cortar pé do “g” e outras descendentes (Syne / DM Sans) */
+      lineHeight: {
+        tight: "1.45",
+        snug: "1.45",
       },
       keyframes: {
         "accordion-down": {

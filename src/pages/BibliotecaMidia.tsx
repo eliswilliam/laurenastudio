@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Image,
   Video,
-  Sparkles,
+  BrainCircuit,
   Upload,
   Download,
   Trash2,
@@ -65,7 +65,7 @@ function getMediaCategory(type: string): 'imagem' | 'video' | 'gerado-ia' {
 const iconesTipo: Record<string, React.ReactNode> = {
   imagem: <Image className="w-3.5 h-3.5" />,
   video: <Video className="w-3.5 h-3.5" />,
-  'gerado-ia': <Sparkles className="w-3.5 h-3.5" />,
+  'gerado-ia': <BrainCircuit className="w-3.5 h-3.5" />,
 };
 
 export default function BibliotecaMidia() {
@@ -164,7 +164,7 @@ export default function BibliotecaMidia() {
             Biblioteca de Mídia
           </h1>
           <p className="text-muted-foreground">
-            Gerencie imagens, vídeos e conteúdos gerados por IA.
+            Gerencie imagens, vídeos, áudio e conteúdos gerados por IA.
           </p>
         </div>
         <Dialog open={uploadDialogAberto} onOpenChange={setUploadDialogAberto}>

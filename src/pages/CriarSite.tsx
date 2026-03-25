@@ -7,7 +7,7 @@ import {
   ExternalLink,
   Rocket,
   History,
-  Sparkles,
+  BrainCircuit,
   LayoutTemplate,
   Globe,
 } from 'lucide-react';
@@ -731,7 +731,7 @@ export default function CriarSite() {
         aria-label="Fluxo do criador de sites"
       >
         <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
-          <Sparkles className="w-3.5 h-3.5" /> Briefing (IA)
+          <BrainCircuit className="w-3.5 h-3.5" /> Briefing (IA)
         </span>
         <span aria-hidden>→</span>
         <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">

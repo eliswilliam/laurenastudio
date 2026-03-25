@@ -1,8 +1,8 @@
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Megaphone,
-  Sparkles,
+  BrainCircuit,
   BarChart3,
   TrendingUp,
   Image,
@@ -19,7 +19,7 @@ const mainItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Rocket, label: 'Publicar', href: '/criar-site#publicar' },
   { icon: Megaphone, label: 'Marketing AI', href: '/marketing-ai' },
-  { icon: Sparkles, label: 'AI Studio', href: '/ai-studio' },
+  { icon: BrainCircuit, label: 'AI Studio', href: '/ai-studio' },
   { icon: BarChart3, label: 'Analytics', href: '/analytics' },
 ];
 
@@ -90,49 +90,25 @@ export default function MobileBottomNav() {
           {mainItems.map((item) => {
             const Icon = item.icon;
             return (
-              <NavLink
+              <Link
                 key={item.href}
                 to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    'flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors',
-                    isActive
-                      ? 'text-primary'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )
-                }
+                className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground visited:text-muted-foreground transition-colors hover:text-foreground"
               >
-                {({ isActive }) => (
-                  <>
-                    <div
-                      className={cn(
-                        'w-10 h-6 rounded-full flex items-center justify-center transition-colors',
-                        isActive ? 'bg-primary/15' : ''
-                      )}
-                    >
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span>{item.label}</span>
-                  </>
-                )}
-              </NavLink>
+                <div className="flex h-6 w-10 items-center justify-center rounded-full">
+                  <Icon className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
+                </div>
+                <span>{item.label}</span>
+              </Link>
             );
           })}
 
           {/* Botão "Mais" */}
           <button
             onClick={() => setMoreOpen(!moreOpen)}
-            className={cn(
-              'flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors',
-              moreOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-            )}
+            className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            <div
-              className={cn(
-                'w-10 h-6 rounded-full flex items-center justify-center transition-colors',
-                moreOpen ? 'bg-primary/15' : ''
-              )}
-            >
+            <div className="flex h-6 w-10 items-center justify-center rounded-full transition-colors">
               <MoreHorizontal className="w-5 h-5" />
             </div>
             <span>Mais</span>

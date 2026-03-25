@@ -29,6 +29,7 @@ class UsageTracking(Base):
     image_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     video_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     posts_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    audio_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # ── Billing period ───────────────────────────────────────────────────────
     period_start: Mapped[datetime] = mapped_column(
@@ -47,5 +48,6 @@ class UsageTracking(Base):
         return (
             f"<UsageTracking workspace={self.workspace_id} "
             f"text={self.text_used} img={self.image_used} "
-            f"vid={self.video_used} posts={self.posts_used}>"
+            f"vid={self.video_used} posts={self.posts_used} "
+            f"audio={self.audio_used}>"
         )

@@ -20,7 +20,7 @@ function InstagramPreview({ conteudo, titulo }: { conteudo: string; titulo: stri
       {/* Header */}
       <div className="flex items-center gap-3 p-3 border-b">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-500" />
-        <span className="text-sm font-semibold">laurena.studio</span>
+        <span className="font-bagel text-sm tracking-wider">laurena.studio</span>
       </div>
       {/* Image placeholder */}
       <div className="aspect-square bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-950 dark:to-purple-950 flex items-center justify-center">
@@ -38,7 +38,7 @@ function InstagramPreview({ conteudo, titulo }: { conteudo: string; titulo: stri
         </div>
         <p className="text-sm font-semibold">1.234 curtidas</p>
         <p className="text-sm">
-          <span className="font-semibold">laurena.studio </span>
+          <span className="font-bagel tracking-wider">laurena.studio </span>
           {conteudo.slice(0, 200)}
           {conteudo.length > 200 && <span className="text-muted-foreground">...mais</span>}
         </p>
@@ -54,7 +54,7 @@ function TwitterPreview({ conteudo }: { conteudo: string }) {
         <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 shrink-0" />
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-sm">Laurena Studio</span>
+            <span className="font-bagel tracking-wider text-sm">Laurena Studio</span>
             <span className="text-muted-foreground text-sm">@laurenastudio · 1m</span>
           </div>
           <p className="text-sm whitespace-pre-wrap">{conteudo.slice(0, 280)}</p>
@@ -85,7 +85,7 @@ function LinkedInPreview({ conteudo, titulo }: { conteudo: string; titulo: strin
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900" />
           <div>
-            <p className="font-semibold text-sm">Laurena Studio</p>
+            <p className="font-bagel tracking-wider text-sm">Laurena Studio</p>
             <p className="text-xs text-muted-foreground">Marketing Digital · 1m</p>
           </div>
         </div>
@@ -121,7 +121,7 @@ function FacebookPreview({ conteudo, titulo }: { conteudo: string; titulo: strin
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-500" />
           <div>
-            <p className="font-semibold text-sm">Laurena Studio</p>
+            <p className="font-bagel tracking-wider text-sm">Laurena Studio</p>
             <p className="text-xs text-muted-foreground">Agora mesmo · 🌐</p>
           </div>
         </div>
@@ -178,7 +178,10 @@ function YouTubePreview({ titulo, conteudo }: { titulo: string; conteudo: string
       </div>
       <div className="p-3 space-y-1">
         <p className="font-semibold text-sm line-clamp-2">{titulo || 'Título do vídeo'}</p>
-        <p className="text-xs text-muted-foreground">Laurena Studio · 1.2K views · 1 hora atrás</p>
+        <p className="text-xs text-muted-foreground">
+          <span className="font-bagel tracking-wider">Laurena Studio</span>
+          {' '}· 1.2K views · 1 hora atrás
+        </p>
         <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{conteudo.slice(0, 150)}</p>
       </div>
     </div>

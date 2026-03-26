@@ -1,33 +1,27 @@
 import { Link, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
+  LayoutTemplate,
   Megaphone,
   BrainCircuit,
-  BarChart3,
-  TrendingUp,
-  Image,
   CreditCard,
   Settings,
   MoreHorizontal,
   X,
-  Rocket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 const mainItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Rocket, label: 'Publicar', href: '/criar-site#publicar' },
+  { icon: LayoutTemplate, label: 'Criar site', href: '/criar-site' },
   { icon: Megaphone, label: 'Marketing AI', href: '/marketing-ai' },
   { icon: BrainCircuit, label: 'AI Studio', href: '/ai-studio' },
-  { icon: BarChart3, label: 'Analytics', href: '/analytics' },
 ];
 
 const moreItems = [
-  { icon: TrendingUp, label: 'Ads Analytics',      href: '/ads-analytics' },
-  { icon: Image,     label: 'Biblioteca de Mídia', href: '/midia' },
-  { icon: CreditCard,label: 'Pagamento',           href: '/pagamento' },
-  { icon: Settings,  label: 'Configurações',       href: '/configuracoes' },
+  { icon: CreditCard, label: 'Pagamento', href: '/pagamento' },
+  { icon: Settings, label: 'Configurações', href: '/configuracoes' },
 ];
 
 export default function MobileBottomNav() {
@@ -59,7 +53,7 @@ export default function MobileBottomNav() {
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="grid grid-cols-4 gap-1 p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-4">
           {moreItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -86,7 +80,7 @@ export default function MobileBottomNav() {
 
       {/* Barra de navegação inferior */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-background border-t border-border flex items-center md:hidden">
-        <div className="grid grid-cols-6 w-full h-full">
+        <div className="grid grid-cols-5 w-full h-full">
           {mainItems.map((item) => {
             const Icon = item.icon;
             return (

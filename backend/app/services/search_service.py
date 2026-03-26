@@ -50,24 +50,6 @@ SYSTEM_PAGES: list[SearchResult] = [
     ),
     SearchResult(
         type="page",
-        title="Analytics",
-        description="Métricas, desempenho, gráficos, redes sociais",
-        url="/analytics",
-    ),
-    SearchResult(
-        type="page",
-        title="Ads Analytics",
-        description="Anúncios pagos, campanhas, ROAS, Google Meta",
-        url="/ads-analytics",
-    ),
-    SearchResult(
-        type="page",
-        title="Biblioteca de Mídia",
-        description="Imagens, vídeos, ficheiros, upload, stock",
-        url="/midia",
-    ),
-    SearchResult(
-        type="page",
         title="Plano e pagamento",
         description="Assinatura, Stripe, preços, upgrade, fatura, billing",
         url="/pagamento",

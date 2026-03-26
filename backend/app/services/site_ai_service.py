@@ -1,33 +1,36 @@
-"""
+﻿"""
 services/site_ai_service.py
-Gemini integration for site-builder: takes user brief and returns a
-structured JSON describing the full site (sections, content, SEO).
+Criar site â€” Groq via client OpenAI (base_url https://api.groq.com/openai/v1).
+
+- PrioritÃ© : ``client.responses.create`` (instructions + input â†’ ``output_text``), comme la doc Groq/OpenAI.
+- Secours : ``chat.completions`` si lâ€™API ``/responses`` nâ€™est pas disponible cÃ´tÃ© Groq.
+
+Aucun appel Google Gemini pour ce module (remplace GEMINI_TEXT / GEMINI_SITE_GENERATION pour chat + JSON).
+Les images Â« AI Studio / Marketing Â» restent Replicate (autre endpoint) ; pas ici.
 """
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
-from collections.abc import Iterator
 from functools import partial
 from typing import Any
 
-from google.genai import types
+from openai import APIConnectionError, APIStatusError, OpenAI, RateLimitError
 
 from app.core.config import settings
-from app.services.ai_service import _get_client
-
-_GEMINI_TEXT = settings.GEMINI_TEXT_MODEL
-# Modèle utilisé uniquement pour la génération de la structure JSON du site (Gerar site), pas pour le chat.
-_GEMINI_SITE_STRUCTURE = settings.GEMINI_SITE_GENERATION_MODEL
 
 logger = logging.getLogger(__name__)
+
+_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 
 def build_site_generation_brief_from_prompts(prompts: list[Any]) -> str:
     """
-    Brief envoyé au modèle de structure (Gemini « site ») : conversation complète.
-    Avant : seuls les messages user étaient concaténés — les précisions convenues avec
-    Laurena (assistant) étaient perdues, donc les itérations « améliore le hero » ne
-    pouvaient pas être appliquées correctement.
+    Brief envoyÃ© au modÃ¨le de structure : conversation complÃ¨te.
+    Avant : seuls les messages user Ã©taient concatÃ©nÃ©s â€” les prÃ©cisions convenues avec
+    Laurena (assistant) Ã©taient perdues, donc les itÃ©rations Â« amÃ©liore le hero Â» ne
+    pouvaient pas Ãªtre appliquÃ©es correctement.
     """
     if not prompts:
         return ""
@@ -41,41 +44,16 @@ def build_site_generation_brief_from_prompts(prompts: list[Any]) -> str:
     if not chunks:
         return ""
     return (
-        "SITE GENERATION BRIEF — Full conversation. The JSON site generator MUST honor "
+        "SITE GENERATION BRIEF â€” Full conversation. The JSON site generator MUST honor "
         "the latest User messages for changes and corrections. Lines labeled Assistant (Laurena) "
-        "are agreed refinements, tone, and structure notes from the chat phase — treat them "
+        "are agreed refinements, tone, and structure notes from the chat phase â€” treat them "
         "as binding constraints together with User messages.\n\n"
         + "\n\n---\n\n".join(chunks)
     )
 
 
-# Filtros de segurança ativos (substitui OFF). Equilíbrio entre proteção e falsos positivos.
-_GEMINI_SAFETY_THRESHOLD = types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-
-
-def _gemini_safety_settings() -> list[types.SafetySetting]:
-    return [
-        types.SafetySetting(
-            category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-            threshold=_GEMINI_SAFETY_THRESHOLD,
-        ),
-        types.SafetySetting(
-            category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-            threshold=_GEMINI_SAFETY_THRESHOLD,
-        ),
-        types.SafetySetting(
-            category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-            threshold=_GEMINI_SAFETY_THRESHOLD,
-        ),
-        types.SafetySetting(
-            category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-            threshold=_GEMINI_SAFETY_THRESHOLD,
-        ),
-    ]
-
-
 class GeminiGenerationError(Exception):
-    """Resposta bloqueada, vazia ou inválida — mensagem já adequada ao utilizador (PT)."""
+    """RÃ©ponse bloquÃ©e, vide ou invalide â€” nom conservÃ© pour les routes / worker existants."""
 
     def __init__(self, user_message: str, *, reason: str = "unknown") -> None:
         self.user_message = user_message
@@ -83,93 +61,196 @@ class GeminiGenerationError(Exception):
         super().__init__(user_message)
 
 
-def _msg_prompt_blocked() -> str:
-    return (
-        "O seu pedido não pôde ser processado pelos filtros de segurança. "
-        "Reformule o briefing sem conteúdo ofensivo, ilegal ou perigoso e tente novamente."
-    )
-
-
-def _msg_output_blocked() -> str:
-    return (
-        "A resposta foi bloqueada pelos filtros de segurança. "
-        "Ajuste a descrição do site e tente novamente."
-    )
-
-
 def _msg_empty_or_model_stop() -> str:
     return (
-        "A IA não devolveu texto. Tente reformular o pedido ou aguarde um momento e tente novamente."
+        "A IA nÃ£o devolveu texto. Tente reformular o pedido ou aguarde um momento e tente novamente."
     )
 
 
-def _collect_stream_text(
-    stream: Iterator[types.GenerateContentResponse],
+def _groq_client() -> OpenAI:
+    key = (settings.GROQ_API_KEY or "").strip()
+    if not key:
+        raise RuntimeError(
+            "GROQ_API_KEY nÃ£o estÃ¡ definido. Adicione a chave no .env para o Criar site."
+        )
+    return OpenAI(api_key=key, base_url=_GROQ_BASE_URL)
+
+
+def _groq_handle_errors(exc: BaseException, *, context: str) -> None:
+    if isinstance(exc, RateLimitError):
+        logger.warning("Groq [%s] rate limit: %s", context, exc)
+        raise GeminiGenerationError(
+            "Limite de pedidos Ã  IA atingida. Aguarde um minuto e tente novamente.",
+            reason="rate_limit",
+        ) from exc
+    if isinstance(exc, APIConnectionError):
+        logger.exception("Groq [%s] connection error", context)
+        raise GeminiGenerationError(
+            "Erro de ligaÃ§Ã£o Ã  IA. Tente novamente dentro de alguns minutos.",
+            reason="api_error",
+        ) from exc
+    if isinstance(exc, APIStatusError):
+        logger.exception("Groq [%s] HTTP error", context)
+        detail = getattr(exc, "message", None) or str(exc)
+        if exc.status_code == 401:
+            raise GeminiGenerationError(
+                "Chave da API Groq invÃ¡lida (GROQ_API_KEY). Verifique o .env.",
+                reason="auth",
+            ) from exc
+        raise GeminiGenerationError(
+            f"Erro da IA ({exc.status_code}): {detail}",
+            reason="api_error",
+        ) from exc
+
+
+def _text_from_response_object(resp: Any) -> str:
+    out = getattr(resp, "output_text", None)
+    if isinstance(out, str) and out.strip():
+        return out.strip()
+    return ""
+
+
+def _responses_api_unsupported(exc: APIStatusError) -> bool:
+    b = str(exc).lower()
+    if exc.status_code in (404, 405):
+        return True
+    return "response" in b and ("not found" in b or "unknown" in b or "invalid" in b)
+
+
+def _sync_groq_responses_create(
     *,
+    instructions: str,
+    user_input: str,
+    model: str,
+    max_output_tokens: int,
+    temperature: float,
     context: str,
 ) -> str:
-    """
-    Agrega texto do stream e trata prompt bloqueado, finish_reason e resposta vazia.
-    `context` é só para logs (ex.: "chat", "site_structure").
-    """
-    text_parts: list[str] = []
-    last_finish: types.FinishReason | None = None
+    """Groq: POST .../responses via SDK (Ã©quivalent doc utilisateur)."""
+    client = _groq_client()
+    try:
+        resp = client.responses.create(
+            model=model,
+            instructions=instructions,
+            input=user_input,
+            max_output_tokens=max_output_tokens,
+            temperature=temperature,
+        )
+    except APIStatusError as exc:
+        if _responses_api_unsupported(exc):
+            raise
+        _groq_handle_errors(exc, context=context)
+    except (RateLimitError, APIConnectionError) as exc:
+        _groq_handle_errors(exc, context=context)
+    except Exception as exc:
+        logger.exception("Groq [%s] responses.create failed", context)
+        raise GeminiGenerationError(
+            "Erro ao contactar a IA. Tente novamente dentro de alguns minutos.",
+            reason="api_error",
+        ) from exc
 
-    for chunk in stream:
-        if chunk.prompt_feedback:
-            pf = chunk.prompt_feedback
-            br = pf.block_reason
-            if br is not None and br != types.BlockedReason.BLOCKED_REASON_UNSPECIFIED:
-                logger.warning(
-                    "Gemini [%s] prompt_feedback block_reason=%s message=%s",
-                    context,
-                    br,
-                    getattr(pf, "block_reason_message", None),
-                )
-                raise GeminiGenerationError(_msg_prompt_blocked(), reason="prompt_blocked")
+    text = _text_from_response_object(resp)
+    if not text:
+        logger.warning("Groq [%s] empty output_text from responses.create", context)
+        raise GeminiGenerationError(_msg_empty_or_model_stop(), reason="empty_response")
+    return text
 
-        if not chunk.candidates:
+
+def _sync_groq_chat_completions(
+    messages: list[dict[str, str]],
+    *,
+    model: str,
+    max_tokens: int,
+    temperature: float,
+    context: str,
+) -> str:
+    client = _groq_client()
+    try:
+        resp = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+    except (RateLimitError, APIConnectionError, APIStatusError) as exc:
+        _groq_handle_errors(exc, context=context)
+        raise
+    except Exception as exc:
+        logger.exception("Groq [%s] chat.completions failed", context)
+        raise GeminiGenerationError(
+            "Erro ao contactar a IA. Tente novamente dentro de alguns minutos.",
+            reason="api_error",
+        ) from exc
+
+    choice = resp.choices[0] if resp.choices else None
+    text = (choice.message.content or "").strip() if choice and choice.message else ""
+    if not text:
+        logger.warning("Groq [%s] empty chat completion", context)
+        raise GeminiGenerationError(_msg_empty_or_model_stop(), reason="empty_response")
+    return text
+
+
+def _split_system_and_rest(
+    messages: list[dict[str, str]],
+) -> tuple[str, list[dict[str, str]]]:
+    if messages and messages[0].get("role") == "system":
+        return str(messages[0].get("content", "")), messages[1:]
+    return "", messages
+
+
+def _dialog_string_from_turns(turns: list[dict[str, str]]) -> str:
+    parts: list[str] = []
+    for m in turns:
+        role = m.get("role", "user")
+        if role not in ("user", "assistant"):
             continue
+        label = "User" if role == "user" else "Assistant"
+        parts.append(f"{label}: {str(m.get('content', '')).strip()}")
+    return "\n\n".join(parts)
 
-        cand = chunk.candidates[0]
-        if cand.finish_reason is not None:
-            last_finish = cand.finish_reason
 
-        content = cand.content
-        if content and content.parts:
-            for part in content.parts:
-                if part.text:
-                    text_parts.append(part.text)
+def _sync_groq_completion(
+    messages: list[dict[str, str]],
+    *,
+    model: str,
+    max_tokens: int,
+    temperature: float,
+    context: str,
+) -> str:
+    instructions, rest = _split_system_and_rest(messages)
+    user_input = (
+        rest[0].get("content", "").strip()
+        if len(rest) == 1 and rest[0].get("role") == "user"
+        else _dialog_string_from_turns(rest)
+    )
+    if not instructions.strip():
+        # Pas de systÃ¨me : tout en input (rare)
+        user_input = _dialog_string_from_turns(messages)
 
-    raw = "".join(text_parts).strip()
-    if raw:
-        return raw
-
-    # Resposta vazia: interpretar finish_reason
-    fr = last_finish
-    if fr in (
-        types.FinishReason.SAFETY,
-        types.FinishReason.PROHIBITED_CONTENT,
-        types.FinishReason.IMAGE_SAFETY,
-        types.FinishReason.IMAGE_PROHIBITED_CONTENT,
-    ):
-        logger.warning("Gemini [%s] empty output finish_reason=%s", context, fr)
-        raise GeminiGenerationError(_msg_output_blocked(), reason="output_blocked")
-
-    if fr == types.FinishReason.MAX_TOKENS:
-        raise GeminiGenerationError(
-            "A resposta da IA foi cortada por limite de tamanho. Use um briefing mais curto ou divida em passos.",
-            reason="max_tokens",
+    try:
+        return _sync_groq_responses_create(
+            instructions=instructions.strip() or "You are a helpful assistant.",
+            user_input=user_input,
+            model=model,
+            max_output_tokens=max_tokens,
+            temperature=temperature,
+            context=context,
         )
-
-    if fr == types.FinishReason.RECITATION:
-        raise GeminiGenerationError(
-            "A IA não pôde concluir a resposta por restrições de conteúdo. Reformule o pedido.",
-            reason="recitation",
-        )
-
-    logger.warning("Gemini [%s] empty text, finish_reason=%s", context, fr)
-    raise GeminiGenerationError(_msg_empty_or_model_stop(), reason="empty_response")
+    except APIStatusError as exc:
+        if _responses_api_unsupported(exc):
+            logger.warning(
+                "Groq [%s] responses API indisponÃ­vel (%s); fallback chat.completions.",
+                context,
+                exc.status_code,
+            )
+            return _sync_groq_chat_completions(
+                messages,
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                context=context,
+            )
+        _groq_handle_errors(exc, context=context)
 
 
 SITE_SYSTEM_PROMPT = """\
@@ -184,9 +265,9 @@ You MUST reply with a single JSON object (no markdown fences, no extra text).
 }
 
 ## How to choose template_id (pick exactly ONE)
-- **hotel-reserva** — hotels, travel, bookings, stays, destinations, reservations.
-- **ecommerce** — shop, fashion, products, catalog, cart, retail, clothing.
-- **portfolio** — personal site, CV, developer/designer portfolio, freelance, case studies.
+- **hotel-reserva** â€” hotels, travel, bookings, stays, destinations, reservations.
+- **ecommerce** â€” shop, fashion, products, catalog, cart, retail, clothing.
+- **portfolio** â€” personal site, CV, developer/designer portfolio, freelance, case studies.
 
 The **site** object MUST follow the canonical structure for that template (keys and nested shapes below).
 Respect section **order** and **tipo** / **type** values so the renderer can map them.
@@ -250,56 +331,31 @@ Top-level: id, nome, tipo, idioma, arquivo, design, secoes[], optional modal_res
 ---
 
 ## Global rules
-- For ecommerce/portfolio **buttons and nav links**: use JSON **objects** `{ "label": "...", "href": "#id" }` when you need custom anchors — never output Python-style repr text; the renderer maps **primario** / **primary** for button style.
+- For ecommerce/portfolio **buttons and nav links**: use JSON **objects** `{ "label": "...", "href": "#id" }` when you need custom anchors â€” never output Python-style repr text; the renderer maps **primario** / **primary** for button style.
 - ONE static index page; internal navigation uses **#section-id** matching each section **id** (same page).
 - **Colours & fonts**: fill **paleta** / **palette** and **tipografia** / **typographie** from the user's brief (mood, sector, named colours). Do not invent random unrelated palettes.
+  **CRITICAL**: For **portfolio** and **ecommerce**, NEVER modify the main background colours (e.g. `bg`, `surface`, or the root background hex in palette). Keep the background colours exactly as they are in the base template so the layout does not degrade. You may only customize accent/primary colours and typography.
 - **Images**: you MAY use temporary https://images.unsplash.com/... URLs OR leave **imagem** empty; the pipeline replaces them with **Pexels** using **photo_search_query** when present.
-  On every object that contains **imagem** / **image** / **photo** / **avatar**, add **photo_search_query** (English, 4–12 words: subject, setting, mood) on the **same object**.
+  On every object that contains **imagem** / **image** / **photo** / **avatar**, add **photo_search_query** (English, 4â€“12 words: subject, setting, mood) on the **same object**.
 - ALL user-facing copy in **site** must match the language implied by **idioma** / **langue** (Portuguese for hotel/ecommerce, French for portfolio unless the user clearly asks another language).
 - **photo_search_query** values are always English (stock API).
-- No base64 images. No root-relative internal URLs like "/loja" — use "#id-de-section".
+- No base64 images. No root-relative internal URLs like "/loja" â€” use "#id-de-section".
 - Return ONLY valid JSON, nothing else."""
 
 
-def _build_site_config() -> types.GenerateContentConfig:
-    return types.GenerateContentConfig(
-        temperature=0.7,
-        top_p=0.9,
-        max_output_tokens=16384,
-        safety_settings=_gemini_safety_settings(),
-        system_instruction=[types.Part.from_text(text=SITE_SYSTEM_PROMPT)],
-    )
-
-
 def _sync_generate_site_structure(brief: str) -> dict:
-    """Blocking Gemini call that returns parsed JSON structure."""
-    client = _get_client()
-    config = _build_site_config()
-
-    contents = [
-        types.Content(
-            role="user",
-            parts=[types.Part.from_text(text=brief)],
-        ),
+    model = (settings.GROQ_SITE_STRUCTURE_MODEL or "openai/gpt-oss-20b").strip()
+    messages = [
+        {"role": "system", "content": SITE_SYSTEM_PROMPT},
+        {"role": "user", "content": brief},
     ]
-
-    try:
-        raw = _collect_stream_text(
-            client.models.generate_content_stream(
-                model=_GEMINI_SITE_STRUCTURE,
-                contents=contents,
-                config=config,
-            ),
-            context="site_structure",
-        )
-    except GeminiGenerationError:
-        raise
-    except Exception as exc:
-        logger.exception("Gemini stream failed (site structure)")
-        raise GeminiGenerationError(
-            "Erro ao contactar a IA. Tente novamente dentro de alguns minutos.",
-            reason="api_error",
-        ) from exc
+    raw = _sync_groq_completion(
+        messages,
+        model=model,
+        max_tokens=16384,
+        temperature=0.7,
+        context="site_structure",
+    )
 
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[-1]
@@ -310,9 +366,9 @@ def _sync_generate_site_structure(brief: str) -> dict:
     try:
         structure = json.loads(raw)
     except json.JSONDecodeError as exc:
-        logger.error("Gemini returned invalid JSON: %s… — %s", raw[:300], exc)
+        logger.error("Groq returned invalid JSON: %sâ€¦ â€” %s", raw[:300], exc)
         raise GeminiGenerationError(
-            "A IA devolveu um formato inválido. Tente gerar o site novamente.",
+            "A IA devolveu um formato invÃ¡lido. Tente gerar o site novamente.",
             reason="invalid_json",
         ) from exc
 
@@ -332,73 +388,50 @@ def _sync_generate_site_structure(brief: str) -> dict:
 
 
 def _sync_chat_reply(messages: list[dict], latest_user: str) -> str:
-    """Chat Laurena — must align with the real “Gerar site” product (HTML/CSS généré)."""
-    client = _get_client()
+    del latest_user  # historique dÃ©jÃ  dans messages
+    model = (settings.GROQ_SITE_CHAT_MODEL or "openai/gpt-oss-20b").strip()
 
     system_text = (
-        "You are Laurena (Gemini chat / brief refinement), inside Laurena Studio. "
-        "Another model generates the actual HTML when the user clicks « Gerar site ». "
+        "You are Laurena (chat / brief refinement), inside Laurena Studio. "
+        "Another model generates the actual HTML when the user clicks Â« Gerar site Â». "
         "CRITICAL PRODUCT FACTS (never contradict): "
-        "« Gerar site » builds a REAL multi-section static site (HTML+CSS+JS), preview + ZIP. "
-        "You do NOT output full HTML in chat — you refine the brief in natural language. "
+        "Â« Gerar site Â» builds a REAL multi-section static site (HTML+CSS+JS), preview + ZIP. "
+        "You do NOT output full HTML in chat â€” you refine the brief in natural language. "
         "ITERATION: After a preview exists, when the user asks to change colours, sections, copy, or layout, "
         "acknowledge the change clearly and concretely (what will differ). "
-        "Always remind them to click « Gerar site » again so the generator applies the update — "
+        "Always remind them to click Â« Gerar site Â» again so the generator applies the update â€” "
         "chat alone does not change the live preview. "
         "NEVER say you cannot build a website; the app generates it. "
-        "Prefer short answers (2–5 sentences). Do NOT chain many clarifying questions. "
-        "If the user says “don’t ask”, “just create”, “go”, commit with invented details, "
-        "then tell them to click « Gerar site » for the preview. "
-        "If they ask where the site is, say it appears after « Gerar site », then Preview. "
+        "Prefer short answers (2â€“5 sentences). Do NOT chain many clarifying questions. "
+        "If the user says â€œdonâ€™t askâ€, â€œjust createâ€, â€œgoâ€, commit with invented details, "
+        "then tell them to click Â« Gerar site Â» for the preview. "
+        "If they ask where the site is, say it appears after Â« Gerar site Â», then Preview. "
         "Reply in the SAME language the user writes in."
     )
 
-    config = types.GenerateContentConfig(
-        temperature=0.8,
-        top_p=0.9,
-        max_output_tokens=512,
-        safety_settings=_gemini_safety_settings(),
-        system_instruction=[types.Part.from_text(text=system_text)],
-    )
-
-    contents: list[types.Content] = []
+    openai_messages: list[dict[str, str]] = [{"role": "system", "content": system_text}]
     for msg in messages:
-        role = "user" if msg["role"] == "user" else "model"
-        contents.append(
-            types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])])
-        )
+        role = msg.get("role", "user")
+        if role not in ("user", "assistant"):
+            continue
+        openai_messages.append({"role": role, "content": str(msg.get("content", ""))})
 
-    try:
-        text = _collect_stream_text(
-            client.models.generate_content_stream(
-                model=_GEMINI_TEXT,
-                contents=contents,
-                config=config,
-            ),
-            context="chat",
-        )
-    except GeminiGenerationError:
-        raise
-    except Exception as exc:
-        logger.exception("Gemini stream failed (chat)")
-        raise GeminiGenerationError(
-            "Erro ao contactar a IA. Verifique a ligação e tente novamente.",
-            reason="api_error",
-        ) from exc
-
+    text = _sync_groq_completion(
+        openai_messages,
+        model=model,
+        max_tokens=512,
+        temperature=0.8,
+        context="chat",
+    )
     return text or "Pode continuar a descrever o site."
 
 
 async def generate_site_structure(brief: str) -> dict:
-    """Async wrapper: returns parsed JSON site structure from Gemini."""
     loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(
-        None, partial(_sync_generate_site_structure, brief)
-    )
+    return await loop.run_in_executor(None, partial(_sync_generate_site_structure, brief))
 
 
 async def generate_chat_reply(messages: list[dict], latest_user: str) -> str:
-    """Async wrapper: returns a conversational reply from Gemini."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None, partial(_sync_chat_reply, messages, latest_user)

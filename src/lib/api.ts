@@ -97,7 +97,7 @@ export async function getJobStatus(jobId: string): Promise<JobStatus> {
   return data;
 }
 
-/** GET /api/v1/ai/jobs/{jobId} — poll Veo video job (AI Studio / Marketing). */
+/** GET /api/v1/ai/jobs/{jobId} — poll Minimax video job (AI Studio / Marketing). */
 export async function getAiVideoJobStatus(jobId: string): Promise<JobStatus> {
   const { data } = await api.get<JobStatus>(`/ai/jobs/${jobId}`);
   return data;

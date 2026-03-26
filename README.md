@@ -35,7 +35,7 @@ de gérer des workspaces et des équipes, et d'analyser les performances.
 | Backend     | Python 3.11 + FastAPI + SQLAlchemy   |
 | Base de données | PostgreSQL 15                    |
 | IA texte/image | Google Gemini 2.5 Flash Image (Vertex AI) |
-| IA vidéo    | Google Veo 3.1 (Vertex AI)           |
+| IA vidéo    | Google Minimax 3.1 (Vertex AI)           |
 | Auth        | JWT + Google OAuth + Facebook OAuth  |
 | Paiements   | Stripe                               |
 | Déploiement | Docker Compose (local) / Azure Container Apps (prod) |
@@ -69,7 +69,7 @@ de gérer des workspaces et des équipes, et d'analyser les performances.
 ┌────────────▼──┐   ┌────────▼──────────────────────┐
 │ PostgreSQL 15 │   │  Google Cloud (Vertex AI)      │
 │   port 5432   │   │  - Gemini 2.5 Flash Image      │
-│   laurenadb   │   │  - Veo 3.1 (vidéo)             │
+│   laurenadb   │   │  - Minimax 3.1 (vidéo)             │
 └───────────────┘   └───────────────────────────────┘
 ```
 
@@ -142,7 +142,7 @@ backend/
 │   ├── schemas/         # Pydantic schemas (request/response)
 │   ├── routes/          # Routers FastAPI
 │   └── services/
-│       └── ai_service.py  # Gemini + Veo intégration
+│       └── ai_service.py  # Gemini + Minimax intégration
 ├── alembic/             # Migrations DB
 ├── alembic.ini
 └── requirements.txt
@@ -196,7 +196,7 @@ pydantic>=2.10.0
 pydantic-settings>=2.6.0
 python-dotenv>=1.0.0
 email-validator>=2.1.1
-google-genai>=1.0.0       # SDK Gemini + Veo
+google-genai>=1.0.0       # SDK Gemini + Minimax
 aiofiles>=24.1.0
 ```
 
@@ -236,7 +236,7 @@ alembic upgrade head
 | Client | Variable | Credential | Modèle |
 |--------|----------|-----------|--------|
 | Texte + Image | `_client` | API Key (`GOOGLE_CLOUD_API_KEY`) | `gemini-2.5-flash-image` |
-| Vidéo | `_video_client` | Service Account JSON / ADC | `veo-3.1-generate-001` |
+| Vidéo | `_video_client` | Service Account JSON / ADC | `Minimax-3.1-generate-001` |
 
 ### Génération de texte & image (`_sync_generate`)
 ```python
@@ -252,7 +252,7 @@ GenerateContentConfig(
 # Stream: generate_content_stream
 ```
 
-### Génération vidéo Veo 3.1 (`_sync_generate_video`)
+### Génération vidéo Minimax 3.1 (`_sync_generate_video`)
 ```python
 GenerateVideosConfig(
     aspect_ratio="16:9",
@@ -261,7 +261,7 @@ GenerateVideosConfig(
     person_generation="allow_all",
     generate_audio=True,
 )
-# Modèle: veo-3.1-generate-001
+# Modèle: Minimax-3.1-generate-001
 # Polling toutes les 10s, timeout 5 min (300s)
 # Sauvegarde: uploads/videos/<uuid>.mp4
 ```
@@ -381,9 +381,9 @@ En production: Azure App Settings
 | `FACEBOOK_APP_ID` | OAuth Facebook | depuis developers.facebook.com |
 | `FACEBOOK_APP_SECRET` | OAuth Facebook | depuis developers.facebook.com |
 | `GOOGLE_CLOUD_API_KEY` | Clé API Gemini texte/image | depuis Google Cloud Console |
-| `GOOGLE_CLOUD_PROJECT` | ID projet GCP (pour Veo) | `mon-projet-123456` |
+| `GOOGLE_CLOUD_PROJECT` | ID projet GCP (pour Minimax) | `mon-projet-123456` |
 | `GOOGLE_CLOUD_LOCATION` | Région Vertex AI | `us-central1` |
-| `GOOGLE_CREDENTIALS_JSON` | Service account JSON (base64 OK) | pour Veo 3.1 sans ADC |
+| `GOOGLE_CREDENTIALS_JSON` | Service account JSON (base64 OK) | pour Minimax 3.1 sans ADC |
 | `STRIPE_SECRET_KEY` | Clé secrète Stripe | `sk_live_...` |
 | `STRIPE_WEBHOOK_SECRET` | Secret webhook Stripe | `whsec_...` |
 | `STRIPE_PUBLISHABLE_KEY` | Clé publique Stripe | `pk_live_...` |

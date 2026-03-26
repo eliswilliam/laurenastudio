@@ -1,4 +1,4 @@
-"""Rendu single-page pour le framework ecommerce (JSON `site`)."""
+﻿"""Rendu single-page pour le framework ecommerce (JSON `site`)."""
 from __future__ import annotations
 
 from typing import Any
@@ -75,7 +75,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
 <body>
 {% if ticker %}
 <div class="ticker"><div class="ticker-inner">
-{% for m in ticker %}<span class="tick-i">{{ m|e }}</span>{% if not loop.last %}<span class="tick-sep" aria-hidden="true"> · </span>{% endif %}{% endfor %}
+{% for m in ticker %}<span class="tick-i">{{ m.label|e if m is mapping else m|e }}</span>{% if not loop.last %}<span class="tick-sep" aria-hidden="true"> Â· </span>{% endif %}{% endfor %}
 </div></div>
 {% endif %}
 <header>
@@ -101,7 +101,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
       {% if b is mapping %}
       <a href="{{ (b.href or b.url or '#produtos')|e }}" style="padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:600;{% if b.primario or b.primary or b.primaire %}background:var(--lime);color:var(--bg);border:none{% else %}border:1px solid var(--lime);color:var(--lime);background:transparent{% endif %}">{{ (b.label or b.texto or '')|e }}</a>
       {% else %}
-      <a href="#produtos" style="border:1px solid var(--lime);padding:10px 16px;border-radius:6px;color:var(--lime)">{{ b|e }}</a>
+      <a href="#produtos" style="border:1px solid var(--lime);padding:10px 16px;border-radius:6px;color:var(--lime)">{{ b.label|e if b is mapping else b|e }}</a>
       {% endif %}
       {% endfor %}
     </div>
@@ -122,7 +122,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
 {% elif s.tipo == 'barra_filtros' %}
 <section class="container" id="{{ s.id|e }}">
   <div class="filter-bar" id="filters">
-    {% for f in s.filtros or [] %}<button type="button" class="chip" data-f="{{ f|e }}">{{ f|e }}</button>{% endfor %}
+    {% for f in s.filtros or [] %}<button type="button" class="chip" data-f="{{ f.label|e if f is mapping else f|e }}">{{ f.label|e if f is mapping else f|e }}</button>{% endfor %}
   </div>
 </section>
 {% elif s.tipo == 'grid_produtos' %}
@@ -156,7 +156,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
 </section>
 {% elif s.tipo == 'brand_strip' %}
 <section class="container brands" id="{{ s.id|e }}">
-  {% for m in s.marcas or [] %}<span>{{ m|e }}</span>{% endfor %}
+  {% for m in s.marcas or [] %}<span>{{ m.label|e if m is mapping else m|e }}</span>{% endfor %}
 </section>
 {% elif s.tipo == 'editorial_grid' %}
 <section class="container editorial" id="{{ s.id|e }}">
@@ -192,7 +192,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
 {% elif s.tipo == 'footer' %}
 <footer id="{{ s.id|e }}">
   <div class="container">
-    <div class="logo" style="margin-bottom:8px">{{ s.logo|e }}</div>
+    <div class="logo" style="margin-bottom:8px">{% if s.logo is mapping %}{{ (s.logo.label or s.logo.url or s.logo.nome or 'Logo')|e }}{% else %}{{ (s.logo|replace('.png','')|replace('.jpg',''))|e }}{% endif %}</div>
     <p style="color:var(--muted);max-width:480px;margin-bottom:20px">{{ s.descricao|e }}</p>
     <div class="footer-grid">
       {% for col in s.colunas or [] %}
@@ -225,7 +225,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
       document.getElementById('cc').textContent=count;
       document.getElementById('cart-total').textContent=total.toFixed(2);
       var line=document.createElement('div');line.style.cssText='padding:8px 0;border-bottom:1px solid #333;font-size:.85rem';
-      line.textContent=btn.getAttribute('data-name')+' — R$ '+p;
+      line.textContent=btn.getAttribute('data-name')+' â€” R$ '+p;
       document.getElementById('cart-lines').appendChild(line);
       document.getElementById('cart').classList.add('open');
       document.getElementById('ov').classList.add('show');
@@ -259,7 +259,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
 
 
 def _normalize_ecommerce_secoes(secoes: list[Any]) -> None:
-    """Assure que chaque section a 'tipo' (alias FR/PT) et que boutons/liens ne sont pas des chaînes repr."""
+    """Assure que chaque section a 'tipo' (alias FR/PT) et que boutons/liens ne sont pas des chaÃ®nes repr."""
     for sec in secoes:
         if not isinstance(sec, dict):
             continue

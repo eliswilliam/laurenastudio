@@ -1,4 +1,4 @@
-"""Rendu single-page pour le framework portfolio (JSON `site`, clés FR)."""
+﻿"""Rendu single-page pour le framework portfolio (JSON `site`, clÃ©s FR)."""
 from __future__ import annotations
 
 import re
@@ -50,7 +50,7 @@ _TIPO_TO_TYPE: dict[str, str] = {
 
 
 def _normalize_portfolio_sections(sections: list[Any]) -> None:
-    """Normalise type/tipo, _bar_pct pour les compétences."""
+    """Normalise type/tipo, _bar_pct pour les compÃ©tences."""
     for sec in sections:
         if not isinstance(sec, dict):
             continue
@@ -59,7 +59,7 @@ def _normalize_portfolio_sections(sections: list[Any]) -> None:
             key = str(raw).strip().lower().replace(" ", "_")
             sec["type"] = _TIPO_TO_TYPE.get(key, raw)
         st = sec.get("type")
-        # Boutons / liens parfois sérialisés en chaîne repr-Python → dict réel pour Jinja
+        # Boutons / liens parfois sÃ©rialisÃ©s en chaÃ®ne repr-Python â†’ dict rÃ©el pour Jinja
         for key in ("boutons", "botoes", "stats"):
             if isinstance(sec.get(key), list):
                 coerce_mapping_list(sec[key])
@@ -168,11 +168,11 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
     {% if s.titre_lignes %}
       {% for line in s.titre_lignes %}
         {% if line is mapping %}<span style="display:block">{{ (line.text or line.titre or line.line)|e }}</span>
-        {% else %}<span style="display:block">{{ line|e }}</span>{% endif %}
+        {% else %}<span style="display:block">{{ line.texto|e if line is mapping else line|e }}</span>{% endif %}
       {% endfor %}
     {% elif s.titre %}
       {% for line in s.titre.splitlines() %}
-        {% if line.strip() %}<span style="display:block">{{ line|e }}</span>{% endif %}
+        {% if line.strip() %}<span style="display:block">{{ line.texto|e if line is mapping else line|e }}</span>{% endif %}
       {% endfor %}
     {% endif %}
   </h1>
@@ -182,7 +182,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
       {% if b is mapping %}
       <a href="{{ (b.url or b.href or '#')|e }}" style="padding:10px 18px;border-radius:8px;font-weight:600;{% if b.primaire or b.primary or b.primario %}background:var(--cyan);color:var(--bg);{% else %}border:1px solid var(--cyan);color:var(--cyan);background:transparent{% endif %}">{{ (b.label or b.texte or '')|e }}</a>
       {% else %}
-      <a href="#projetos" style="background:var(--cyan);color:var(--bg);padding:10px 18px;border-radius:8px;font-weight:600">{{ b|e }}</a>
+      <a href="#projetos" style="background:var(--cyan);color:var(--bg);padding:10px 18px;border-radius:8px;font-weight:600">{{ b.label|e if b is mapping else b|e }}</a>
       {% endif %}
     {% endfor %}
   </div>
@@ -205,9 +205,9 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
       {% if s.photo %}<img src="{{ s.photo|e }}" alt="" style="border-radius:12px;border:1px solid var(--border)">{% endif %}
     </div>
     <div>
-      {% for p in s.biographie or [] %}<p style="margin-bottom:12px;color:var(--muted)">{{ p|e }}</p>{% endfor %}
+      {% for p in s.biographie or [] %}<p style="margin-bottom:12px;color:var(--muted)">{{ p.texto|e if p is mapping else p|e }}</p>{% endfor %}
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
-        {% for t in s.tags_tech or s.tags or s.areas or [] %}<span style="font-size:.75rem;border:1px solid var(--border);padding:4px 8px;border-radius:6px">{{ t|e }}</span>{% endfor %}
+        {% for t in s.tags_tech or s.tags or s.areas or [] %}<span style="font-size:.75rem;border:1px solid var(--border);padding:4px 8px;border-radius:6px">{{ t.label|e if t is mapping else t|e }}</span>{% endfor %}
       </div>
     </div>
   </div>
@@ -255,7 +255,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
     {% for ex in s.experiences or [] %}
     <div class="timeline-item">
       <strong style="color:var(--cyan)">{{ (ex.periode or ex.periodo or '')|e }}</strong>
-      <p style="font-weight:600">{{ (ex.poste or ex.cargo or '')|e }} — {{ (ex.entreprise or ex.empresa or '')|e }}</p>
+      <p style="font-weight:600">{{ (ex.poste or ex.cargo or '')|e }} â€” {{ (ex.entreprise or ex.empresa or '')|e }}</p>
       <p style="font-size:.9rem;color:var(--muted)">{{ (ex.description or ex.descricao or '')|e }}</p>
     </div>
     {% endfor %}
@@ -280,7 +280,15 @@ footer{padding:40px 0;border-top:1px solid var(--border);font-size:.8rem;color:v
       <input type="{{ ch.type|e }}" placeholder="{{ ch.placeholder|e }}">
       {% endif %}
       {% endfor %}
-      <button type="submit" style="background:linear-gradient(90deg,var(--cyan),var(--violet));border:none;color:var(--bg);padding:12px;font-weight:600;border-radius:8px;cursor:pointer">{{ (s.formulaire.bouton if s.formulaire else 'Envoyer')|e }}</button>
+      {% set btn_label = 'Envoyer' %}
+      {% if s.formulaire and s.formulaire.bouton %}
+        {% if s.formulaire.bouton is mapping %}
+          {% set btn_label = s.formulaire.bouton.label or s.formulaire.bouton.texte or 'Envoyer' %}
+        {% else %}
+          {% set btn_label = s.formulaire.bouton %}
+        {% endif %}
+      {% endif %}
+      <button type="submit" style="background:linear-gradient(90deg,var(--cyan),var(--violet));border:none;color:var(--bg);padding:12px;font-weight:600;border-radius:8px;cursor:pointer">{{ btn_label|e }}</button>
     </form>
   </div>
 </section>
@@ -347,7 +355,7 @@ def render_portfolio(site: dict[str, Any]) -> str:
         if s.get("type") == "contact" and s.get("formulaire"):
             formulaire = s["formulaire"]
             break
-    form_toast = (formulaire or {}).get("toast_succes") or "Message envoyé"
+    form_toast = (formulaire or {}).get("toast_succes") or "Message envoyÃ©"
     return _TEMPLATE.render(
         lang=lang,
         title=title,

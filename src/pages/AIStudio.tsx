@@ -35,6 +35,31 @@ export default function AIStudio() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [referenceImage, setReferenceImage] = useState<string>('');
+  const [referencePreview, setReferencePreview] = useState<string>('');
+  const [referenceMime, setReferenceMime] = useState<string>('image/png');
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        toast({ title: 'Formato inválido', description: 'Envie uma imagem', variant: 'destructive' });
+        return;
+    }
+    setReferenceMime(file.type);
+    setReferencePreview(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = () => setReferenceImage((reader.result as string).split(',')[1]);
+    reader.readAsDataURL(file);
+    if(fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeImage = () => {
+      setReferencePreview('');
+      setReferenceImage('');
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isGenerating]);
@@ -42,7 +67,13 @@ export default function AIStudio() {
   const ts = () => new Date().toISOString();
 
   const handleSend = async () => {
-    if (!input.trim() || isGenerating || !mode) return;
+    if (!input.trim() && !referenceImage) return;
+    if (isGenerating || !mode) return;
+
+    if (mode === 'video' && !referenceImage) {
+        toast({ title: 'Imagem obrigatória', description: 'Veuillez ajouter uma imagem pour générer la vidéo.', variant: 'destructive' });
+        return;
+    }
 
     const userMsg: StudioChatMessage = {
       id: Date.now().toString(),
@@ -73,13 +104,13 @@ export default function AIStudio() {
           timestamp: ts(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
-      } else if (mode === 'veo') {
+      } else if (mode === 'video') {
         const res = await api.post<{
           jobId?: string;
           content?: string;
         }>(
           '/ai/generate',
-          { resource_type: 'video', prompt, style: null },
+          { resource_type: 'video', prompt, style: null, reference_image_b64: referenceImage, reference_mime: referenceMime },
           { timeout: 120000, validateStatus: (s) => s === 200 || s === 202 }
         );
 
@@ -209,8 +240,8 @@ export default function AIStudio() {
             </Card>
           </button>
 
-          {/* Veo: Video */}
-          <button onClick={() => setMode('veo')} className="group text-left">
+          {/* Minimax: Video */}
+          <button onClick={() => setMode('video')} className="group text-left">
             <Card className="rounded-2xl border-2 border-transparent transition-all duration-200 hover:border-primary hover:shadow-lg hover:shadow-primary/10 cursor-pointer h-full">
               <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
@@ -224,7 +255,7 @@ export default function AIStudio() {
                 </div>
                 <Badge variant="secondary" className="gap-1">
                   <BrainCircuit className="w-3 h-3" />
-                  Veo 3.1
+                  Minimax
                 </Badge>
               </CardContent>
             </Card>
@@ -257,9 +288,9 @@ export default function AIStudio() {
 
   // ── Chat interface ─────────────────────────────────────────────────────────
   const modeLabel =
-    mode === 'gemini' ? 'Imagem & Texto' : mode === 'veo' ? 'Vídeo' : 'Áudio';
+    mode === 'gemini' ? 'Imagem & Texto' : mode === 'video' ? 'Vídeo' : 'Áudio';
   const modeModel =
-    mode === 'gemini' ? 'Gemini 2.5' : mode === 'veo' ? 'Veo 3.1' : 'Azure Neural TTS';
+    mode === 'gemini' ? 'Gemini 2.5' : mode === 'video' ? 'Minimax' : 'Azure Neural TTS';
 
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-8rem)]">
@@ -290,7 +321,7 @@ export default function AIStudio() {
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
               {mode === 'gemini' ? (
                 <ImageIcon className="w-8 h-8 text-primary" />
-              ) : mode === 'veo' ? (
+              ) : mode === 'video' ? (
                 <Video className="w-8 h-8 text-primary" />
               ) : (
                 <Music className="w-8 h-8 text-violet-600" />
@@ -301,7 +332,7 @@ export default function AIStudio() {
               <p className="text-sm text-muted-foreground mt-1">
                 {mode === 'gemini'
                   ? 'Descreva o que deseja gerar: texto, imagem ou ambos.'
-                  : mode === 'veo'
+                  : mode === 'video'
                     ? 'Descreva o vídeo que deseja criar.'
                     : 'Escreva o texto que deseja ouvir em voz sintética.'}
               </p>
@@ -314,7 +345,7 @@ export default function AIStudio() {
                     'Gere um banner para promoção de verão',
                     'Crie uma imagem minimalista de logo tech',
                   ]
-                : mode === 'veo'
+                : mode === 'video'
                   ? [
                       'Crie um vídeo de um pôr do sol na praia',
                       'Gere um vídeo de transição suave de produto',
@@ -434,7 +465,7 @@ export default function AIStudio() {
             </div>
             <div className="bg-card border rounded-2xl rounded-bl-md px-4 py-3 max-w-[75%]">
               <AIInferenceAnimation
-                type={mode === 'veo' ? 'video' : mode === 'audio' ? 'audio' : 'image'}
+                type={mode === 'video' ? 'video' : mode === 'audio' ? 'audio' : 'image'}
               />
             </div>
           </div>
@@ -445,14 +476,30 @@ export default function AIStudio() {
 
       {/* Input */}
       <div className="border-t pt-4 shrink-0">
+        
+        {referencePreview && (
+          <div className="mb-3 relative inline-block">
+             <img src={referencePreview} className="h-20 w-20 object-cover rounded-xl border border-border" alt="reference" />
+             <button onClick={removeImage} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"><X className="w-3 h-3" /></button>
+          </div>
+        )}
+
         <div className="flex gap-3 items-end">
+          {mode === 'video' && (
+            <div className="shrink-0 flex items-center justify-center">
+              <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
+              <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => fileInputRef.current?.click()} disabled={isGenerating}>
+                  <Paperclip className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
               placeholder={
                 mode === 'gemini'
                   ? 'Descreva o que deseja gerar…'
-                  : mode === 'veo'
+                  : mode === 'video'
                     ? 'Descreva o vídeo que deseja criar…'
                     : 'Texto para síntese de voz…'
               }
@@ -467,7 +514,7 @@ export default function AIStudio() {
             size="icon"
             className="h-12 w-12 shrink-0 rounded-xl"
             onClick={handleSend}
-            disabled={!input.trim() || isGenerating}
+            disabled={(!input.trim() && !referenceImage) || isGenerating}
           >
             {isGenerating ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -479,8 +526,8 @@ export default function AIStudio() {
         <p className="text-xs text-muted-foreground mt-2 text-center">
           {mode === 'gemini'
             ? 'Gemini 2.5 gera texto e imagens com base no seu prompt.'
-            : mode === 'veo'
-              ? 'Veo 3.1: a geração de vídeo pode levar até 5 minutos.'
+            : mode === 'video'
+              ? 'Minimax: a geração de vídeo pode levar até 5 minutos.'
               : 'Áudio: conta para o limite mensal de «Áudio IA» do seu plano.'}
         </p>
       </div>

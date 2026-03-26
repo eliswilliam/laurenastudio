@@ -45,6 +45,8 @@ class SiteProject(Base):
     user_prompt = Column(Text, nullable=True)
     # Last publish lifecycle: publishing | live | failed (null = never published).
     publication_status = Column(String(20), nullable=True)
+    # Instant do POST /publish (fila) — usado para desbloquear « Pedir indexação » após GOOGLE_INDEXING_DEFER_SECONDS.
+    last_publish_enqueue_at = Column(DateTime(timezone=True), nullable=True)
     status = Column(String(20), nullable=False, default="draft")  # draft | generating | ready | error
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)

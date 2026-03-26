@@ -38,6 +38,12 @@ SYSTEM_PAGES: list[SearchResult] = [
     ),
     SearchResult(
         type="page",
+        title="Indexar",
+        description="Google Indexing API, pedir indexação, Search Console, subdomínio",
+        url="/indexar",
+    ),
+    SearchResult(
+        type="page",
         title="Marketing AI",
         description="Campanhas, criativos, marca, anúncios, vídeo marketing",
         url="/marketing-ai",
@@ -45,7 +51,7 @@ SYSTEM_PAGES: list[SearchResult] = [
     SearchResult(
         type="page",
         title="AI Studio",
-        description="Gemini, Veo, áudio, inteligência artificial, gerar imagem e texto",
+        description="Gemini, Minimax, áudio, inteligência artificial, gerar imagem e texto",
         url="/ai-studio",
     ),
     SearchResult(

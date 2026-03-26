@@ -1,5 +1,5 @@
 """
-ARQ task: run site generation (Gemini structure + Jinja2 HTML) for a background job.
+ARQ task: run site generation (Groq JSON structure + Jinja2 HTML) for a background job.
 """
 from __future__ import annotations
 
@@ -77,13 +77,13 @@ async def _arq_generate_site_impl(job_id: str) -> None:
         await db.flush()
         await db.commit()
 
-        await append_log(db, jid, "A gerar estrutura do site com IA (Gemini)…")
+        await append_log(db, jid, "A gerar estrutura do site com IA (Groq)…")
         await db.commit()
 
         try:
             structure = await generate_site_structure(brief)
         except GeminiGenerationError as exc:
-            logger.warning("Gemini structure blocked or invalid: %s", exc.reason)
+            logger.warning("Groq structure blocked or invalid: %s", exc.reason)
             err_msg = exc.user_message
             await append_log(db, jid, f"Falha na IA: {err_msg}")
             project.status = "error"
@@ -102,7 +102,7 @@ async def _arq_generate_site_impl(job_id: str) -> None:
             await db.commit()
             raise
         except Exception as exc:
-            logger.exception("Gemini structure failed")
+            logger.exception("Groq structure failed")
             await append_log(db, jid, f"Falha na IA: {exc}")
             project.status = "error"
             if project.site:

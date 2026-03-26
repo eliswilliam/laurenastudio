@@ -102,7 +102,7 @@ const modelosIA = [
     tag: "Google",
   },
   {
-    nome: "Google Veo 3",
+    nome: "Minimax",
     uso: "Vídeo publicitário",
     descricao:
       "Geração de vídeo com estética cinematográfica para anúncios, reels e campanhas, referência em desempenho para motion com IA.",

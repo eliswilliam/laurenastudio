@@ -1,34 +1,28 @@
-"""
+﻿"""
 services/marketing_service.py
-Marketing AI — prompt optimization and ad generation via Gemini + Veo.
+Marketing AI â€” imagens via Replicate (FLUX); vÃ­deos via Replicate (Minimax).
 
-Receives brand/ad data from the frontend, builds structured marketing prompts,
-and delegates to the underlying AI models for high-quality ad creation.
-Generation is fully based on the user's prompt — no hardcoded colour palettes.
+Prompts e briefings mantÃªm-se; a geraÃ§Ã£o de imagem deixa de usar Gemini.
 """
 import asyncio
 import base64
 import logging
+import os
 import time
 import uuid
 from functools import partial
-from pathlib import Path
+import replicate
 
-from google import genai
-from google.genai import types
-
-from app.core.config import settings
 from app.services.ai_service import (
     GENERATED_DIR,
     VIDEOS_DIR,
-    _get_client,
-    _get_video_client,
 )
+from app.services.replicate_image_service import run_replicate_image
 
 logger = logging.getLogger(__name__)
 
 
-# ── Prompt optimization ──────────────────────────────────────────────────────
+# â”€â”€ Prompt optimization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _build_image_prompt(
     brand_name: str,
@@ -53,7 +47,7 @@ def _build_image_prompt(
         "- Professional typography and strong visual hierarchy\n"
         "- Eye-catching, scroll-stopping composition\n"
         "- If a product or scene is depicted, make it look premium\n"
-        "- Output a single finished ad creative — no mockup frames or device outlines\n"
+        "- Output a single finished ad creative â€” no mockup frames or device outlines\n"
         "- Choose the best colour palette and visual style based on the brand and prompt\n"
     )
     return base
@@ -95,86 +89,20 @@ def _build_video_prompt(
     return base
 
 
-# ── Gemini image config for marketing ────────────────────────────────────────
-
-def _marketing_image_config() -> types.GenerateContentConfig:
-    return types.GenerateContentConfig(
-        temperature=1,
-        top_p=0.95,
-        max_output_tokens=32768,
-        response_modalities=["TEXT", "IMAGE"],
-        safety_settings=[
-            types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"),
-            types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="OFF"),
-            types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="OFF"),
-            types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="OFF"),
-        ],
-        system_instruction=[
-            types.Part.from_text(
-                text=(
-                    "You are a world-class advertising designer and creative director. "
-                    "You create stunning, professional ad creatives that drive engagement "
-                    "and conversions. Always output a finished advertising image with the "
-                    "brand name and copy baked in. Follow the user's brief precisely. "
-                    "Choose colours, style, and visual direction based solely on the user's prompt."
-                )
-            )
-        ],
-        image_config=types.ImageConfig(
-            aspect_ratio="1:1",
-            image_size="1K",
-        ),
-    )
-
-
-# ── Sync generation helpers (run in thread pool) ─────────────────────────────
+# â”€â”€ Sync generation helpers (run in thread pool) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _sync_marketing_image(
     prompt: str,
     reference_image_bytes: bytes | None = None,
     reference_mime: str = "image/png",
 ) -> tuple[str, bytes | None, str]:
-    """Blocking Gemini call for marketing image — supports optional reference image."""
-    client = _get_client()
-    config = _marketing_image_config()
-
-    parts: list[types.Part] = []
+    """Imagem publicitÃ¡ria via Replicate FLUX (text-to-image)."""
     if reference_image_bytes:
-        parts.append(
-            types.Part.from_bytes(data=reference_image_bytes, mime_type=reference_mime)
+        logger.warning(
+            "Imagem de referÃªncia nÃ£o Ã© enviada ao FLUX (Replicate); use o texto para descrever o visual."
         )
-        parts.append(
-            types.Part.from_text(
-                text=(
-                    "Use the attached image as the main visual reference for the ad. "
-                    "Integrate it into a professional advertising layout.\n\n" + prompt
-                )
-            )
-        )
-    else:
-        parts.append(types.Part.from_text(text=prompt))
-
-    contents = [types.Content(role="user", parts=parts)]
-
-    text_parts: list[str] = []
-    image_data: bytes | None = None
-    image_mime: str = "image/png"
-
-    for chunk in client.models.generate_content_stream(
-        model="gemini-2.5-flash-image",
-        contents=contents,
-        config=config,
-    ):
-        if not chunk.candidates:
-            continue
-        for part in chunk.candidates[0].content.parts:
-            if part.text:
-                text_parts.append(part.text)
-            elif part.inline_data and part.inline_data.data:
-                image_data = part.inline_data.data
-                image_mime = part.inline_data.mime_type or "image/png"
-
-    return "".join(text_parts), image_data, image_mime
+    image_data = run_replicate_image(prompt, aspect_ratio="1:1", image_bytes=reference_image_bytes)
+    return "", image_data, "image/webp"
 
 
 def _sync_marketing_video(
@@ -182,69 +110,42 @@ def _sync_marketing_video(
     reference_image_bytes: bytes | None = None,
     reference_mime: str = "image/png",
 ) -> str:
-    """Blocking Veo call for marketing video — supports text-to-video and image-to-video."""
-    client = _get_video_client()
+    """Blocking Replicate call for marketing video (Minimax hailuo-2.3-fast)."""
 
-    if reference_image_bytes:
-        source = types.GenerateVideosSource(
-            image=types.Image(
-                image_bytes=reference_image_bytes,
-                mime_type=reference_mime,
-            ),
-            prompt=prompt,
+    if not reference_image_bytes:
+        raise ValueError("Veuillez ajouter une image pour générer la vidéo.")
+
+    import io
+    if not os.environ.get("REPLICATE_API_TOKEN"):
+        logger.warning("REPLICATE_API_TOKEN is missing!")
+
+    inputs = {
+        "prompt": prompt,
+        "first_frame_image": io.BytesIO(reference_image_bytes),
+    }
+
+    logger.info("Marketing video generation started: prompt=%s", prompt[:100])
+
+    try:
+        output = replicate.run(
+            "minimax/hailuo-2.3-fast",
+            input=inputs
         )
-    else:
-        source = types.GenerateVideosSource(prompt=prompt)
-
-    config = types.GenerateVideosConfig(
-        aspect_ratio="9:16",
-        number_of_videos=1,
-        duration_seconds=8,
-        person_generation="allow_all",
-        generate_audio=True,
-    )
-
-    logger.info("Marketing video generation started (has_image=%s): %s",
-                reference_image_bytes is not None, prompt[:100])
-
-    operation = client.models.generate_videos(
-        model="veo-3.1-generate-001",
-        source=source,
-        config=config,
-    )
-
-    max_wait = 300
-    elapsed = 0
-    poll_interval = 10
-    while not operation.done and elapsed < max_wait:
-        logger.info("Video pending… %ds elapsed", elapsed)
-        time.sleep(poll_interval)
-        elapsed += poll_interval
-        operation = client.operations.get(operation)
-
-    if not operation.done:
-        raise RuntimeError("Video generation timed out after 5 minutes.")
-
-    response = operation.result
-    if not response or not response.generated_videos:
-        raise RuntimeError(
-            "Video generation returned no result — the content may have been filtered. "
-            "Try a different prompt."
-        )
-
-    video = response.generated_videos[0]
-    if not video.video or not video.video.video_bytes:
-        raise RuntimeError("Generated video has no data.")
-
-    video_bytes = video.video.video_bytes
-    filename = f"{uuid.uuid4().hex}.mp4"
-    filepath = VIDEOS_DIR / filename
-    filepath.write_bytes(video_bytes)
-    logger.info("Saved marketing video: %s (%d bytes)", filename, len(video_bytes))
-    return f"/uploads/videos/{filename}"
+        
+        filename = f"mkt_{uuid.uuid4().hex}.mp4"
+        filepath = VIDEOS_DIR / filename
+        
+        with open(filepath, "wb") as file:
+            file.write(output.read())
+            
+        logger.info("Saved marketing video: %s", filename)
+        return f"/uploads/videos/{filename}"
+    except Exception as e:
+        logger.error("Marketing video generation failed: %s", e)
+        raise RuntimeError(f"Video generation failed: {e}")
 
 
-# ── Public async API ─────────────────────────────────────────────────────────
+# â”€â”€ Public async API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def generate_marketing_image(
     brand_name: str,
@@ -255,7 +156,7 @@ async def generate_marketing_image(
 ) -> dict:
     """Generate a marketing ad image. Returns dict with image_url and ai_text."""
     prompt = _build_image_prompt(brand_name, ad_text, user_prompt)
-    logger.info("Marketing image prompt (%d chars): %s…", len(prompt), prompt[:120])
+    logger.info("Marketing image prompt (%d chars): %sâ€¦", len(prompt), prompt[:120])
 
     ref_bytes: bytes | None = None
     if reference_image_b64:
@@ -293,7 +194,7 @@ async def generate_marketing_video(
 ) -> dict:
     """Generate a marketing ad video. Returns dict with video_url."""
     prompt = _build_video_prompt(brand_name, ad_text, user_prompt, video_mode)
-    logger.info("Marketing video prompt (%d chars, mode=%s): %s…",
+    logger.info("Marketing video prompt (%d chars, mode=%s): %sâ€¦",
                 len(prompt), video_mode, prompt[:120])
 
     ref_bytes: bytes | None = None

@@ -52,7 +52,7 @@ export const PLANOS: Plano[] = [
       'Geração de texto ilimitada',
       'Geração de imagem ilimitada',
       'Equipas e projetos à escala ilimitada',
-      'Geração de vídeo: Veo 3 (10 por mês)',
+      'Geração de vídeo: Minimax (10 por mês)',
       'Financial AI: requisições ilimitadas',
       'Suporte premium',
     ],

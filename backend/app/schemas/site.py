@@ -89,3 +89,4 @@ class ProjectSummary(BaseModel):
     status: str
     created_at: str
     has_site: bool
+    publish_slug: str | None = None

@@ -84,7 +84,7 @@ async def site_chat(
 
     db.add(SitePrompt(project_id=project.id, role="user", content=last_user.content))
 
-    # Build conversation for Gemini
+    # Build conversation for Groq (chat)
     history = [{"role": m.role, "content": m.content} for m in payload.messages]
 
     await check_and_increment_usage(db, workspace_id, "text", subscription)
@@ -101,7 +101,14 @@ async def site_chat(
         logger.exception("Site chat AI error: %s", exc)
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Erro da IA: {exc}")
 
-    db.add(SitePrompt(project_id=project.id, role="assistant", content=reply, model_used=settings.GEMINI_TEXT_MODEL))
+    db.add(
+        SitePrompt(
+            project_id=project.id,
+            role="assistant",
+            content=reply,
+            model_used=settings.GROQ_SITE_CHAT_MODEL,
+        )
+    )
     await db.flush()
 
     prompt_count = len(payload.messages) + 1
@@ -309,6 +316,7 @@ async def list_projects(
             status=p.status,
             created_at=p.created_at.isoformat(),
             has_site=p.site is not None and p.site.status == "ready",
+            publish_slug=p.publish_slug,
         )
         for p in projects
     ]

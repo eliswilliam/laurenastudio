@@ -23,7 +23,7 @@ class AIGenerateResponse(BaseModel):
 
 
 class AIVideoJobAccepted(BaseModel):
-    """Video generation is queued (Veo); poll GET /ai/jobs/{job_id} until status is success."""
+    """Video generation is queued (Minimax); poll GET /ai/jobs/{job_id} until status is success."""
 
     job_id: str = Field(serialization_alias="jobId")
     resource_type: str = "video"

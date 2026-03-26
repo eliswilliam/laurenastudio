@@ -22,7 +22,7 @@ const pillars = [
   {
     icon: BrainCircuit,
     title: "IA",
-    subtitle: "Gemini e Veo",
+    subtitle: "Gemini e Minimax",
     iconBg: "bg-violet-500/12 text-violet-600 dark:text-violet-400",
   },
 ];

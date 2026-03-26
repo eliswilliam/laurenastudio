@@ -46,18 +46,3 @@ async def enqueue_ai_video_job(job_id: str) -> None:
     await redis.enqueue_job("arq_ai_video", job_id)
 
 
-async def enqueue_google_index_site_job(project_id: str, workspace_id: str) -> None:
-    """
-    Schedule Google Indexing API notification for https://slug.ROOT_DOMAIN/
-    after GOOGLE_INDEXING_DEFER_SECONDS (default 5400 = 1h30) from enqueue time.
-    """
-    if not settings.GOOGLE_INDEXING_ENABLED:
-        return
-    defer = timedelta(seconds=max(0, int(settings.GOOGLE_INDEXING_DEFER_SECONDS)))
-    redis = await get_arq_pool()
-    await redis.enqueue_job(
-        "arq_google_index_site",
-        project_id,
-        workspace_id,
-        _defer_by=defer,
-    )

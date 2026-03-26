@@ -28,6 +28,7 @@ from app.schemas.ai import (
 )
 from app.services.arq_enqueue import enqueue_ai_video_job
 from app.services.job_service import create_job
+from app.core.config import settings
 from app.services.marketing_service import generate_marketing_image
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ async def marketing_image(
         resource_type="image",
         prompt=prompt_log,
         content=result.get("image_url") or result.get("ai_text") or "",
-        model_used="gemini-2.5-flash-image",
+        model_used=(settings.REPLICATE_IMAGE_MODEL or "black-forest-labs/flux-dev"),
         style="marketing",
     )
     db.add(record)
@@ -106,6 +107,12 @@ async def marketing_video(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
+    if not payload.reference_image_b64:
+        raise HTTPException(
+            status_code=400,
+            detail="Veuillez ajouter une image pour générer la vidéo."
+        )
+
     usage = await check_and_increment_usage(db, workspace_id, "video", subscription)
 
     job = await create_job(

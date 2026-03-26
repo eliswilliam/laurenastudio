@@ -169,16 +169,16 @@ Après génération, le frontend envoie **`userId`**, **`projectId`** et un tabl
 | `GCP_PROJECT_ID` | Projet Google Cloud |
 | `GCP_SA_KEY` | JSON complet du compte de service (ou base64 du JSON) |
 | `GCP_REGION` | Région `gcloud run deploy` (défaut `us-central1`) |
-| `GOOGLE_INDEXING_ENABLED` | `true` / `false` — notifie Google Indexing API après publication sous-domaine (défaut `true`) |
-| `GOOGLE_INDEXING_DEFER_SECONDS` | Secondes d’attente après **enqueue** du publish avant l’appel Indexing (défaut **5400** = 1 h 30) |
+| `GOOGLE_INDEXING_ENABLED` | `true` / `false` — active l’endpoint manuel `/api/v1/indexing/request` (défaut `true`) |
+| `GOOGLE_INDEXING_DEFER_SECONDS` | Secondes d’attente après **clic Publicar** avant que l’utilisateur puisse envoyer l’indexation depuis **Indexar** (défaut **5400** = 1 h 30) |
 
 Paquets Python : `PyGithub`, `PyNaCl`, `google-api-python-client` (Indexing API — voir `backend/requirements.txt`). Pas de `@octokit/rest` côté API : le backend est Python.
 
-### Google Indexing API (après **Publicar** avec slug + DNS)
+### Google Indexing API (page **Indexar**, après **Publicar**)
 
-Si **Cloudflare** + **`ROOT_DOMAIN`** sont configurés et que l’utilisateur publie avec un **slug**, le backend enqueue une tâche ARQ **`arq_google_index_site`** avec un délai **`GOOGLE_INDEXING_DEFER_SECONDS`** (souvent 1 h 30 après le clic, le temps que le site et le DNS soient stables). Au moment d’exécution, l’URL **`https://{slug}.{ROOT_DOMAIN}/`** est envoyée à l’[Indexing API v3](https://developers.google.com/search/apis/indexing-api/v3/using-api) (`URL_UPDATED`), avec le même **`GCP_SA_KEY`** (ou **`GOOGLE_CREDENTIALS_JSON`**) que pour Cloud Run.
+Lors du **POST /api/publish** avec un projet, l’API enregistre **`last_publish_enqueue_at`** (moment du clic). Aucune tâche ARQ n’est plus enfile automatiquement. Sur la page app **`/indexar`**, l’utilisateur choisit par site s’il veut notifier Google ; le bouton « Pedir indexação » n’est actif qu’après **`GOOGLE_INDEXING_DEFER_SECONDS`** depuis cette date. L’URL **`https://{slug}.{ROOT_DOMAIN}/`** est alors envoyée à l’[Indexing API v3](https://developers.google.com/search/apis/indexing-api/v3/using-api) (`URL_UPDATED`) via **`POST /api/v1/indexing/request`**, avec le même **`GCP_SA_KEY`** (ou **`GOOGLE_CREDENTIALS_JSON`**) que pour Cloud Run. **GET /api/v1/indexing/overview** liste les projets et l’éligibilité.
 
-**Prérequis** : dans Google Cloud Console, activer l’API **Indexing API** sur le projet ; dans Search Console, le **`client_email`** du compte de service doit être **propriétaire** de la propriété couvrant **`*.ROOT_DOMAIN`** (souvent une propriété **Domaine** sur la racine). Sinon **403** (déjà journalisé). Désactiver : `GOOGLE_INDEXING_ENABLED=false`. Après `pip install -r requirements.txt`, **redémarrer l’API FastAPI et le processus worker ARQ** pour charger `google-api-python-client` et enregistrer la nouvelle fonction. Modèle : `backend/.env.example`.
+**Prérequis** : dans Google Cloud Console, activer l’API **Indexing API** sur le projet ; dans Search Console, le **`client_email`** du compte de service doit être **propriétaire** de la propriété couvrant **`*.ROOT_DOMAIN`** (souvent une propriété **Domaine** sur la racine). Sinon **403** (déjà journalisé). Désactiver : `GOOGLE_INDEXING_ENABLED=false`. Après `pip install -r requirements.txt`, **redémarrer l’API FastAPI** pour charger `google-api-python-client`. La fonction worker **`arq_google_index_site`** peut rester enregistrée pour d’anciens jobs ; le flux normal est désormais synchrone depuis l’endpoint d’indexation. Modèle : `backend/.env.example`.
 
 **Implémentation** : les secrets GitHub Actions (`GCP_SA_KEY`, `GCP_PROJECT_ID`) sont créés **avant** le commit qui ajoute `deploy.yml`. Le workflow **n’appelle plus** `gcloud services enable` : cette commande exige le rôle **Service Usage Admin** (`roles/serviceusage.serviceUsageAdmin`) ou **Owner**, que le compte `github-deployer` n’a en général pas — d’où les erreurs `AUTH_PERMISSION_DENIED` sur `artifactregistry.googleapis.com` / `cloudbuild.googleapis.com` / `run.googleapis.com`.
 

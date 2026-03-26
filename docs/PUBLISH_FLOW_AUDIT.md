@@ -13,8 +13,8 @@ Document de traçabilité (état après corrections). Légende : OK / ⚠️ / �
 | `CLOUDFLARE_TOKEN` | `dns_service._headers()` |
 | `CLOUDFLARE_ZONE_ID` | API DNS Cloudflare |
 | `ROOT_DOMAIN` | CNAME + URL finale `https://{slug}.{ROOT_DOMAIN}` |
-| `GOOGLE_INDEXING_ENABLED` | Tâche ARQ différée → Indexing API (`google_indexing_service`) |
-| `GOOGLE_INDEXING_DEFER_SECONDS` | Délai avant notification Google (défaut 5400 s) |
+| `GOOGLE_INDEXING_ENABLED` | Active `POST /api/v1/indexing/request` + overview (`google_indexing_service`) |
+| `GOOGLE_INDEXING_DEFER_SECONDS` | Délai après **Publicar** avant que **Indexar** autorise le clic (défaut 5400 s) |
 | `DATABASE_URL` | `Settings` → SQLAlchemy async |
 
 `GCP_REGION`, `CLOUD_RUN_POLL_*` complètent le polling Run. Valeurs par défaut locales (ex. `DATABASE_URL`) existent pour le dev uniquement.

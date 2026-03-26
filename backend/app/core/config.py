@@ -97,6 +97,15 @@ class Settings(BaseSettings):
     # JSON « structure du site » au clic « Gerar site » (POST /sites/generate → worker). Pas le chat.
     GEMINI_SITE_GENERATION_MODEL: str = "gemini-3.1-pro-preview"
 
+    # ── Groq OpenAI-compatible API — Criar site (chat Laurena + génération JSON du site) ─
+    GROQ_API_KEY: str = ""
+    GROQ_SITE_CHAT_MODEL: str = "openai/gpt-oss-20b"
+    GROQ_SITE_STRUCTURE_MODEL: str = "openai/gpt-oss-20b"
+
+    # ── Replicate (text-to-image: FLUX; substitui Gemini para imagens) ───────
+    REPLICATE_API_TOKEN: str = ""
+    REPLICATE_IMAGE_MODEL: str = "black-forest-labs/flux-dev"
+
     # ── Pexels (stock photos for generated sites; https://www.pexels.com/api/) ─
     PEXELS_API_KEY: str = Field(
         default="",

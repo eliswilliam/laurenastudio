@@ -31,8 +31,11 @@ pydantic-settings>=2.6.0
 python-dotenv>=1.0.0
 email-validator>=2.1.1
 
-# Google Gemini AI
+# Google Gemini AI (marketing / legacy; site builder uses Groq)
 google-genai>=1.0.0
+
+# Groq (OpenAI-compatible API — Criar site: chat + JSON structure)
+openai>=1.40.0
 
 # Azure Speech (text-to-speech)
 azure-cognitiveservices-speech>=1.41.0
@@ -52,3 +55,4 @@ requests>=2.28.0
 
 # Tests (docker: docker compose exec api pytest …)
 pytest>=8.0.0
+replicate>=0.25.0

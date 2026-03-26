@@ -1,6 +1,6 @@
 """
-ARQ task: Veo video generation (AI Studio + Marketing) — runs off the HTTP request
-so nginx / Azure do not return 504 while polling Vertex for several minutes.
+ARQ task: Minimax video generation (AI Studio + Marketing) — runs off the HTTP request
+so nginx / Azure do not return 504 while polling generation for several minutes.
 """
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ async def _arq_ai_video_impl(job_id: str) -> None:
         await mark_running(db, jid)
         await db.commit()
 
-        await append_log(db, jid, "Iniciando geração de vídeo (Vertex Veo)…")
+        await append_log(db, jid, "Iniciando geração de vídeo (Replicate Minimax)…")
         await db.commit()
 
         try:
@@ -64,7 +64,7 @@ async def _arq_ai_video_impl(job_id: str) -> None:
                     resource_type="video",
                     prompt=prompt[:4000],
                     content=content_url,
-                    model_used="veo-3.1-generate-001",
+                    model_used="minimax/hailuo-2.3-fast",
                     style=style,
                 )
                 db.add(record)
@@ -117,7 +117,7 @@ async def _arq_ai_video_impl(job_id: str) -> None:
                     resource_type="video",
                     prompt=prompt_log[:4000],
                     content=video_url,
-                    model_used="veo-3.1-generate-001",
+                    model_used="minimax/hailuo-2.3-fast",
                     style="marketing",
                 )
                 db.add(record)

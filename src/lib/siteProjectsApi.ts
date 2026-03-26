@@ -7,6 +7,7 @@ export interface SiteProjectSummary {
   status: string;
   created_at: string;
   has_site: boolean;
+  publish_slug?: string | null;
 }
 
 /** GET /sites/{projectId} */

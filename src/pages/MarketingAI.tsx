@@ -263,7 +263,7 @@ export default function MarketingAI() {
                 </div>
                 <div className="flex items-center gap-1.5 text-primary text-sm font-medium">
                   <BrainCircuit className="w-4 h-4" />
-                  Veo 3
+                  Minimax
                 </div>
               </CardContent>
             </Card>

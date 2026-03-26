@@ -1,9 +1,9 @@
 """
 services/ai_service.py
-Google Gemini AI integration — text + image + video generation.
-Uses google-genai SDK:
-  - Text/Image: vertexai=True with API key (gemini-2.5-flash-image)
-  - Video: vertexai=True with ADC + project/location (veo-3.1-generate-001)
+Google Gemini (text) + Replicate FLUX (image) + Replicate Minimax (video).
+  - Text: Gemini (gemini-2.5-flash-image stream devolve texto; modelo de texto configurável)
+  - Image: Replicate REPLICATE_IMAGE_MODEL (padrão black-forest-labs/flux-dev)
+  - Video: Replicate Minimax (hailuo-2.3-fast)
 """
 import asyncio
 import logging
@@ -19,6 +19,7 @@ from google.genai import types
 
 from app.core.config import settings
 from app.core.google_credentials import decode_google_service_account_json
+from app.services.replicate_image_service import run_replicate_image
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,6 @@ VIDEOS_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "videos
 VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
 
 _client: genai.Client | None = None
-_video_client: genai.Client | None = None
 
 
 def _get_client() -> genai.Client:
@@ -49,56 +49,6 @@ def _get_client() -> genai.Client:
             )
         _client = genai.Client(vertexai=False, api_key=api_key)
     return _client
-
-
-def _ensure_gcloud_credentials() -> None:
-    """Ensure GOOGLE_APPLICATION_CREDENTIALS is set for the Vertex AI SDK.
-
-    Vertex AI video generation requires OAuth2 credentials (not API key).
-    Priority:
-    1. Already set via env var (e.g. docker-compose volume mount)
-    2. ADC file exists at the default Docker path
-    3. GOOGLE_CREDENTIALS_JSON setting contains service account JSON (Azure)
-    """
-    if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        creds_path = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-        if os.path.exists(creds_path):
-            return
-
-    adc_path = "/root/.config/gcloud/application_default_credentials.json"
-    if os.path.exists(adc_path):
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = adc_path
-        logger.info("Using ADC credentials at %s", adc_path)
-        return
-
-    creds_json = decode_google_service_account_json(settings.GOOGLE_CREDENTIALS_JSON)
-    if creds_json:
-        sa_path = str(Path(tempfile.gettempdir()) / "gcloud_sa_key.json")
-        Path(sa_path).write_text(creds_json, encoding="utf-8")
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = sa_path
-        logger.info("Wrote service account key from GOOGLE_CREDENTIALS_JSON → %s", sa_path)
-        return
-
-    raise RuntimeError(
-        "No credentials found for Vertex AI video generation. "
-        "Set GOOGLE_CREDENTIALS_JSON in Azure App Settings with your "
-        "Google Cloud service account JSON key."
-    )
-
-
-def _get_video_client() -> genai.Client:
-    """Client for Veo video generation via Vertex AI (requires service account)."""
-    global _video_client
-    if _video_client is None:
-        _ensure_gcloud_credentials()
-        _video_client = genai.Client(
-            vertexai=True,
-            project=settings.GOOGLE_CLOUD_PROJECT,
-            location=settings.GOOGLE_CLOUD_LOCATION,
-        )
-        logger.info("Video client: Vertex AI (project=%s, location=%s)",
-                     settings.GOOGLE_CLOUD_PROJECT, settings.GOOGLE_CLOUD_LOCATION)
-    return _video_client
 
 
 def _build_config(
@@ -187,101 +137,66 @@ async def generate_image(
     model: str | None = None,
     style: str | None = None,
 ) -> str:
-    """Generate an image via Gemini. Returns relative URL to the saved file."""
+    """Gera imagem via Replicate (FLUX). Devolve URL relativa do ficheiro em /uploads/generated/."""
     loop = asyncio.get_running_loop()
-    text, image_data, image_mime = await loop.run_in_executor(
-        None, partial(_sync_generate, prompt, style=style)
-    )
+    full_prompt = f"{prompt.strip()}. Estilo: {style}" if style else prompt.strip()
 
-    if image_data:
-        ext = image_mime.split("/")[-1]
-        if ext == "jpeg":
-            ext = "jpg"
-        if ext not in ("png", "jpg", "gif", "webp"):
-            ext = "png"
-        filename = f"{uuid.uuid4().hex}.{ext}"
-        filepath = GENERATED_DIR / filename
-        filepath.write_bytes(image_data)
-        logger.info("Saved generated image: %s (%d bytes)", filename, len(image_data))
-        return f"/uploads/generated/{filename}"
+    def _run() -> bytes:
+        return run_replicate_image(full_prompt, aspect_ratio="1:1")
 
-    # Model returned only text, no image
-    if text.strip():
-        logger.warning("No image in response, returning text fallback")
-        return text.strip()
-
-    raise RuntimeError("Gemini did not return an image for the given prompt.")
+    image_data = await loop.run_in_executor(None, _run)
+    filename = f"{uuid.uuid4().hex}.webp"
+    filepath = GENERATED_DIR / filename
+    filepath.write_bytes(image_data)
+    logger.info("Saved generated image (Replicate): %s (%d bytes)", filename, len(image_data))
+    return f"/uploads/generated/{filename}"
 
 
-# ── Video generation (Veo 3.1) ─────────────────────────────────────────────
+# ── Video generation (Replicate Minimax) ───────────────────────────────────
 
 
-def _sync_generate_video(prompt: str, *, style: str | None = None) -> str:
-    """Blocking call to Veo — generates a video, polls until done, saves to disk.
+def _sync_generate_video(prompt: str, *, style: str | None = None, reference_image_bytes: bytes | None = None) -> str:
+    """Blocking call to Replicate — generates a video, saves to disk.
     Returns the relative URL path to the saved video file.
     """
-    client = _get_video_client()
-    logger.info(
-        "Veo 3.1: credentials=%s project=%s",
-        "ok" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "missing",
-        (settings.GOOGLE_CLOUD_PROJECT or "").strip() or "?",
-    )
+    import replicate
+    import os
+    import io
+
+    if not reference_image_bytes:
+        raise ValueError("Veuillez ajouter une image pour générer la vidéo.")
+
+    if not os.environ.get("REPLICATE_API_TOKEN"):
+        logger.warning("REPLICATE_API_TOKEN is missing!")
 
     full_prompt = prompt
     if style:
         full_prompt = f"{prompt}. Style: {style}"
 
-    source = types.GenerateVideosSource(prompt=full_prompt)
+    logger.info("Starting Minimax video generation: prompt=%s", full_prompt[:80])
 
-    config = types.GenerateVideosConfig(
-        aspect_ratio="16:9",
-        number_of_videos=1,
-        duration_seconds=8,
-        person_generation="allow_all",
-        generate_audio=True,
-    )
+    inputs = {
+        "prompt": full_prompt,
+        "first_frame_image": io.BytesIO(reference_image_bytes)
+    }
 
-    logger.info("Starting Veo 3.1 video generation: prompt=%s", full_prompt[:80])
-
-    operation = client.models.generate_videos(
-        model="veo-3.1-generate-001",
-        source=source,
-        config=config,
-    )
-
-    # Poll until done (max ~5 min)
-    max_wait = 300
-    elapsed = 0
-    poll_interval = 10
-    while not operation.done and elapsed < max_wait:
-        logger.info("Video not ready yet, polling in %ds... (%ds elapsed)", poll_interval, elapsed)
-        time.sleep(poll_interval)
-        elapsed += poll_interval
-        operation = client.operations.get(operation)
-
-    if not operation.done:
-        raise RuntimeError("Video generation timed out after 5 minutes.")
-
-    response = operation.result
-    if not response:
-        logger.error("Veo returned done=True but result is None (content may have been filtered)")
-        raise RuntimeError("Video generation completed but returned no result. The content may have been filtered by safety policies. Try a different prompt.")
-
-    generated_videos = response.generated_videos
-    if not generated_videos:
-        logger.error("Veo returned result but generated_videos is empty")
-        raise RuntimeError("No videos were generated. Try a different prompt.")
-
-    video = generated_videos[0]
-    if not video.video or not video.video.video_bytes:
-        raise RuntimeError("Generated video has no data.")
-
-    video_bytes = video.video.video_bytes
-    filename = f"{uuid.uuid4().hex}.mp4"
-    filepath = VIDEOS_DIR / filename
-    filepath.write_bytes(video_bytes)
-    logger.info("Saved generated video: %s (%d bytes)", filename, len(video_bytes))
-    return f"/uploads/videos/{filename}"
+    try:
+        output = replicate.run(
+            "minimax/hailuo-2.3-fast",
+            input=inputs
+        )
+        
+        filename = f"{uuid.uuid4().hex}.mp4"
+        filepath = VIDEOS_DIR / filename
+        
+        with open(filepath, "wb") as file:
+            file.write(output.read())
+            
+        logger.info("Saved generated video: %s", filename)
+        return f"/uploads/videos/{filename}"
+    except Exception as e:
+        logger.error("Video generation failed: %s", e)
+        raise RuntimeError(f"Video generation failed: {e}")
 
 
 async def generate_video(
@@ -289,9 +204,10 @@ async def generate_video(
     *,
     model: str | None = None,
     style: str | None = None,
+    reference_image_bytes: bytes | None = None
 ) -> str:
-    """Generate a video via Veo 3.1. Returns relative URL to the saved file."""
+    """Generate a video via Replicate Minimax. Returns relative URL to the saved file."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None, partial(_sync_generate_video, prompt, style=style)
+        None, partial(_sync_generate_video, prompt, style=style, reference_image_bytes=reference_image_bytes)
     )

@@ -1,8 +1,8 @@
 """
 routes/ai.py
 AI generation endpoints — protected by active subscription + usage limits.
-Uses Google Gemini for text/image; Veo for video; Azure Speech for audio only.
-Video (Veo) runs in an ARQ worker so HTTP returns 202 quickly (avoids nginx/Azure 504).
+Uses Google Gemini for text; Replicate (FLUX) for image; Replicate Minimax (video); Azure Speech for audio only.
+Video runs in an ARQ worker so HTTP returns 202 quickly (avoids nginx/Azure 504).
 """
 import asyncio
 import logging
@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.dependencies import (
     check_and_increment_usage,
     get_workspace_id,
@@ -42,7 +43,7 @@ router = APIRouter(prefix="/ai", tags=["AI Generation"])
 @router.get(
     "/jobs/{job_id}",
     response_model=BackgroundJobResponse,
-    summary="Poll AI video job (Veo) status",
+    summary="Poll AI video job (Minimax) status",
 )
 async def get_ai_video_job(
     job_id: UUID,
@@ -62,7 +63,7 @@ async def get_ai_video_job(
     response_model=None,
     summary="Generate AI content (text, image, video, or audio)",
     description=(
-        "Requires active subscription. Text and image use Gemini. Audio uses Azure Speech only. "
+        "Requires active subscription. Text uses Gemini; image uses Replicate (FLUX). Audio uses Azure Speech only. "
         "Video returns 202 with jobId — poll GET /ai/jobs/{job_id} until status is success."
     ),
 )
@@ -91,8 +92,14 @@ async def generate(
     }
     used_field, limit_field = field_map[payload.resource_type]
 
-    # ── Video: queue ARQ (Veo can take several minutes; avoids proxy 504) ─────
+    # ── Video: queue ARQ (Video can take several minutes; avoids proxy 504) ─────
     if payload.resource_type == "video":
+        if not payload.reference_image_b64:
+            raise HTTPException(
+                status_code=400,
+                detail="Veuillez ajouter une image pour générer la vidéo."
+            )
+            
         job = await create_job(
             db,
             job_type="ai_video",
@@ -102,6 +109,8 @@ async def generate(
                 "mode": "studio",
                 "prompt": payload.prompt,
                 "style": payload.style,
+                "reference_image_b64": payload.reference_image_b64,
+                "reference_mime": payload.reference_mime,
                 "workspace_id": workspace_id,
                 "user_id": current_user.id,
                 "usage_after": getattr(usage, used_field),
@@ -161,7 +170,7 @@ async def generate(
             message="Áudio gerado com sucesso.",
         )
 
-    # ── Text / image: synchronous (Gemini) ───────────────────────────────────
+    # ── Text (Gemini) / imagem (Replicate FLUX) ───────────────────────────────
     try:
         if payload.resource_type == "text":
             generated_content = await generate_text(
@@ -182,12 +191,17 @@ async def generate(
             detail=f"Falha na geração com IA: {exc}",
         )
 
+    model_logged = (
+        (settings.REPLICATE_IMAGE_MODEL or "black-forest-labs/flux-dev")
+        if payload.resource_type == "image"
+        else payload.model
+    )
     record = AIGeneration(
         workspace_id=workspace_id,
         resource_type=payload.resource_type,
         prompt=payload.prompt,
         content=generated_content,
-        model_used=payload.model,
+        model_used=model_logged,
         style=payload.style,
     )
     db.add(record)

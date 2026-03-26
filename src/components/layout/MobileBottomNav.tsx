@@ -4,6 +4,7 @@ import {
   LayoutTemplate,
   Megaphone,
   BrainCircuit,
+  Globe,
   CreditCard,
   Settings,
   MoreHorizontal,

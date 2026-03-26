@@ -1,4 +1,4 @@
-"""Rendu single-page pour le framework hotel-reserva (JSON `site`)."""
+﻿"""Rendu single-page pour le framework hotel-reserva (JSON `site`)."""
 from __future__ import annotations
 
 from typing import Any
@@ -82,13 +82,19 @@ footer a{color:var(--gold_light)}
 {% if nav %}
 <header>
   <div class="container header-inner">
-    <a href="#top" class="logo">{{ nav.logo|e }}</a>
+    <a href="#top" class="logo">{% if nav.logo is mapping %}{{ (nav.logo.label or nav.logo.url or nav.logo.nome or 'Logo')|e }}{% else %}{{ (nav.logo|replace('.png','')|replace('.jpg',''))|e }}{% endif %}</a>
     <nav>
       {% for link in nav.links %}
-      <a href="{{ nav.hrefs[loop.index0] if nav.hrefs and loop.index0 < nav.hrefs|length else '#' }}">{{ link|e }}</a>
+      <a href="{{ nav.hrefs[loop.index0] if nav.hrefs and loop.index0 < nav.hrefs|length else '#' }}">{% if link is mapping %}{{ (link.label or link.texto or link.nome or '')|e }}{% else %}{{ link|e }}{% endif %}</a>
       {% endfor %}
     </nav>
-    {% if nav.cta %}<a href="#busca" class="btn btn-primary">{{ nav.cta|e }}</a>{% endif %}
+    {% if nav.cta %}
+        {% if nav.cta is mapping %}
+        <a href="{{ (nav.cta.url or nav.cta.href or '#busca')|e }}" class="btn btn-primary">{{ (nav.cta.label or nav.cta.texto or nav.cta.nome or '')|e }}</a>
+        {% else %}
+        <a href="#busca" class="btn btn-primary">{{ nav.cta|e }}</a>
+        {% endif %}
+      {% endif %}
   </div>
 </header>
 {% endif %}
@@ -107,13 +113,13 @@ footer a{color:var(--gold_light)}
         {% if b is mapping %}
         <a class="btn {% if b.primario or b.primary or loop.first %}btn-primary{% else %}btn-outline{% endif %}" href="{{ (b.href or b.url or '#busca')|e }}">{{ (b.label or b.texto or '')|e }}</a>
         {% else %}
-        <a class="btn {% if loop.first %}btn-primary{% else %}btn-outline{% endif %}" href="#busca">{{ b|e }}</a>
+        <a class="btn {% if loop.first %}btn-primary{% else %}btn-outline{% endif %}" href="#busca">{{ b.label|e if b is mapping else b|e }}</a>
         {% endif %}
         {% endfor %}
       </div>
       {% if s.badge %}
       <div class="badge-row">
-        <span>★ {{ s.badge.nota }}/{{ s.badge.estrelas }}</span>
+        <span>â˜… {{ s.badge.nota }}/{{ s.badge.estrelas }}</span>
         <span>{{ s.badge.avaliacoes|e }}</span>
       </div>
       {% endif %}
@@ -132,7 +138,7 @@ footer a{color:var(--gold_light)}
         <label style="display:block;font-size:.85rem;margin-bottom:4px">{{ c.nome|e }}</label>
         {% if c.tipo == 'select' %}
         <select class="btn" style="width:100%;background:var(--white);border:1px solid var(--sand);padding:12px;">
-          {% for o in c.opcoes or [] %}<option>{{ o|e }}</option>{% endfor %}
+          {% for o in c.opcoes or [] %}<option>{{ o.label|e if o is mapping else o|e }}</option>{% endfor %}
         </select>
         {% elif c.tipo == 'date' %}
         <input type="date" id="in-{{ loop.index }}" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--sand)">
@@ -143,7 +149,7 @@ footer a{color:var(--gold_light)}
       {% endfor %}
     </div>
     <div style="margin-top:16px;text-align:center">
-      <button type="button" class="btn btn-primary" onclick="document.getElementById('modal-reserva').classList.add('open')">{{ s.botao|e }}</button>
+      <button type="button" class="btn btn-primary" onclick="document.getElementById('modal-reserva').classList.add('open')">{% if s.botao is mapping %}{{ (s.botao.label or s.botao.texto or s.botao.nome or 'Enviar')|e }}{% else %}{{ s.botao|e }}{% endif %}</button>
     </div>
   </div>
 </section>
@@ -158,7 +164,7 @@ footer a{color:var(--gold_light)}
         {% if d.imagem %}<img src="{{ d.imagem|e }}" alt="{{ d.cidade|e }}" height="200" style="object-fit:cover;width:100%">{% endif %}
         <div class="card-body">
           <h3>{{ d.cidade|e }}</h3>
-          <small style="color:var(--muted)">{{ d.hoteis }} hotéis</small>
+          <small style="color:var(--muted)">{{ d.hoteis }} hotÃ©is</small>
         </div>
       </div>
       {% endfor %}
@@ -227,14 +233,14 @@ footer a{color:var(--gold_light)}
     <p style="opacity:.9;margin-bottom:16px">{{ s.subtitulo|e }}</p>
     <form onsubmit="event.preventDefault();alert('Inscrito!');" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px">
       <input type="email" placeholder="{{ s.placeholder|e }}" required>
-      <button type="submit" class="btn btn-primary">{{ s.botao|e }}</button>
+      <button type="submit" class="btn btn-primary">{% if s.botao is mapping %}{{ (s.botao.label or s.botao.texto or s.botao.nome or 'Enviar')|e }}{% else %}{{ s.botao|e }}{% endif %}</button>
     </form>
   </div>
 </section>
 {% elif s.tipo == 'footer' %}
 <footer id="{{ s.id|e }}">
   <div class="container">
-    <div style="font-family:var(--font-d);font-size:1.2rem;margin-bottom:8px">{{ s.logo|e }}</div>
+    <div style="font-family:var(--font-d);font-size:1.2rem;margin-bottom:8px">{% if s.logo is mapping %}{{ (s.logo.label or s.logo.url or s.logo.nome or 'Logo')|e }}{% else %}{{ (s.logo|replace('.png','')|replace('.jpg',''))|e }}{% endif %}</div>
     <p style="opacity:.85;max-width:520px">{{ s.descricao|e }}</p>
     <div class="footer-grid">
       {% for col in s.colunas or [] %}
@@ -259,12 +265,12 @@ footer a{color:var(--gold_light)}
     {% for c in modal.campos or [] %}
     <label>{{ c.nome|e }}</label>
     {% if c.tipo == 'select' %}
-    <select>{% for o in c.opcoes or [] %}<option>{{ o|e }}</option>{% endfor %}</select>
+    <select>{% for o in c.opcoes or [] %}<option>{{ o.label|e if o is mapping else o|e }}</option>{% endfor %}</select>
     {% else %}
     <input type="{{ c.tipo|e }}">
     {% endif %}
     {% endfor %}
-    <button type="button" class="btn btn-primary" style="margin-top:16px;width:100%" onclick="document.getElementById('modal-reserva').classList.remove('open');alert('Reserva simulada!')">{{ modal.botao_confirmar|e }}</button>
+    <button type="button" class="btn btn-primary" style="margin-top:16px;width:100%" onclick="document.getElementById('modal-reserva').classList.remove('open');alert('Reserva simulada!')">{% if modal.botao_confirmar is mapping %}{{ (modal.botao_confirmar.label or modal.botao_confirmar.texto or modal.botao_confirmar.nome or 'Confirmar')|e }}{% else %}{{ modal.botao_confirmar|e }}{% endif %}</button>
   </div>
 </div>
 {% endif %}

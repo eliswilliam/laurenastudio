@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type StudioMode = null | 'gemini' | 'veo' | 'audio';
+export type StudioMode = null | 'gemini' | 'video' | 'audio';
 
 export interface StudioChatMessage {
   id: string;

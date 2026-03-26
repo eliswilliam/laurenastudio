@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { useAIStudioStore, type StudioChatMessage, type StudioMode } from '@/store/useAIStudioStore';
 import {
   BrainCircuit,
@@ -12,6 +12,8 @@ import {
   User,
   Bot,
   Loader2,
+  Paperclip,
+  X
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,7 +73,7 @@ export default function AIStudio() {
     if (isGenerating || !mode) return;
 
     if (mode === 'video' && !referenceImage) {
-        toast({ title: 'Imagem obrigatória', description: 'Veuillez ajouter uma imagem pour générer la vidéo.', variant: 'destructive' });
+        toast({ title: 'Imagem obrigatória', description: 'Por favor, adicione uma imagem para gerar o vídeo.', variant: 'destructive' });
         return;
     }
 
@@ -87,10 +89,10 @@ export default function AIStudio() {
     setIsGenerating(true);
 
     try {
-      if (mode === 'gemini') {
+      if (mode === 'image') {
         const { data } = await api.post(
           '/ai/generate',
-          { resource_type: 'image', prompt, style: null },
+          { resource_type: 'image', prompt, model: 'black-forest-labs/flux-1.1-pro', style: null },
           { timeout: 120000 }
         );
 
@@ -110,8 +112,8 @@ export default function AIStudio() {
           content?: string;
         }>(
           '/ai/generate',
-          { resource_type: 'video', prompt, style: null, reference_image_b64: referenceImage, reference_mime: referenceMime },
-          { timeout: 120000, validateStatus: (s) => s === 200 || s === 202 }
+          { resource_type: 'video', prompt, model: 'hailuo-2.3-fast', style: null, reference_image_b64: referenceImage, reference_mime: referenceMime },
+          { timeout: 120000, validateStatus: (s) => s === 200 || s === 202 }    
         );
 
         let videoUrl = '';
@@ -138,7 +140,7 @@ export default function AIStudio() {
         } else if (res.status === 200 && res.data.content) {
           videoUrl = res.data.content;
         } else {
-          throw new Error('Resposta inesperada do servidor ao gerar vídeo.');
+          throw new Error('Resposta inesperada do servidor ao gerar vídeo.');  
         }
 
         const assistantMsg: StudioChatMessage = {
@@ -151,10 +153,9 @@ export default function AIStudio() {
         };
         setMessages((prev) => [...prev, assistantMsg]);
       } else if (mode === 'audio') {
-        // Áudio = Azure Speech via POST /ai/generate (não usa chave Google / Gemini)
         const { data } = await api.post<{ content?: string }>(
           '/ai/generate',
-          { resource_type: 'audio', prompt, style: null, model: null },
+          { resource_type: 'audio', prompt, style: null, model: 'azure' },
           { timeout: 120000 }
         );
         const audioPath = data.content?.trim();
@@ -173,7 +174,7 @@ export default function AIStudio() {
       }
       toast({ title: 'Conteúdo gerado!', description: 'A IA finalizou a geração.' });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      const message = err instanceof Error ? err.message : 'Erro desconhecido'; 
       const errorMsg: StudioChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -181,7 +182,7 @@ export default function AIStudio() {
         timestamp: ts(),
       };
       setMessages((prev) => [...prev, errorMsg]);
-      toast({ title: 'Erro', description: message, variant: 'destructive' });
+      toast({ title: 'Erro', description: message, variant: 'destructive' });   
     } finally {
       setIsGenerating(false);
     }
@@ -204,7 +205,7 @@ export default function AIStudio() {
     setIsGenerating(false);
   };
 
-  // ── Landing page ───────────────────────────────────────────────────────────
+  // Landing page
   if (!mode) {
     return (
       <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
@@ -219,29 +220,29 @@ export default function AIStudio() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {/* Gemini: Image & Text */}
-          <button onClick={() => setMode('gemini')} className="group text-left">
+          {/* Image */}
+          <button onClick={() => setMode("image")} className="group text-left">
             <Card className="rounded-2xl border-2 border-transparent transition-all duration-200 hover:border-primary hover:shadow-lg hover:shadow-primary/10 cursor-pointer h-full">
               <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                   <ImageIcon className="w-8 h-8 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold mb-1">Imagem & Texto</h2>
+                  <h2 className="text-lg font-bold mb-1">Imagem</h2>
                   <p className="text-muted-foreground text-sm">
-                    Gere textos, imagens, áudio e conteúdo criativo em um chat interativo.
+                    Gere imagens a partir do seu texto usando inteligência artificial avançada.
                   </p>
                 </div>
                 <Badge variant="secondary" className="gap-1">
                   <BrainCircuit className="w-3 h-3" />
-                  Gemini 2.5
+                  black-forest-labs/flux-1.1-pro
                 </Badge>
               </CardContent>
             </Card>
           </button>
 
-          {/* Minimax: Video */}
-          <button onClick={() => setMode('video')} className="group text-left">
+          {/* Video */}
+          <button onClick={() => setMode("video")} className="group text-left">
             <Card className="rounded-2xl border-2 border-transparent transition-all duration-200 hover:border-primary hover:shadow-lg hover:shadow-primary/10 cursor-pointer h-full">
               <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
@@ -255,14 +256,14 @@ export default function AIStudio() {
                 </div>
                 <Badge variant="secondary" className="gap-1">
                   <BrainCircuit className="w-3 h-3" />
-                  Minimax
+                  hailuo-2.3-fast
                 </Badge>
               </CardContent>
             </Card>
           </button>
 
           {/* Audio: Azure TTS */}
-          <button type="button" onClick={() => setMode('audio')} className="group text-left">
+          <button type="button" onClick={() => setMode("audio")} className="group text-left">
             <Card className="rounded-2xl border-2 border-transparent transition-all duration-200 hover:border-primary hover:shadow-lg hover:shadow-primary/10 cursor-pointer h-full">
               <CardContent className="p-7 flex flex-col items-center text-center space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-violet-500/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
@@ -276,7 +277,7 @@ export default function AIStudio() {
                 </div>
                 <Badge variant="secondary" className="gap-1">
                   <Music className="w-3 h-3" />
-                  Azure TTS
+                  Azure AI Speech
                 </Badge>
               </CardContent>
             </Card>
@@ -286,11 +287,11 @@ export default function AIStudio() {
     );
   }
 
-  // ── Chat interface ─────────────────────────────────────────────────────────
+  // Chat interface
   const modeLabel =
-    mode === 'gemini' ? 'Imagem & Texto' : mode === 'video' ? 'Vídeo' : 'Áudio';
+    mode === 'image' ? 'Imagem' : mode === 'video' ? 'Vídeo' : 'Áudio';
   const modeModel =
-    mode === 'gemini' ? 'Gemini 2.5' : mode === 'video' ? 'Minimax' : 'Azure Neural TTS';
+    mode === 'image' ? 'black-forest-labs/flux-1.1-pro' : mode === 'video' ? 'hailuo-2.3-fast' : 'Azure Neural TTS';
 
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-8rem)]">
@@ -319,7 +320,7 @@ export default function AIStudio() {
         {messages.length === 0 && !isGenerating && (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-              {mode === 'gemini' ? (
+              {mode === 'image' ? (
                 <ImageIcon className="w-8 h-8 text-primary" />
               ) : mode === 'video' ? (
                 <Video className="w-8 h-8 text-primary" />
@@ -330,16 +331,16 @@ export default function AIStudio() {
             <div>
               <p className="font-medium">Comece uma conversa</p>
               <p className="text-sm text-muted-foreground mt-1">
-                {mode === 'gemini'
-                  ? 'Descreva o que deseja gerar: texto, imagem ou ambos.'
+                {mode === 'image'
+                  ? 'Descreva a imagem que deseja gerar.'
                   : mode === 'video'
-                    ? 'Descreva o vídeo que deseja criar.'
+                    ? 'Descreva o vídeo que deseja criar. Pode enviar uma imagem inicial.'
                     : 'Escreva o texto que deseja ouvir em voz sintética.'}
               </p>
             </div>
             {/* Quick suggestions */}
             <div className="flex flex-wrap gap-2 max-w-md justify-center">
-              {(mode === 'gemini'
+              {(mode === 'image'
                 ? [
                     'Crie uma imagem para post de Instagram sobre café',
                     'Gere um banner para promoção de verão',
@@ -476,7 +477,7 @@ export default function AIStudio() {
 
       {/* Input */}
       <div className="border-t pt-4 shrink-0">
-        
+
         {referencePreview && (
           <div className="mb-3 relative inline-block">
              <img src={referencePreview} className="h-20 w-20 object-cover rounded-xl border border-border" alt="reference" />
@@ -489,7 +490,7 @@ export default function AIStudio() {
             <div className="shrink-0 flex items-center justify-center">
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
               <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => fileInputRef.current?.click()} disabled={isGenerating}>
-                  <Paperclip className="h-5 w-5" />
+                <Paperclip className="h-5 w-5" />
               </Button>
             </div>
           )}
@@ -497,8 +498,8 @@ export default function AIStudio() {
             <Textarea
               ref={textareaRef}
               placeholder={
-                mode === 'gemini'
-                  ? 'Descreva o que deseja gerar…'
+                mode === 'image'
+                  ? 'Descreva a imagem que deseja gerar…'
                   : mode === 'video'
                     ? 'Descreva o vídeo que deseja criar…'
                     : 'Texto para síntese de voz…'
@@ -524,11 +525,11 @@ export default function AIStudio() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          {mode === 'gemini'
-            ? 'Gemini 2.5 gera texto e imagens com base no seu prompt.'
+          {mode === 'image'
+            ? 'black-forest-labs/flux-1.1-pro gera imagens de alta qualidade.'
             : mode === 'video'
-              ? 'Minimax: a geração de vídeo pode levar até 5 minutos.'
-              : 'Áudio: conta para o limite mensal de «Áudio IA» do seu plano.'}
+              ? 'hailuo-2.3-fast: a geração de vídeo pode levar alguns minutos.'
+              : 'Azure Speech TTS: converta textos em voz ultrarrealista.'}
         </p>
       </div>
     </div>

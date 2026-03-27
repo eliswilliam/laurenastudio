@@ -178,6 +178,8 @@ export default function CriarSite() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'chat' | 'preview'>('chat');
   const [mobilePublishOpen, setMobilePublishOpen] = useState(false);
+  /** Projeto aberto pelo painel Histórico: sem novas mensagens para /sites/chat. */
+  const [conversationReadOnly, setConversationReadOnly] = useState(false);
   const isWideLg = useIsWideLg();
 
   const refreshProjects = useCallback(async () => {
@@ -232,6 +234,7 @@ export default function CriarSite() {
         } else {
           setPollProjectId(null);
         }
+        setConversationReadOnly(true);
       } catch (e: unknown) {
         setErro(e instanceof Error ? e.message : 'Erro ao carregar o projeto.');
       } finally {
@@ -317,6 +320,7 @@ export default function CriarSite() {
     setPollProjectId(null);
     setMobileTab('chat');
     setMobilePublishOpen(false);
+    setConversationReadOnly(false);
     resetAll();
   };
 
@@ -540,6 +544,7 @@ export default function CriarSite() {
   }, [publishJobId, clearPublishJob, publishSlug, setPublicSiteUrl]);
 
   async function enviar() {
+    if (conversationReadOnly) return;
     const t = rascunho.trim();
     if (!t || aEnviar) return;
 
@@ -981,6 +986,14 @@ export default function CriarSite() {
           </div>
         )}
 
+        {conversationReadOnly && emConversa && (
+          <div className="mx-auto mb-3 max-w-xl rounded-lg border border-amber-500/35 bg-amber-500/[0.08] px-3 py-2.5 text-xs text-amber-950/90 dark:text-amber-100/90 leading-snug">
+            <strong className="font-semibold">Projeto do histórico.</strong> A conversa com a Laurena está
+            desativada neste projeto. Pode pré-visualizar, gerar de novo ou publicar. Para um novo briefing
+            com a IA, use <strong>Novo site</strong>.
+          </div>
+        )}
+
         {/* Composeur : accueil / chat desktop / onglet « Conversa » mobile — masqué sur « Ver o site » */}
         {(!emConversa || isWideLg || mobileTab === 'chat') && (
           <div className="shrink-0 pt-3 md:pt-4 pb-1 bg-gradient-to-t from-background via-background to-transparent">
@@ -990,7 +1003,9 @@ export default function CriarSite() {
                 'bg-muted/25 dark:bg-muted/15 shadow-sm',
                 'px-3 py-2.5 md:px-4 md:py-3',
                 'transition-shadow duration-200',
-                'focus-within:border-border focus-within:shadow-md focus-within:bg-muted/35 dark:focus-within:bg-muted/20'
+                conversationReadOnly && 'opacity-60',
+                !conversationReadOnly &&
+                  'focus-within:border-border focus-within:shadow-md focus-within:bg-muted/35 dark:focus-within:bg-muted/20'
               )}
             >
               <Textarea
@@ -1002,9 +1017,13 @@ export default function CriarSite() {
                     enviar();
                   }
                 }}
-                placeholder={PLACEHOLDER_PROMPT}
+                placeholder={
+                  conversationReadOnly
+                    ? 'Conversa bloqueada — abra «Novo site» para enviar mensagens à IA.'
+                    : PLACEHOLDER_PROMPT
+                }
                 rows={1}
-                disabled={aEnviar || aGerar || aPublicar}
+                disabled={conversationReadOnly || aEnviar || aGerar || aPublicar}
                 aria-label="Prompt para descrever o site"
                 className={cn(
                   'min-h-[44px] max-h-[200px] resize-none flex-1 border-0 bg-transparent p-1.5 md:p-2',
@@ -1012,12 +1031,14 @@ export default function CriarSite() {
                   'placeholder:text-muted-foreground/55'
                 )}
               />
-              <Button
-                type="button"
-                size="icon"
-                disabled={aEnviar || aGerar || aPublicar || !rascunho.trim()}
-                onClick={enviar}
-                aria-label="Enviar mensagem"
+            <Button
+              type="button"
+              size="icon"
+              disabled={
+                conversationReadOnly || aEnviar || aGerar || aPublicar || !rascunho.trim()
+              }
+              onClick={enviar}
+              aria-label="Enviar mensagem"
                 className={cn(
                   'shrink-0 h-9 w-9 rounded-full mb-0.5',
                   'bg-primary text-primary-foreground hover:bg-primary/90',
@@ -1027,9 +1048,11 @@ export default function CriarSite() {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-center text-[11px] text-muted-foreground/80 mt-2.5 px-2">
-              {DICA_TECLADO}
-            </p>
+            {!conversationReadOnly && (
+              <p className="text-center text-[11px] text-muted-foreground/80 mt-2.5 px-2">
+                {DICA_TECLADO}
+              </p>
+            )}
           </div>
         )}
       </div>

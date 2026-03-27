@@ -84,7 +84,7 @@ async def publish_site(
     payload: PublishRequest,
     current_user: User = Depends(get_current_user),
     workspace_id: str = Depends(get_workspace_id),
-    _: Subscription = Depends(verify_active_subscription),
+    subscription: Subscription = Depends(verify_active_subscription),
     db: AsyncSession = Depends(get_db),
 ) -> PublishEnqueueResponse:
     if payload.user_id != current_user.id:

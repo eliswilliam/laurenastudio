@@ -29,6 +29,13 @@ jobs:
           echo "tag=$SHORT_SHA" >> "$GITHUB_OUTPUT"
           echo "Image tag: $SHORT_SHA"
 
+      # Retire toute session Docker Hub invalide (sinon pulls des images publiques → 401).
+      # Cause fréquente : DOCKER_AUTH_CONFIG / login expiré sur runner auto-hébergé ou secret org.
+      - name: Clear Docker Hub auth for anonymous base image pulls
+        run: |
+          docker logout 2>/dev/null || true
+          docker logout registry-1.docker.io 2>/dev/null || true
+
       - name: Build Combined image
         run: |
           docker build \

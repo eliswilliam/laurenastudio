@@ -67,7 +67,6 @@ class SiteStatusResponse(BaseModel):
     project_name: str
     status: str
     preview_url: str | None = None
-    download_url: str | None = None
     structure_json: str | None = None
     error_message: str | None = None
     user_prompt: str | None = None

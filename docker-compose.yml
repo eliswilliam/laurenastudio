@@ -47,6 +47,8 @@ services:
       GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
       # Logs visibles tout de suite pendant les requêtes longues (ex. POST /api/publish)
       PYTHONUNBUFFERED: "1"
+      # Windows + bind mount: évite les erreurs watchfiles/IO sur /app avec --reload
+      WATCHFILES_FORCE_POLLING: "true"
     volumes:
       - ./backend:/app
       - ${APPDATA}/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro

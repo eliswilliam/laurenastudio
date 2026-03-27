@@ -190,7 +190,6 @@ async def _arq_generate_site_impl(job_id: str) -> None:
             "projectId": project.id,
             "status": "ready",
             "previewUrl": preview_url,
-            "downloadUrl": f"/api/v1/sites/{project.id}/download",
             "message": "Site gerado com sucesso!",
         }
         await append_log(db, jid, "Geração concluída com sucesso.")

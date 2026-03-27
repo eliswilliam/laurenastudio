@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 def _plan_tagline(plan_name: str) -> str:
     n = (plan_name or "").lower()
     if n == "starter":
-        return "Ideal para começar: IA de texto e imagem, posts e redes sociais com limites generosos."
+        return "Ideal para começar: IA de texto e imagem com limites generosos."
     if n == "pro":
-        return "Para equipas em crescimento: mais créditos, mais redes e recursos avançados."
+        return "Para equipas em crescimento: mais créditos de IA e recursos avançados."
     if n == "business":
         return "Escala total: limites elevados ou ilimitados para marcas que produzem em volume."
     return "Descubra os limites no painel após escolher o plano."

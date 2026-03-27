@@ -64,17 +64,6 @@ def test_all():
     print(f"[BILLING] Status: {s}")
     print(f"  {str(d)[:200]}")
 
-    # --- Posts (create) ---
-    s, d = req(
-        "POST",
-        "/posts",
-        {"title": "Test Post", "content": "Hello world", "platform": "instagram", "workspace_id": ws_id},
-        token=token,
-        ws_header=ws_id,
-    )
-    print(f"[POSTS] Create: {s}")
-    print(f"  {str(d)[:200]}")
-
     # --- AI Generate ---
     s, d = req(
         "POST",

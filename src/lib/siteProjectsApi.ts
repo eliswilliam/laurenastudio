@@ -22,7 +22,6 @@ export interface SiteProjectStatus {
   project_name: string;
   status: string;
   preview_url: string | null;
-  download_url: string | null;
   structure_json: string | null;
   error_message: string | null;
   user_prompt: string | null;

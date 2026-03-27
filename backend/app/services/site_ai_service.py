@@ -1,12 +1,12 @@
-﻿"""
+"""
 services/site_ai_service.py
-Criar site â€” Groq via client OpenAI (base_url https://api.groq.com/openai/v1).
+Criar site — Groq via client OpenAI (base_url https://api.groq.com/openai/v1).
 
-- PrioritÃ© : ``client.responses.create`` (instructions + input â†’ ``output_text``), comme la doc Groq/OpenAI.
-- Secours : ``chat.completions`` si lâ€™API ``/responses`` nâ€™est pas disponible cÃ´tÃ© Groq.
+- Priorité : ``client.responses.create`` (instructions + input → ``output_text``), comme la doc Groq/OpenAI.
+- Secours : ``chat.completions`` si l’API ``/responses`` n’est pas disponible côté Groq.
 
 Aucun appel Google Gemini pour ce module (remplace GEMINI_TEXT / GEMINI_SITE_GENERATION pour chat + JSON).
-Les images Â« AI Studio / Marketing Â» restent Replicate (autre endpoint) ; pas ici.
+Les images « AI Studio / Marketing » restent Replicate (autre endpoint) ; pas ici.
 """
 from __future__ import annotations
 
@@ -27,10 +27,10 @@ _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 def build_site_generation_brief_from_prompts(prompts: list[Any]) -> str:
     """
-    Brief envoyÃ© au modÃ¨le de structure : conversation complÃ¨te.
-    Avant : seuls les messages user Ã©taient concatÃ©nÃ©s â€” les prÃ©cisions convenues avec
-    Laurena (assistant) Ã©taient perdues, donc les itÃ©rations Â« amÃ©liore le hero Â» ne
-    pouvaient pas Ãªtre appliquÃ©es correctement.
+    Brief envoyé au modèle de structure : conversation complète.
+    Avant : seuls les messages user étaient concaténés — les précisions convenues avec
+    Laurena (assistant) étaient perdues, donc les itérations « améliore le hero » ne
+    pouvaient pas être appliquées correctement.
     """
     if not prompts:
         return ""
@@ -44,16 +44,16 @@ def build_site_generation_brief_from_prompts(prompts: list[Any]) -> str:
     if not chunks:
         return ""
     return (
-        "SITE GENERATION BRIEF â€” Full conversation. The JSON site generator MUST honor "
+        "SITE GENERATION BRIEF — Full conversation. The JSON site generator MUST honor "
         "the latest User messages for changes and corrections. Lines labeled Assistant (Laurena) "
-        "are agreed refinements, tone, and structure notes from the chat phase â€” treat them "
+        "are agreed refinements, tone, and structure notes from the chat phase — treat them "
         "as binding constraints together with User messages.\n\n"
         + "\n\n---\n\n".join(chunks)
     )
 
 
 class GeminiGenerationError(Exception):
-    """RÃ©ponse bloquÃ©e, vide ou invalide â€” nom conservÃ© pour les routes / worker existants."""
+    """Réponse bloquée, vide ou invalide — nom conservé pour les routes / worker existants."""
 
     def __init__(self, user_message: str, *, reason: str = "unknown") -> None:
         self.user_message = user_message
@@ -80,13 +80,13 @@ def _groq_handle_errors(exc: BaseException, *, context: str) -> None:
     if isinstance(exc, RateLimitError):
         logger.warning("Groq [%s] rate limit: %s", context, exc)
         raise GeminiGenerationError(
-            "Limite de pedidos Ã  IA atingida. Aguarde um minuto e tente novamente.",
+            "Limite de pedidos à IA atingida. Aguarde um minuto e tente novamente.",
             reason="rate_limit",
         ) from exc
     if isinstance(exc, APIConnectionError):
         logger.exception("Groq [%s] connection error", context)
         raise GeminiGenerationError(
-            "Erro de ligaÃ§Ã£o Ã  IA. Tente novamente dentro de alguns minutos.",
+            "Erro de ligaçÃ£o à IA. Tente novamente dentro de alguns minutos.",
             reason="api_error",
         ) from exc
     if isinstance(exc, APIStatusError):
@@ -126,7 +126,7 @@ def _sync_groq_responses_create(
     temperature: float,
     context: str,
 ) -> str:
-    """Groq: POST .../responses via SDK (Ã©quivalent doc utilisateur)."""
+    """Groq: POST .../responses via SDK (équivalent doc utilisateur)."""
     client = _groq_client()
     try:
         resp = client.responses.create(
@@ -224,7 +224,7 @@ def _sync_groq_completion(
         else _dialog_string_from_turns(rest)
     )
     if not instructions.strip():
-        # Pas de systÃ¨me : tout en input (rare)
+        # Pas de système : tout en input (rare)
         user_input = _dialog_string_from_turns(messages)
 
     try:
@@ -265,9 +265,9 @@ You MUST reply with a single JSON object (no markdown fences, no extra text).
 }
 
 ## How to choose template_id (pick exactly ONE)
-- **hotel-reserva** â€” hotels, travel, bookings, stays, destinations, reservations.
-- **ecommerce** â€” shop, fashion, products, catalog, cart, retail, clothing.
-- **portfolio** â€” personal site, CV, developer/designer portfolio, freelance, case studies.
+- **hotel-reserva** — hotels, travel, bookings, stays, destinations, reservations.
+- **ecommerce** — shop, fashion, products, catalog, cart, retail, clothing.
+- **portfolio** — personal site, CV, developer/designer portfolio, freelance, case studies.
 
 The **site** object MUST follow the canonical structure for that template (keys and nested shapes below).
 Respect section **order** and **tipo** / **type** values so the renderer can map them.
@@ -331,15 +331,17 @@ Top-level: id, nome, tipo, idioma, arquivo, design, secoes[], optional modal_res
 ---
 
 ## Global rules
-- For ecommerce/portfolio **buttons and nav links**: use JSON **objects** `{ "label": "...", "href": "#id" }` when you need custom anchors â€” never output Python-style repr text; the renderer maps **primario** / **primary** for button style.
+- For ecommerce/portfolio **buttons and nav links**: use JSON **objects** `{ "label": "...", "href": "#id" }` when you need custom anchors — never output Python-style repr text; the renderer maps **primario** / **primary** for button style.
 - ONE static index page; internal navigation uses **#section-id** matching each section **id** (same page).
 - **Colours & fonts**: fill **paleta** / **palette** and **tipografia** / **typographie** from the user's brief (mood, sector, named colours). Do not invent random unrelated palettes.
   **CRITICAL**: For **portfolio** and **ecommerce**, NEVER modify the main background colours (e.g. `bg`, `surface`, or the root background hex in palette). Keep the background colours exactly as they are in the base template so the layout does not degrade. You may only customize accent/primary colours and typography.
 - **Images**: you MAY use temporary https://images.unsplash.com/... URLs OR leave **imagem** empty; the pipeline replaces them with **Pexels** using **photo_search_query** when present.
-  On every object that contains **imagem** / **image** / **photo** / **avatar**, add **photo_search_query** (English, 4â€“12 words: subject, setting, mood) on the **same object**.
+  On every object that contains **imagem** / **image** / **photo** / **avatar**, add **photo_search_query** (English, 4–12 words: subject, setting, mood) on the **same object**.
 - ALL user-facing copy in **site** must match the language implied by **idioma** / **langue** (Portuguese for hotel/ecommerce, French for portfolio unless the user clearly asks another language).
 - **photo_search_query** values are always English (stock API).
-- No base64 images. No root-relative internal URLs like "/loja" â€” use "#id-de-section".
+- No base64 images. No root-relative internal URLs like "/loja" — use "#id-de-section".
+- **Encoding**: Output MUST be valid UTF-8. Every user-facing string in **site** MUST use real Unicode characters
+  (accents, cedillas, etc.); use JSON string escaping only as JSON requires, not HTML entities for ordinary text.
 - Return ONLY valid JSON, nothing else."""
 
 
@@ -366,7 +368,7 @@ def _sync_generate_site_structure(brief: str) -> dict:
     try:
         structure = json.loads(raw)
     except json.JSONDecodeError as exc:
-        logger.error("Groq returned invalid JSON: %sâ€¦ â€” %s", raw[:300], exc)
+        logger.error("Groq returned invalid JSON: %s… — %s", raw[:300], exc)
         raise GeminiGenerationError(
             "A IA devolveu um formato invÃ¡lido. Tente gerar o site novamente.",
             reason="invalid_json",
@@ -388,25 +390,28 @@ def _sync_generate_site_structure(brief: str) -> dict:
 
 
 def _sync_chat_reply(messages: list[dict], latest_user: str) -> str:
-    del latest_user  # historique dÃ©jÃ  dans messages
+    del latest_user  # historique déjà dans messages
     model = (settings.GROQ_SITE_CHAT_MODEL or "openai/gpt-oss-20b").strip()
 
     system_text = (
         "You are Laurena (chat / brief refinement), inside Laurena Studio. "
-        "Another model generates the actual HTML when the user clicks Â« Gerar site Â». "
+        "Another model generates the actual HTML when the user clicks « Gerar site ». "
         "CRITICAL PRODUCT FACTS (never contradict): "
-        "Â« Gerar site Â» builds a REAL multi-section static site (HTML+CSS+JS), preview + ZIP. "
-        "You do NOT output full HTML in chat â€” you refine the brief in natural language. "
+        "« Gerar site » builds a REAL multi-section static site (HTML+CSS+JS), preview + ZIP. "
+        "You do NOT output full HTML in chat — you refine the brief in natural language. "
         "ITERATION: After a preview exists, when the user asks to change colours, sections, copy, or layout, "
         "acknowledge the change clearly and concretely (what will differ). "
-        "Always remind them to click Â« Gerar site Â» again so the generator applies the update â€” "
+        "Always remind them to click « Gerar site » again so the generator applies the update — "
         "chat alone does not change the live preview. "
         "NEVER say you cannot build a website; the app generates it. "
-        "Prefer short answers (2â€“5 sentences). Do NOT chain many clarifying questions. "
-        "If the user says â€œdonâ€™t askâ€, â€œjust createâ€, â€œgoâ€, commit with invented details, "
-        "then tell them to click Â« Gerar site Â» for the preview. "
-        "If they ask where the site is, say it appears after Â« Gerar site Â», then Preview. "
-        "Reply in the SAME language the user writes in."
+        "Prefer short answers (2–5 sentences). Do NOT chain many clarifying questions. "
+        "If the user says “don’t ask”, “just create”, “go”, commit with invented details, "
+        "then tell them to click « Gerar site » for the preview. "
+        "If they ask where the site is, say it appears after « Gerar site », then Preview. "
+        "Reply in the SAME language the user writes in. "
+        "Always output plain UTF-8 Unicode: use real accented letters (ã, ç, é, ê, í, ó, ô, ú, à, etc.) "
+        "when writing Portuguese, French, or other Latin scripts. Do not use HTML entities for normal words "
+        "and do not output mojibake or replacement characters (U+FFFD)."
     )
 
     openai_messages: list[dict[str, str]] = [{"role": "system", "content": system_text}]

@@ -6,11 +6,13 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import {
   BrainCircuit,
   Megaphone,
   Globe,
   Check,
+  X,
   ArrowRight,
   Zap,
   Crown,
@@ -18,7 +20,14 @@ import {
   Bot,
   Clapperboard,
 } from "lucide-react";
-import { PLANOS } from "@/data/planos";
+import {
+  PLANOS,
+  PLANOS_TEXTO_ECONOMIA_ANUAL,
+  PLANOS_TEXTO_RECURSOS_TITULO,
+  PLANOS_TEXTO_RESTRICOES_TITULO,
+  PLANOS_TEXTO_SUB_INDEX,
+  PLANOS_TEXTO_MAIS_POPULAR,
+} from "@/data/planos";
 
 const funcionalidades = [
   {
@@ -334,7 +343,7 @@ const Index = () => {
               Invista no seu crescimento
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-lg font-light leading-[1.6] text-muted-foreground">
-              Planos flexíveis para cada fase da sua jornada. Cancele quando quiser.
+              {PLANOS_TEXTO_SUB_INDEX}
             </p>
           </div>
 
@@ -349,7 +358,7 @@ const Index = () => {
             </span>
             {anual && (
               <Badge variant="secondary" className="text-xs text-green-600 bg-green-500/10 border-green-500/20">
-                Economize 25% no plano anual
+                {PLANOS_TEXTO_ECONOMIA_ANUAL}
               </Badge>
             )}
           </div>
@@ -370,7 +379,7 @@ const Index = () => {
                 >
                   {plano.destaque && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-background text-primary shadow">Mais popular</Badge>
+                      <Badge className="bg-background text-primary shadow">{PLANOS_TEXTO_MAIS_POPULAR}</Badge>
                     </div>
                   )}
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 shrink-0 ${
@@ -392,14 +401,44 @@ const Index = () => {
                       </p>
                     )}
                   </div>
-                  <ul className="space-y-2 mb-6 flex-1">
-                    {plano.recursos.slice(0, 4).map((r) => (
-                      <li key={r} className="flex items-start gap-2 text-sm">
-                        <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plano.destaque ? 'text-white' : 'text-green-500'}`} />
-                        <span>{r}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mb-4 flex-1 space-y-3">
+                    <h4
+                      className={cn(
+                        "text-[10px] font-semibold uppercase tracking-wider opacity-90",
+                        plano.destaque ? "text-primary-foreground/85" : "text-muted-foreground"
+                      )}
+                    >
+                      {PLANOS_TEXTO_RECURSOS_TITULO}
+                    </h4>
+                    <ul className="space-y-2">
+                      {plano.recursos.map((r) => (
+                        <li key={r} className="flex items-start gap-2 text-sm">
+                          <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plano.destaque ? 'text-white' : 'text-green-500'}`} />
+                          <span>{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {plano.restricoes && plano.restricoes.length > 0 && (
+                      <div className="pt-1">
+                        <h4
+                          className={cn(
+                            "text-[10px] font-semibold uppercase tracking-wider opacity-90 mb-2",
+                            plano.destaque ? "text-primary-foreground/85" : "text-muted-foreground"
+                          )}
+                        >
+                          {PLANOS_TEXTO_RESTRICOES_TITULO}
+                        </h4>
+                        <ul className="space-y-2">
+                          {plano.restricoes.map((r) => (
+                            <li key={r} className={`flex items-start gap-2 text-sm ${plano.destaque ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
+                              <X className={`w-4 h-4 shrink-0 mt-0.5 ${plano.destaque ? 'text-primary-foreground/80' : 'text-amber-500'}`} />
+                              <span>{r}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                   <Button
                     asChild
                     variant={plano.destaque ? 'secondary' : 'default'}

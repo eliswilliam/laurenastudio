@@ -8,8 +8,6 @@ import json
 import logging
 import re
 import shutil
-import zipfile
-from io import BytesIO
 from pathlib import Path
 
 from jinja2 import Environment, BaseLoader
@@ -524,17 +522,3 @@ def save_site(project_id: str, html: str, structure: dict) -> tuple[str, str]:
     html_url = f"/uploads/sites/{project_id}/index.html"
     preview_url = f"/uploads/sites/{project_id}/index.html"
     return html_url, preview_url
-
-
-def create_zip(project_id: str) -> bytes | None:
-    """Create an in-memory ZIP of the site folder. Returns bytes or None."""
-    site_dir = SITES_DIR / project_id
-    if not site_dir.exists():
-        return None
-
-    buf = BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for file in site_dir.rglob("*"):
-            if file.is_file():
-                zf.write(file, file.relative_to(site_dir))
-    return buf.getvalue()

@@ -15,7 +15,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_workspace_id, verify_active_subscription
+from app.core.dependencies import (
+    check_and_increment_usage,
+    get_workspace_id,
+    verify_active_subscription,
+)
 from app.db.session import get_db
 from app.models.site_project import SiteDeployment, SiteProject
 from app.models.subscription import Subscription
@@ -142,6 +146,10 @@ async def publish_site(
             status.HTTP_400_BAD_REQUEST,
             detail="Nothing to publish. Provide projectId or files[].",
         )
+
+    await check_and_increment_usage(
+        db, workspace_id, "site_publish", subscription
+    )
 
     deployment: SiteDeployment | None = None
     if project:

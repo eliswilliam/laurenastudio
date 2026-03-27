@@ -375,10 +375,6 @@ export default function CheckoutSucesso() {
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-background rounded-lg p-3">
-                  <p className="text-muted-foreground text-xs">Posts/mês</p>
-                  <p className="font-bold text-lg">{plan.post_limit === 0 ? '∞' : plan.post_limit}</p>
-                </div>
-                <div className="bg-background rounded-lg p-3">
                   <p className="text-muted-foreground text-xs">Texto IA/mês</p>
                   <p className="font-bold text-lg">{plan.text_limit === 0 ? '∞' : plan.text_limit}</p>
                 </div>

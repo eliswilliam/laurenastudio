@@ -27,8 +27,8 @@ export interface PlanRead {
   image_limit: number;
   video_limit: number;
   social_limit: number;
-  post_limit: number;
   audio_limit: number;
+  site_publish_limit: number;
 }
 
 export interface UsageRead {
@@ -37,8 +37,8 @@ export interface UsageRead {
   text_used: number;
   image_used: number;
   video_used: number;
-  posts_used: number;
   audio_used: number;
+  site_publishes_used: number;
   period_start: string;
   period_end: string;
 }
@@ -62,8 +62,8 @@ export interface BillingStatusResponse {
     text_remaining: number;
     image_remaining: number;
     video_remaining: number;
-    posts_remaining: number;
     audio_remaining: number;
+    site_publishes_remaining: number;
   } | null;
   is_active: boolean;
 }

@@ -3,13 +3,13 @@ import {
   Send,
   Loader2,
   Wand2,
-  Download,
   ExternalLink,
   Rocket,
   History,
   BrainCircuit,
   LayoutTemplate,
   Globe,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,13 +65,18 @@ const PLACEHOLDER_PROMPT =
   'Descreva o site que imagina: sector, páginas, público, estética, referências…';
 const LABEL_SUGESTOES = 'Ideias para começar';
 const TITULO_PAGINA = 'Crie o seu site';
-const SUBTITULO_FLUXO =
-  'Converse com a Laurena para o briefing → Gerar site → pré-visualizar → ajustar na conversa e gerar de novo → Publicar.';
 const BOTAO_GERAR = 'Gerar site';
 const BOTAO_PUBLICAR = 'Publicar';
 const DICA_TECLADO = 'Enter envia · Shift+Enter nova linha';
 const LOADING_TEXTO = 'Laurena está a pensar…';
 const POLL_MS = 2500;
+
+const FLOW_STEPS = [
+  { n: 1, short: 'Briefing', Icon: BrainCircuit },
+  { n: 2, short: 'Gerar', Icon: Wand2 },
+  { n: 3, short: 'Preview', Icon: LayoutTemplate },
+  { n: 4, short: 'Online', Icon: Globe },
+] as const;
 
 /** Não listar no Histórico (conta) — título técnico da área de preview, não nome de projeto. */
 const EXCLUDE_FROM_PROJECT_HISTORY_NAME = 'Pré-visualização (HTML + CSS como no navegador)';
@@ -170,10 +175,9 @@ export default function CriarSite() {
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [pollProjectId, setPollProjectId] = useState<string | null>(null);
-  /** Pré-visualização + «Abrir no separador» só após gerar o site nesta sessão; oculto ao abrir o histórico. */
-  const [showPreviewChrome, setShowPreviewChrome] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'chat' | 'preview'>('chat');
+  const [mobilePublishOpen, setMobilePublishOpen] = useState(false);
   const isWideLg = useIsWideLg();
 
   const refreshProjects = useCallback(async () => {
@@ -214,7 +218,6 @@ export default function CriarSite() {
         if (s.preview_url) {
           setSiteResult({
             previewUrl: s.preview_url,
-            downloadUrl: s.download_url ?? `/api/v1/sites/${pid}/download`,
           });
         } else {
           setSiteResult(null);
@@ -223,7 +226,6 @@ export default function CriarSite() {
         setPublishSlug(s.publish_slug ?? '');
         setAGerar(false);
         setAPublicar(false);
-        setShowPreviewChrome(false);
         if (s.status === 'generating') {
           setAGerar(true);
           setPollProjectId(pid);
@@ -264,8 +266,7 @@ export default function CriarSite() {
         if (s.status === 'ready' && s.preview_url) {
           finish();
           const previewUrl = s.preview_url;
-          const downloadUrl = s.download_url ?? `/api/v1/sites/${pollProjectId}/download`;
-          setSiteResult({ previewUrl, downloadUrl });
+          setSiteResult({ previewUrl });
           setPublicSiteUrl(userFacingSiteUrl(s.publish_slug, s.site_url));
           setPublishSlug(s.publish_slug ?? '');
           setLista((prev) => {
@@ -277,13 +278,12 @@ export default function CriarSite() {
                 id: ID(),
                 papel: 'bot',
                 texto:
-                  'Site gerado com sucesso! Use os botões abaixo para ver a preview ou fazer download.',
+                  'Site gerado com sucesso! Use os botões abaixo para ver a pré-visualização.',
               },
             ];
           });
           setPollProjectId(null);
           setAGerar(false);
-          setShowPreviewChrome(true);
           void refreshProjects();
         } else if (s.status === 'error') {
           finish();
@@ -315,8 +315,8 @@ export default function CriarSite() {
 
   const iniciarNovoSite = () => {
     setPollProjectId(null);
-    setShowPreviewChrome(false);
     setMobileTab('chat');
+    setMobilePublishOpen(false);
     resetAll();
   };
 
@@ -331,7 +331,7 @@ export default function CriarSite() {
   const messageNodes = useMemo(
     () =>
       lista.map((m) => (
-        <div key={m.id}>
+        <div key={m.id} className="w-full min-w-0">
           {m.papel === 'bot' ? (
             <div className="max-w-[95%] md:max-w-2xl">
               <p className="whitespace-pre-wrap text-[15px] sm:text-base leading-[1.65] text-foreground">
@@ -339,7 +339,7 @@ export default function CriarSite() {
               </p>
             </div>
           ) : (
-            <div className="flex justify-end">
+            <div className="flex w-full min-w-0 justify-end">
               <div
                 className={cn(
                   'max-w-[min(100%,32rem)] rounded-2xl px-4 py-3',
@@ -364,11 +364,26 @@ export default function CriarSite() {
     return `${window.location.origin}${u.startsWith('/') ? '' : '/'}${u}`;
   }, [siteResult?.previewUrl]);
 
+  /** 1 = briefing · 2 = a gerar · 3 = pré-visualizar · 4 = site online */
+  const flowStepActive = useMemo(() => {
+    if (publicSiteUrl) return 4;
+    if (siteResult?.previewUrl) return 3;
+    if (aGerar || pollProjectId || generateJobId) return 2;
+    return 1;
+  }, [publicSiteUrl, siteResult, aGerar, pollProjectId, generateJobId]);
+
   useEffect(() => {
+    if (publicSiteUrl) setMobilePublishOpen(false);
+  }, [publicSiteUrl]);
+
+  useEffect(() => {
+    // block: 'end' — aligne le bas du fil (repère h-px) au bas du scrollport.
+    // Sans cela, le défaut peut centrer le repère et faire « remonter » la dernière bulle.
+    const opts: ScrollIntoViewOptions = { behavior: 'smooth', block: 'end', inline: 'nearest' };
     if (isWideLg) {
-      fim.current?.scrollIntoView({ behavior: 'smooth' });
+      fim.current?.scrollIntoView(opts);
     } else if (mobileTab === 'chat') {
-      fimMobile.current?.scrollIntoView({ behavior: 'smooth' });
+      fimMobile.current?.scrollIntoView(opts);
     }
   }, [lista, aEnviar, aGerar, aPublicar, mobileTab, isWideLg]);
 
@@ -400,19 +415,17 @@ export default function CriarSite() {
           finish();
           const r = j.result;
           const previewUrl = String(r.previewUrl ?? '');
-          const downloadUrl = String(r.downloadUrl ?? '');
-          setSiteResult({ previewUrl, downloadUrl });
+          setSiteResult({ previewUrl });
           const pronto: Mensagem = {
             id: ID(),
             papel: 'bot',
             texto: String(
               r.message ??
-                'Site gerado com sucesso! Use os botões abaixo para ver a preview ou fazer download.'
+                'Site gerado com sucesso! Use os botões abaixo para ver a pré-visualização.'
             ),
           };
           setLista((p) => [...p, pronto]);
           setAGerar(false);
-          setShowPreviewChrome(true);
           clearGenerateJob();
         } else if (j.status === 'failed') {
           finish();
@@ -575,7 +588,6 @@ export default function CriarSite() {
     setSiteResult(null);
     setPublicSiteUrl(null);
     setPublishSlug('');
-    setShowPreviewChrome(false);
 
     const gerando: Mensagem = {
       id: ID(),
@@ -652,56 +664,85 @@ export default function CriarSite() {
       )}
     >
       <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-        {/* Cabeçalho + passos: sempre visíveis ao scroll (sticky sob o AppTopbar) */}
         <div
           className={cn(
             'sticky z-20 -mx-3 px-3 sm:-mx-4 sm:px-4',
             'top-14 md:top-16',
             'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/85',
-            'border-b border-border/60 shadow-[0_1px_0_0_hsl(var(--border)/0.4)]'
+            'border-b border-border/50 shadow-sm'
           )}
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between shrink-0 py-3">
-            <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-semibold tracking-tight">{TITULO_PAGINA}</h1>
-              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 max-w-3xl leading-snug">
-                {SUBTITULO_FLUXO}
+          <div className="flex items-start justify-between gap-3 py-3">
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="text-lg font-semibold tracking-tight">{TITULO_PAGINA}</h1>
+              <p className="text-xs text-muted-foreground leading-snug max-w-md hidden sm:block">
+                Um fluxo único: conversar com a Laurena, gerar o site, ver o resultado e publicar.
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+            <div className="flex items-center gap-2 shrink-0">
               <SheetTrigger asChild>
-                <Button type="button" variant="outline" size="sm" className="gap-1.5">
+                <Button type="button" variant="outline" size="sm" className="gap-1.5 h-9">
                   <History className="w-4 h-4" />
-                  Histórico
+                  <span className="hidden min-[400px]:inline">Histórico</span>
                 </Button>
               </SheetTrigger>
-              <Button type="button" variant="ghost" size="sm" onClick={iniciarNovoSite}>
+              <Button type="button" variant="secondary" size="sm" className="h-9" onClick={iniciarNovoSite}>
                 Novo site
               </Button>
             </div>
           </div>
 
-          <nav
-            className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground overflow-x-auto py-2.5 shrink-0 border-t border-border/30"
-            aria-label="Fluxo do criador de sites"
-          >
-            <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
-              <BrainCircuit className="w-3.5 h-3.5" /> Briefing (IA)
-            </span>
-            <span aria-hidden>→</span>
-            <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
-              <Wand2 className="w-3.5 h-3.5" /> Gerar
-            </span>
-            <span aria-hidden>→</span>
-            <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
-              <LayoutTemplate className="w-3.5 h-3.5" /> Pré-visualizar
-            </span>
-            <span aria-hidden>→</span>
-            <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
-              <Globe className="w-3.5 h-3.5" /> Publicar
-            </span>
+          <nav className="pb-3" aria-label="Progresso no criador de sites">
+            <div className="flex items-center w-full max-w-3xl" role="list">
+              {FLOW_STEPS.map(({ n, short, Icon }, idx) => {
+                const done = flowStepActive > n;
+                const active = flowStepActive === n;
+                return (
+                  <div key={n} className="flex items-center min-w-0 flex-1 sm:flex-initial" role="listitem">
+                    <div
+                      className={cn(
+                        'flex items-center gap-1.5 min-w-0 flex-1 justify-center sm:justify-start',
+                        idx === FLOW_STEPS.length - 1 && 'sm:flex-none'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                          done && 'border-primary bg-primary/10 text-primary',
+                          active && !done && 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20',
+                          !done && !active && 'border-muted bg-muted/30 text-muted-foreground'
+                        )}
+                        aria-current={active ? 'step' : undefined}
+                      >
+                        {done ? (
+                          <Check className="w-4 h-4" strokeWidth={2.5} />
+                        ) : (
+                          <Icon className="w-4 h-4" />
+                        )}
+                      </span>
+                      <span
+                        className={cn(
+                          'hidden sm:inline text-xs truncate max-w-[5.5rem]',
+                          active && 'font-medium text-foreground',
+                          !active && 'text-muted-foreground'
+                        )}
+                      >
+                        {short}
+                      </span>
+                    </div>
+                    {idx < FLOW_STEPS.length - 1 && (
+                      <div
+                        className="hidden sm:block h-0.5 w-6 lg:w-10 shrink-0 rounded-full bg-border mx-0.5"
+                        aria-hidden
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </nav>
         </div>
+
         <SheetContent side="left" className="w-[min(100vw,420px)] flex flex-col gap-3">
           <SheetHeader>
             <SheetTitle>Histórico de projetos</SheetTitle>
@@ -769,116 +810,42 @@ export default function CriarSite() {
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       )}
-      {emConversa && isWideLg && (
-        <div className="lg:col-span-2 flex flex-wrap items-center justify-end gap-2 shrink-0 pb-3 border-b border-border/40 mb-3">
-          {siteResult && (
-            <>
-              {showPreviewChrome && previewAbsUrl && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-normal border-border/80"
-                  asChild
-                >
-                  <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-                    Abrir no separador
-                  </a>
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-normal border-border/80"
-                asChild
-              >
-                <a href={siteResult.downloadUrl}>
-                  <Download className="w-3.5 h-3.5 opacity-70" />
-                  Download
-                </a>
-              </Button>
-              <div className="flex flex-col gap-1.5 min-w-0 sm:min-w-[11rem]">
-                <label htmlFor="publish-slug" className="sr-only">
-                  Subdomínio do site
-                </label>
-                <Input
-                  id="publish-slug"
-                  type="text"
-                  inputMode="text"
-                  autoComplete="off"
-                  placeholder="meu-site"
-                  value={publishSlug}
-                  onChange={(e) =>
-                    setPublishSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
-                  }
-                  disabled={aPublicar}
-                  className="h-9 rounded-full text-xs border-border/80 bg-background/90"
-                />
-                {slugValid(publishSlug.trim()) && (
-                  <p className="text-[10px] text-muted-foreground truncate px-0.5">
-                    https://{publishSlug.trim().toLowerCase()}.{ROOT_DOMAIN}
-                  </p>
-                )}
-              </div>
-              <Button
-                variant="default"
-                size="sm"
-                className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-medium"
-                onClick={publicar}
-                disabled={aPublicar || !usuario?.id}
-              >
-                {aPublicar ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Rocket className="w-3.5 h-3.5" />
-                )}
-                {BOTAO_PUBLICAR}
-              </Button>
-            </>
-          )}
-          <Button
-            variant={siteResult ? 'ghost' : 'default'}
-            size="sm"
-            className="shrink-0 rounded-full h-9 gap-1.5 text-xs font-medium"
-            onClick={gerarSite}
-            disabled={aGerar || aPublicar || !projectId}
-          >
-            {aGerar ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Wand2 className="w-3.5 h-3.5" />
-            )}
-            {BOTAO_GERAR}
-          </Button>
-        </div>
-      )}
 
-      <div className={cn('flex-1 flex flex-col min-h-0 lg:col-span-1', !emConversa && 'justify-center lg:col-span-2')}>
-        {((generateJob?.logs?.length ?? 0) > 0 || (publishJob?.logs?.length ?? 0) > 0) && emConversa && (
-          <div className="mb-3 shrink-0 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 max-h-32 overflow-y-auto text-[11px] font-mono text-muted-foreground space-y-0.5">
-            {(generateJob?.logs ?? []).map((l, i) => (
-              <div key={`g-${i}`}>{l.message}</div>
-            ))}
-            {(publishJob?.logs ?? []).map((l, i) => (
-              <div key={`p-${i}`}>{l.message}</div>
-            ))}
-          </div>
-        )}
-
-        {publicSiteUrl && emConversa && (
-          <div className="mb-3 shrink-0 space-y-2">
-            <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-center">
-              <p className="text-xs text-muted-foreground">O seu site</p>
+      {publicSiteUrl && emConversa && (
+        <div className="lg:col-span-2 order-first mb-1 lg:mb-3">
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700/90 dark:text-emerald-400/90">
+                Site no ar
+              </p>
               <a
                 href={publicSiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium text-emerald-700 dark:text-emerald-400 underline-offset-4 hover:underline break-all"
+                className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 underline-offset-4 hover:underline break-all"
               >
                 {publicSiteUrl}
               </a>
             </div>
           </div>
+        </div>
+      )}
+
+      <div className={cn('flex-1 flex flex-col min-h-0 lg:col-span-1', !emConversa && 'justify-center lg:col-span-2')}>
+        {((generateJob?.logs?.length ?? 0) > 0 || (publishJob?.logs?.length ?? 0) > 0) && emConversa && (
+          <details className="mb-3 shrink-0 rounded-lg border border-border/50 bg-muted/15 text-[11px] font-mono text-muted-foreground">
+            <summary className="cursor-pointer select-none px-3 py-2 text-xs font-sans text-foreground">
+              Detalhes do processo (técnico)
+            </summary>
+            <div className="px-3 pb-2 max-h-28 overflow-y-auto space-y-0.5 border-t border-border/30 pt-2">
+              {(generateJob?.logs ?? []).map((l, i) => (
+                <div key={`g-${i}`}>{l.message}</div>
+              ))}
+              {(publishJob?.logs ?? []).map((l, i) => (
+                <div key={`p-${i}`}>{l.message}</div>
+              ))}
+            </div>
+          </details>
         )}
 
         {!emConversa ? (
@@ -920,7 +887,7 @@ export default function CriarSite() {
           <div
             className={cn(
               'flex flex-1 flex-col overflow-y-auto min-h-0 pr-1 -mr-1 space-y-6 md:space-y-8',
-              'pb-4'
+              'pb-4 scroll-pb-2'
             )}
           >
             {messageNodes}
@@ -940,21 +907,35 @@ export default function CriarSite() {
           <Tabs
             value={mobileTab}
             onValueChange={(v) => setMobileTab(v as 'chat' | 'preview')}
-            className="flex flex-1 flex-col min-h-0 min-w-0 -mx-0.5"
+            className="flex flex-1 flex-col min-h-0 min-w-0 -mx-0.5 max-lg:overflow-hidden"
           >
-            <TabsList className="grid w-full grid-cols-2 shrink-0 mb-2 h-9">
-              <TabsTrigger value="chat" className="text-xs">
-                Conversa
+            <TabsList
+              className={cn(
+                'grid w-full grid-cols-2 shrink-0 h-10 p-1 rounded-xl bg-muted/60 border border-border/50',
+                'max-lg:sticky max-lg:z-20',
+                'max-lg:top-[calc(3.5rem+7.25rem)] max-lg:md:top-[calc(4rem+7.25rem)]',
+                'max-lg:-mx-1 max-lg:px-0',
+                'mb-3'
+              )}
+            >
+              <TabsTrigger
+                value="chat"
+                className="text-xs rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                Conversa com a IA
               </TabsTrigger>
-              <TabsTrigger value="preview" className="text-xs">
-                Pré-visualização
+              <TabsTrigger
+                value="preview"
+                className="text-xs rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                Ver o site
               </TabsTrigger>
             </TabsList>
             <TabsContent
               value="chat"
-              className="flex-1 overflow-y-auto min-h-0 mt-0 data-[state=inactive]:hidden flex flex-col"
+              className="flex-1 overflow-y-auto min-h-0 mt-0 data-[state=inactive]:hidden flex flex-col scroll-pb-2"
             >
-              <div className="space-y-6 md:space-y-8 pr-1 -mr-1 pb-4 flex-1">
+              <div className="space-y-6 md:space-y-8 pr-1 -mr-1 pb-4 flex-1 w-full min-w-0">
                 {messageNodes}
                 {(aEnviar || aGerar || aPublicar) && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -973,10 +954,10 @@ export default function CriarSite() {
               value="preview"
               className="flex-1 min-h-[min(60dvh,520px)] mt-0 flex flex-col data-[state=inactive]:hidden"
             >
-              {siteResult && previewAbsUrl && showPreviewChrome ? (
-                <div className="flex flex-col flex-1 min-h-0 rounded-xl border bg-muted/30 overflow-hidden">
-                  <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/80 shrink-0">
-                    Pré-visualização (HTML + CSS como no navegador)
+              {siteResult && previewAbsUrl ? (
+                <div className="flex flex-col flex-1 min-h-0 rounded-xl border border-border/70 bg-muted/20 overflow-hidden shadow-sm">
+                  <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/90 shrink-0">
+                    Pré-visualização no painel
                   </p>
                   <iframe
                     title="Pré-visualização do site gerado"
@@ -1000,128 +981,245 @@ export default function CriarSite() {
           </div>
         )}
 
-        <div className="shrink-0 pt-3 md:pt-4 pb-1 bg-gradient-to-t from-background via-background to-transparent">
-          <div
-            className={cn(
-              'flex items-end gap-2 rounded-[1.35rem] border border-border/60',
-              'bg-muted/25 dark:bg-muted/15 shadow-sm',
-              'px-3 py-2.5 md:px-4 md:py-3',
-              'transition-shadow duration-200',
-              'focus-within:border-border focus-within:shadow-md focus-within:bg-muted/35 dark:focus-within:bg-muted/20'
-            )}
-          >
-            <Textarea
-              value={rascunho}
-              onChange={(e) => setRascunho(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  enviar();
-                }
-              }}
-              placeholder={PLACEHOLDER_PROMPT}
-              rows={1}
-              disabled={aEnviar || aGerar || aPublicar}
-              aria-label="Prompt para descrever o site"
+        {/* Composeur : accueil / chat desktop / onglet « Conversa » mobile — masqué sur « Ver o site » */}
+        {(!emConversa || isWideLg || mobileTab === 'chat') && (
+          <div className="shrink-0 pt-3 md:pt-4 pb-1 bg-gradient-to-t from-background via-background to-transparent">
+            <div
               className={cn(
-                'min-h-[44px] max-h-[200px] resize-none flex-1 border-0 bg-transparent p-1.5 md:p-2',
-                'text-[15px] leading-relaxed shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
-                'placeholder:text-muted-foreground/55'
-              )}
-            />
-            <Button
-              type="button"
-              size="icon"
-              disabled={aEnviar || aGerar || aPublicar || !rascunho.trim()}
-              onClick={enviar}
-              aria-label="Enviar mensagem"
-              className={cn(
-                'shrink-0 h-9 w-9 rounded-full mb-0.5',
-                'bg-primary text-primary-foreground hover:bg-primary/90',
-                'disabled:opacity-40'
+                'flex items-end gap-2 rounded-[1.35rem] border border-border/60',
+                'bg-muted/25 dark:bg-muted/15 shadow-sm',
+                'px-3 py-2.5 md:px-4 md:py-3',
+                'transition-shadow duration-200',
+                'focus-within:border-border focus-within:shadow-md focus-within:bg-muted/35 dark:focus-within:bg-muted/20'
               )}
             >
-              <Send className="h-4 w-4" />
-            </Button>
+              <Textarea
+                value={rascunho}
+                onChange={(e) => setRascunho(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    enviar();
+                  }
+                }}
+                placeholder={PLACEHOLDER_PROMPT}
+                rows={1}
+                disabled={aEnviar || aGerar || aPublicar}
+                aria-label="Prompt para descrever o site"
+                className={cn(
+                  'min-h-[44px] max-h-[200px] resize-none flex-1 border-0 bg-transparent p-1.5 md:p-2',
+                  'text-[15px] leading-relaxed shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+                  'placeholder:text-muted-foreground/55'
+                )}
+              />
+              <Button
+                type="button"
+                size="icon"
+                disabled={aEnviar || aGerar || aPublicar || !rascunho.trim()}
+                onClick={enviar}
+                aria-label="Enviar mensagem"
+                className={cn(
+                  'shrink-0 h-9 w-9 rounded-full mb-0.5',
+                  'bg-primary text-primary-foreground hover:bg-primary/90',
+                  'disabled:opacity-40'
+                )}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-center text-[11px] text-muted-foreground/80 mt-2.5 px-2">
+              {DICA_TECLADO}
+            </p>
           </div>
-          <p className="text-center text-[11px] text-muted-foreground/80 mt-2.5 px-2">
-            {DICA_TECLADO}
-          </p>
-        </div>
+        )}
       </div>
 
       {emConversa && isWideLg && (
-        <div className="flex flex-col min-h-0 min-w-0 rounded-xl border bg-muted/30 overflow-hidden">
-          <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/80 shrink-0">
-            Pré-visualização (HTML + CSS como no navegador)
-          </p>
-          {siteResult && previewAbsUrl && showPreviewChrome ? (
+        <div className="flex flex-col min-h-0 min-w-0 lg:col-span-1 rounded-xl border border-border/80 bg-card/30 shadow-sm overflow-hidden">
+          <div className="flex flex-col gap-3 p-3 border-b border-border/60 bg-muted/25 sm:flex-row sm:items-center sm:justify-between shrink-0">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold tracking-tight">Pré-visualização</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                HTML e CSS como no navegador
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              <Button
+                variant={siteResult ? 'outline' : 'default'}
+                size="sm"
+                className="h-9 rounded-full text-xs"
+                onClick={gerarSite}
+                disabled={aGerar || aPublicar || !projectId}
+              >
+                {aGerar ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Wand2 className="w-3.5 h-3.5" />
+                )}
+                {BOTAO_GERAR}
+              </Button>
+              {previewAbsUrl && (
+                <Button variant="secondary" size="sm" className="h-9 rounded-full text-xs gap-1.5" asChild>
+                  <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Abrir no separador
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
+          {siteResult && previewAbsUrl ? (
             <iframe
               title="Pré-visualização do site gerado"
               src={previewAbsUrl}
-              className="w-full flex-1 min-h-0 bg-white"
+              className="w-full flex-1 min-h-[min(55vh,560px)] bg-white"
               sandbox="allow-scripts allow-same-origin allow-forms"
             />
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground min-h-[200px]">
-              Gere o site para ver a pré-visualização aqui.
+            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-sm text-muted-foreground min-h-[240px] border border-dashed border-border/40 m-3 rounded-lg">
+              <LayoutTemplate className="w-10 h-10 opacity-30 mb-3" />
+              <p className="font-medium text-foreground">Ainda sem site gerado</p>
+              <p className="mt-1 max-w-xs">
+                Quando o briefing estiver claro, use «Gerar site» para ver o resultado aqui.
+              </p>
             </div>
           )}
-        </div>
-      )}
-
-      {emConversa && !isWideLg && (
-        <div
-          className={cn(
-            'fixed left-0 right-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-md',
-            'px-3 py-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]',
-            // Acima da MobileBottomNav (h-16, z-50) em viewport menor que md
-            'max-md:bottom-16 bottom-0'
-          )}
-        >
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center sm:justify-end gap-2">
-            {/* Gerar primeiro no mobile para não ficar fora do ecrã quando há vários botões */}
-            <Button
-              variant={siteResult ? 'outline' : 'default'}
-              size="sm"
-              className="rounded-full h-9 text-xs font-medium shrink-0 max-sm:order-first sm:order-last"
-              onClick={gerarSite}
-              disabled={aGerar || aPublicar || !projectId}
-            >
-              {aGerar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-              <span className="hidden min-[380px]:inline">{BOTAO_GERAR}</span>
-              <span className="inline min-[380px]:hidden">Gerar</span>
-            </Button>
-            {siteResult && (
-              <>
-                {showPreviewChrome && previewAbsUrl && (
-                  <Button variant="outline" size="sm" className="rounded-full h-9 text-xs shrink-0" asChild>
-                    <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-                      Abrir
-                    </a>
-                  </Button>
-                )}
-                <Button variant="outline" size="sm" className="rounded-full h-9 text-xs shrink-0" asChild>
-                  <a href={siteResult.downloadUrl}>
-                    <Download className="w-3.5 h-3.5 opacity-70" />
-                    ZIP
-                  </a>
-                </Button>
+          {siteResult && (
+            <div className="border-t border-border/60 p-3 space-y-2 bg-background/95 shrink-0">
+              <p className="text-xs font-medium flex items-center gap-1.5 text-foreground">
+                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                Publicar na internet
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <label htmlFor="publish-slug-desktop" className="sr-only">
+                    Subdomínio
+                  </label>
+                  <Input
+                    id="publish-slug-desktop"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="off"
+                    placeholder="meu-site"
+                    value={publishSlug}
+                    onChange={(e) =>
+                      setPublishSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
+                    }
+                    disabled={aPublicar}
+                    className="h-9 rounded-lg text-xs"
+                  />
+                  {slugValid(publishSlug.trim()) && (
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      https://{publishSlug.trim().toLowerCase()}.{ROOT_DOMAIN}
+                    </p>
+                  )}
+                </div>
                 <Button
-                  variant="default"
-                  size="sm"
-                  className="rounded-full h-9 text-xs shrink-0"
+                  className="h-9 rounded-lg shrink-0"
                   onClick={publicar}
                   disabled={aPublicar || !usuario?.id}
                 >
                   {aPublicar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
                   {BOTAO_PUBLICAR}
                 </Button>
-              </>
-            )}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
+      )}
+
+      {emConversa && !isWideLg && (
+        <>
+          <div
+            className={cn(
+              'fixed left-0 right-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-md',
+              'px-3 py-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]',
+              'max-md:bottom-16 bottom-0 shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)]'
+            )}
+          >
+            <div className="max-w-7xl mx-auto flex items-stretch justify-center gap-2 sm:gap-3">
+              <Button
+                variant={siteResult ? 'outline' : 'default'}
+                size="sm"
+                className="flex-1 sm:flex-none rounded-xl h-10 text-xs font-medium"
+                onClick={gerarSite}
+                disabled={aGerar || aPublicar || !projectId}
+              >
+                {aGerar ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Wand2 className="w-4 h-4" />
+                )}
+                <span className="ml-1.5 hidden min-[360px]:inline">{BOTAO_GERAR}</span>
+                <span className="ml-1.5 inline min-[360px]:hidden">Gerar</span>
+              </Button>
+              {previewAbsUrl && (
+                <Button variant="secondary" size="sm" className="rounded-xl h-10 px-3 shrink-0" asChild>
+                  <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer" title="Abrir pré-visualização">
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </Button>
+              )}
+              {siteResult && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1 sm:flex-none rounded-xl h-10 text-xs font-medium"
+                  onClick={() => setMobilePublishOpen(true)}
+                  disabled={aPublicar}
+                >
+                  <Rocket className="w-4 h-4" />
+                  <span className="ml-1.5">{BOTAO_PUBLICAR}</span>
+                </Button>
+              )}
+            </div>
+          </div>
+          <Sheet open={mobilePublishOpen} onOpenChange={setMobilePublishOpen}>
+            <SheetContent side="bottom" className="rounded-t-2xl max-h-[90dvh] flex flex-col">
+              <SheetHeader className="text-left border-b border-border/50 pb-3">
+                <SheetTitle>Publicar o site</SheetTitle>
+                <SheetDescription>
+                  Confirme o subdomínio e inicie a publicação. Pode acompanhar o progresso no feed acima.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto py-4 space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="publish-slug-mobile" className="text-xs font-medium">
+                    Subdomínio {requirePublishSlug ? '(obrigatório)' : '(opcional)'}
+                  </label>
+                  <Input
+                    id="publish-slug-mobile"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="off"
+                    placeholder="meu-site"
+                    value={publishSlug}
+                    onChange={(e) =>
+                      setPublishSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
+                    }
+                    disabled={aPublicar}
+                    className="h-11 rounded-xl"
+                  />
+                  {slugValid(publishSlug.trim()) && (
+                    <p className="text-xs text-muted-foreground">
+                      https://{publishSlug.trim().toLowerCase()}.{ROOT_DOMAIN}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  className="w-full h-11 rounded-xl gap-2"
+                  onClick={() => {
+                    void publicar();
+                  }}
+                  disabled={aPublicar || !usuario?.id}
+                >
+                  {aPublicar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+                  {BOTAO_PUBLICAR}
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
       )}
       </div>
     </div>

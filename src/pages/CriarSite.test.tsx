@@ -22,7 +22,6 @@ vi.mock("@/lib/api", () => {
       updatedAt: new Date().toISOString(),
       result: {
         previewUrl: "/uploads/sites/proj-test-123/index.html",
-        downloadUrl: "/api/v1/sites/proj-test-123/download",
         message: "Site gerado com sucesso!",
       },
       error: null,
@@ -120,7 +119,7 @@ describe("CriarSite", () => {
     expect(screen.getByRole("button", { name: /Gerar site/i })).toBeInTheDocument();
   });
 
-  it("gera site e mostra botões preview/download", async () => {
+  it("gera site e mostra botão de pré-visualização", async () => {
     const user = userEvent.setup();
     renderPage();
     const prompt = screen.getByRole("textbox", { name: /Prompt para descrever o site/i });
@@ -141,6 +140,5 @@ describe("CriarSite", () => {
     expect(
       screen.getByRole("link", { name: /Abrir no separador/i })
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Download/i })).toBeInTheDocument();
   });
 });

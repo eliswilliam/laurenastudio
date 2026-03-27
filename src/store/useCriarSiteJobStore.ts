@@ -4,7 +4,6 @@ import { type Mensagem, MENSAGEM_ABERTURA_TEXTO } from '@/lib/criarSiteChat';
 
 export interface SiteResult {
   previewUrl: string;
-  downloadUrl: string;
 }
 
 const ABERTURA: Mensagem = {

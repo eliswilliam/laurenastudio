@@ -113,7 +113,7 @@ export default function AppTopbar() {
         <div className="relative flex-1 min-w-0 md:flex-initial" ref={searchRef}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/80 pointer-events-none" />
           <Input
-            placeholder="Buscar páginas do painel, mídia, posts..."
+            placeholder="Buscar páginas do painel, mídia..."
             className="pl-9 w-full min-w-0 h-9 bg-background/90 border-2 border-primary/45 text-foreground shadow-sm transition-colors hover:border-primary/70 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-0 md:w-72"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}

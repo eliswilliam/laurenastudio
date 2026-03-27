@@ -42,6 +42,9 @@ class Plan(Base):
     audio_limit: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0
     )  # 0 = unlimited (e.g. Business)
+    site_publish_limit: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )  # 0 = unlimited; otherwise max POST /api/publish per billing month
 
     # ── Relationships ────────────────────────────────────────────────────────
     subscriptions: Mapped[list["Subscription"]] = relationship(  # noqa: F821

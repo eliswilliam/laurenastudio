@@ -90,6 +90,7 @@ async def _reset_usage_if_needed(
         usage.video_used = 0
         usage.posts_used = 0
         usage.audio_used = 0
+        usage.site_publishes_used = 0
         usage.period_start = now
         from datetime import timedelta
         usage.period_end = now + timedelta(days=30)
@@ -103,8 +104,17 @@ RESOURCE_MAP = {
     "text": ("text_used", "text_limit"),
     "image": ("image_used", "image_limit"),
     "video": ("video_used", "video_limit"),
-    "post": ("posts_used", "post_limit"),
     "audio": ("audio_used", "audio_limit"),
+    "site_publish": ("site_publishes_used", "site_publish_limit"),
+}
+
+# Libellés pour message 403 (PT-BR)
+_RESOURCE_LIMIT_LABEL_PT: dict[str, str] = {
+    "text": "gerações de texto com IA",
+    "image": "gerações de imagem",
+    "video": "gerações de vídeo",
+    "audio": "gerações de áudio",
+    "site_publish": "publicações de site",
 }
 
 
@@ -150,12 +160,13 @@ async def check_and_increment_usage(
     current_used = getattr(usage, used_field)
 
     if limit_value > 0 and current_used >= limit_value:
+        label = _RESOURCE_LIMIT_LABEL_PT.get(resource_type, resource_type)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                f"Monthly {resource_type} limit reached "
+                f"Limite mensal atingido para {label} "
                 f"({current_used}/{limit_value}). "
-                f"Upgrade your plan for more."
+                f"Atualize o plano para continuar."
             ),
         )
 

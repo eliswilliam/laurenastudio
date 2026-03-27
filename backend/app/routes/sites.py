@@ -1,6 +1,6 @@
 """
 routes/sites.py
-Site-builder endpoints: chat with Laurena, generate site, preview, download.
+Site-builder endpoints: chat with Laurena, generate site, preview.
 Protected by active subscription.
 """
 import json
@@ -8,7 +8,6 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import Response
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -41,7 +40,6 @@ from app.services.site_ai_service import (
     build_site_generation_brief_from_prompts,
     generate_chat_reply,
 )
-from app.services.site_generator import create_zip
 from app.services.job_service import create_job, get_job
 from app.services.arq_enqueue import enqueue_generate_job
 
@@ -218,8 +216,6 @@ async def get_site_status(
         SitePromptItem(id=p.id, role=p.role, content=p.content)
         for p in sorted(project.prompts, key=lambda x: x.created_at)
     ]
-    download_url = f"/api/v1/sites/{project_id}/download" if site and site.status == "ready" else None
-
     dep_result = await db.execute(
         select(SiteDeployment)
         .where(SiteDeployment.project_id == project_id)
@@ -248,7 +244,6 @@ async def get_site_status(
         project_name=project.name,
         status=project.status,
         preview_url=site.preview_url if site else None,
-        download_url=download_url,
         structure_json=site.structure_json if site else None,
         error_message=site.error_message if site else None,
         user_prompt=project.user_prompt,
@@ -260,37 +255,6 @@ async def get_site_status(
         publication_status=project.publication_status,
         deployments=dep_infos,
         prompts=prompt_rows,
-    )
-
-
-# ── GET /sites/{project_id}/download ────────────────────────────────────────
-
-@router.get("/{project_id}/download", summary="Download site as ZIP")
-async def download_site(
-    project_id: str,
-    workspace_id: str = Depends(get_workspace_id),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(SiteProject)
-        .options(selectinload(SiteProject.site))
-        .where(
-            SiteProject.id == project_id,
-            SiteProject.workspace_id == workspace_id,
-        )
-    )
-    project = result.scalars().first()
-    if not project or not project.site or project.site.status != "ready":
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Site não disponível para download.")
-
-    zip_bytes = create_zip(project_id)
-    if not zip_bytes:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ficheiros do site não encontrados.")
-
-    return Response(
-        content=zip_bytes,
-        media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{project.name or "site"}.zip"'},
     )
 
 

@@ -28,7 +28,14 @@ import {
   apiBillingStatus,
   type BillingStatusResponse,
 } from '@/lib/billingApi';
-import { PLANOS, PLAN_DISPLAY_NAMES } from '@/data/planos';
+import {
+  PLANOS,
+  PLAN_DISPLAY_NAMES,
+  PLANOS_TEXTO_ECONOMIA_ANUAL,
+  PLANOS_TEXTO_RECURSOS_TITULO,
+  PLANOS_TEXTO_RESTRICOES_TITULO,
+  PLANOS_TEXTO_MAIS_POPULAR,
+} from '@/data/planos';
 
 const iconesPlano: Record<string, React.ReactNode> = {
   starter: <Zap className="w-5 h-5" />,
@@ -104,12 +111,16 @@ export default function Pagamento() {
   const planDisplayName = (planName ? PLAN_DISPLAY_NAMES[planName] : null) ?? billing?.subscription?.plan?.display_name ?? planName ?? 'Nenhum';
   const nextBillingDate = billing?.subscription?.current_period_end ?? null;
 
-  const postsUsed = billing?.usage?.usage?.posts_used ?? 0;
-  const postsLimit = billing?.usage?.limits?.post_limit ?? 0;
   const textUsed = billing?.usage?.usage?.text_used ?? 0;
   const textLimit = billing?.usage?.limits?.text_limit ?? 0;
   const imageUsed = billing?.usage?.usage?.image_used ?? 0;
   const imageLimit = billing?.usage?.limits?.image_limit ?? 0;
+  const videoUsed = billing?.usage?.usage?.video_used ?? 0;
+  const videoLimit = billing?.usage?.limits?.video_limit ?? 0;
+  const audioUsed = billing?.usage?.usage?.audio_used ?? 0;
+  const audioLimit = billing?.usage?.limits?.audio_limit ?? 0;
+  const sitePubUsed = billing?.usage?.usage?.site_publishes_used ?? 0;
+  const sitePubLimit = billing?.usage?.limits?.site_publish_limit ?? 0;
 
   const handleCheckout = async (planoId: string) => {
     if (planoId === planName) return;
@@ -203,16 +214,7 @@ export default function Pagamento() {
             </div>
           ) : isActive ? (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Posts este mês</span>
-                    <span className="font-medium">
-                      {postsUsed} / {postsLimit > 0 ? postsLimit : '\u221e'}
-                    </span>
-                  </div>
-                  <Progress value={pct(postsUsed, postsLimit)} className="h-2" />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Gerações IA (texto)</span>
@@ -230,6 +232,33 @@ export default function Pagamento() {
                     </span>
                   </div>
                   <Progress value={pct(imageUsed, imageLimit)} className="h-2" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Gerações IA (vídeo)</span>
+                    <span className="font-medium">
+                      {videoUsed} / {videoLimit > 0 ? videoLimit : '\u221e'}
+                    </span>
+                  </div>
+                  <Progress value={pct(videoUsed, videoLimit)} className="h-2" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Gerações IA (áudio)</span>
+                    <span className="font-medium">
+                      {audioUsed} / {audioLimit > 0 ? audioLimit : '\u221e'}
+                    </span>
+                  </div>
+                  <Progress value={pct(audioUsed, audioLimit)} className="h-2" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Publicações de site (deploy)</span>
+                    <span className="font-medium">
+                      {sitePubUsed} / {sitePubLimit > 0 ? sitePubLimit : '\u221e'}
+                    </span>
+                  </div>
+                  <Progress value={pct(sitePubUsed, sitePubLimit)} className="h-2" />
                 </div>
               </div>
 
@@ -288,7 +317,7 @@ export default function Pagamento() {
               {plano.destaque && !isAtual && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-primary text-primary-foreground shadow-md text-xs font-semibold">
-                    Mais popular
+                    {PLANOS_TEXTO_MAIS_POPULAR}
                   </Badge>
                 </div>
               )}
@@ -331,7 +360,7 @@ export default function Pagamento() {
               <CardContent className="flex-1 flex flex-col px-4 sm:px-6 pb-6 space-y-4">
                 <div>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    Recursos
+                    {PLANOS_TEXTO_RECURSOS_TITULO}
                   </h3>
                   <ul className="space-y-2">
                     {plano.recursos.map((recurso) => (
@@ -346,7 +375,7 @@ export default function Pagamento() {
                 {plano.restricoes && plano.restricoes.length > 0 && (
                   <div>
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Restrições
+                      {PLANOS_TEXTO_RESTRICOES_TITULO}
                     </h3>
                     <ul className="space-y-2">
                       {plano.restricoes.map((r) => (

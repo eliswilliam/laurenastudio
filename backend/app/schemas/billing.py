@@ -20,8 +20,8 @@ class PlanRead(BaseModel):
     image_limit: int
     video_limit: int
     social_limit: int
-    post_limit: int
     audio_limit: int  # 0 = unlimited
+    site_publish_limit: int  # 0 = unlimited
 
 
 # ── Subscription ──────────────────────────────────────────────────────────────
@@ -84,8 +84,8 @@ class UsageRead(BaseModel):
     text_used: int
     image_used: int
     video_used: int
-    posts_used: int
     audio_used: int
+    site_publishes_used: int
     period_start: datetime
     period_end: datetime
 
@@ -96,8 +96,8 @@ class UsageWithLimits(BaseModel):
     text_remaining: int
     image_remaining: int
     video_remaining: int
-    posts_remaining: int
     audio_remaining: int
+    site_publishes_remaining: int
 
 
 # ── Billing status (combined view) ──────────────────────────────────────────

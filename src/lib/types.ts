@@ -120,7 +120,6 @@ export interface Plano {
   recursos: string[];
   restricoes?: string[];
   limites: {
-    postsmes: number;
     geracoesIA: number;
     membros: number;
     armazenamento: string;
@@ -131,7 +130,6 @@ export interface Plano {
 export interface AssinaturaAtual {
   plano: Plano;
   usoMensal: {
-    posts: number;
     geracoesIA: number;
     armazenamento: number;
   };

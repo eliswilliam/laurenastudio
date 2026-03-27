@@ -26,7 +26,7 @@ export interface Mensagem {
 
 /** Mensagem de abertura (tom claro, orientado à acção). */
 export const MENSAGEM_ABERTURA_TEXTO =
-  'Olá! Sou a Laurena. Descreva o site (negócio, páginas, estilo). Quando estiver pronto, clique em Gerar site: a aplicação cria um site estático real (HTML com CSS integrado, responsivo), pré-visualizável aqui e descarregável em ZIP. Envie várias mensagens para afinar o briefing.';
+  'Olá! Sou a Laurena. Descreva o site (negócio, páginas, estilo). Quando estiver pronto, clique em Gerar site: a aplicação cria um site estático real (HTML com CSS integrado, responsivo), pré-visualizável aqui. Envie várias mensagens para afinar o briefing.';
 
 export function respostaBot(_indiceUser: number, ultima: string): string {
   if (ultima.length < 25) {

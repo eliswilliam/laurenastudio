@@ -6,8 +6,11 @@ const api = axios.create({
   baseURL: '/api/v1',
   timeout: 120000,
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
+    Accept: 'application/json; charset=utf-8',
   },
+  responseType: 'json',
+  responseEncoding: 'utf8',
 });
 
 /** Extrai mensagem legível da resposta FastAPI ou erro de rede (para o utilizador). */

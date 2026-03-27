@@ -21,7 +21,6 @@ from app.routes.auth import router as auth_router
 from app.routes.billing import router as billing_router
 from app.routes.ai import router as ai_router
 from app.routes.speech import router as speech_router
-from app.routes.posts import router as posts_router
 from app.routes.social import router as social_router
 from app.routes.ads import router as ads_router
 from app.routes.analytics import router as analytics_router
@@ -70,7 +69,6 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(billing_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
 app.include_router(speech_router, prefix="/api/v1")
-app.include_router(posts_router, prefix="/api/v1")
 app.include_router(social_router, prefix="/api/v1")
 app.include_router(ads_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")

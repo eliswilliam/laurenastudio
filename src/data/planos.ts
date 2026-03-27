@@ -5,7 +5,25 @@
  */
 import type { Plano } from '@/lib/types';
 
-/** Mapeia ID do plano (API) para nome de exibição */
+/** Textos partilhados (oferta / pagamento) — manter uma única fonte de verdade na UI */
+export const PLANOS_TEXTO_ECONOMIA_ANUAL = 'Economize 25% no plano anual';
+export const PLANOS_TEXTO_RECURSOS_TITULO = 'Recursos incluídos';
+export const PLANOS_TEXTO_RESTRICOES_TITULO = 'Restrições';
+export const PLANOS_TEXTO_MAIS_POPULAR = 'Mais popular';
+export const PLANOS_TEXTO_PAGAMENTO_STRIPE =
+  'Pagamento seguro via Stripe. Cancele quando quiser sem multa.';
+export const PLANOS_TEXTO_SUB_ESCOLHER_PLANO =
+  'Para acessar o painel, escolha o plano ideal para você. Cancele a qualquer momento.';
+export const PLANOS_TEXTO_SUB_INDEX =
+  'Planos flexíveis para cada fase da sua jornada. Cancele quando quiser.';
+
+/**
+ * Quotas no backend (tabela `plans` + check_and_increment_usage):
+ * text_limit, image_limit, video_limit, audio_limit, site_publish_limit.
+ * 0 = ilimitado (exceto onde o produto define número explícito na UI).
+ *
+ * « Financial AI » é apenas marketing; não há contador dedicado na API.
+ */
 export const PLAN_DISPLAY_NAMES: Record<string, string> = {
   starter: 'Starter',
   pro: 'Professional',
@@ -22,9 +40,12 @@ export const PLANOS: Plano[] = [
       '100 gerações de texto com IA',
       '50 gerações de imagem',
       'Todos os seus projetos num só lugar',
+      '5 gerações de vídeo por mês',
+      '3 publicações de site por mês',
+      '10 gerações de áudio por mês',
     ],
-    restricoes: ['Este plano não inclui geração de vídeo'],
-    limites: { postsmes: 50, geracoesIA: 150, membros: 1, armazenamento: '5GB' },
+    restricoes: [],
+    limites: { geracoesIA: 150, membros: 1, armazenamento: '5GB' },
   },
   {
     id: 'pro',
@@ -35,12 +56,13 @@ export const PLANOS: Plano[] = [
       '300 gerações de texto com IA',
       '100 gerações de imagem',
       'Colaboração para equipas em crescimento',
-      'Geração de vídeo com modelo básico',
-      'Financial AI: 100 requisições por mês',
+      '20 gerações de vídeo por mês',
+      '6 publicações de site por mês',
+      '20 gerações de áudio por mês',
       'Suporte básico',
     ],
     restricoes: [],
-    limites: { postsmes: 500, geracoesIA: 400, membros: 5, armazenamento: '50GB' },
+    limites: { geracoesIA: 400, membros: 5, armazenamento: '50GB' },
     destaque: true,
   },
   {
@@ -51,12 +73,14 @@ export const PLANOS: Plano[] = [
     recursos: [
       'Geração de texto ilimitada',
       'Geração de imagem ilimitada',
+      'Gerações de áudio ilimitadas',
       'Equipas e projetos à escala ilimitada',
-      'Geração de vídeo: Minimax (10 por mês)',
+      '100 gerações de vídeo por mês',
+      '30 publicações de site por mês',
       'Financial AI: requisições ilimitadas',
       'Suporte premium',
     ],
     restricoes: [],
-    limites: { postsmes: -1, geracoesIA: -1, membros: -1, armazenamento: '500GB' },
+    limites: { geracoesIA: -1, membros: -1, armazenamento: '500GB' },
   },
 ];

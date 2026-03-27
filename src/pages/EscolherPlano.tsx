@@ -21,7 +21,15 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/useAuthStore';
 import { apiCreateCheckout } from '@/lib/billingApi';
-import { PLANOS } from '@/data/planos';
+import {
+  PLANOS,
+  PLANOS_TEXTO_ECONOMIA_ANUAL,
+  PLANOS_TEXTO_PAGAMENTO_STRIPE,
+  PLANOS_TEXTO_RECURSOS_TITULO,
+  PLANOS_TEXTO_RESTRICOES_TITULO,
+  PLANOS_TEXTO_SUB_ESCOLHER_PLANO,
+  PLANOS_TEXTO_MAIS_POPULAR,
+} from '@/data/planos';
 
 const iconesPlano: Record<string, React.ReactNode> = {
   starter: <Zap className="w-6 h-6" />,
@@ -106,7 +114,7 @@ export default function EscolherPlano() {
             Escolha seu plano para começar
           </h1>
           <p className="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">
-            Para acessar o painel, escolha o plano ideal para você. Cancele a qualquer momento.
+            {PLANOS_TEXTO_SUB_ESCOLHER_PLANO}
           </p>
         </div>
 
@@ -121,7 +129,7 @@ export default function EscolherPlano() {
           </span>
           {anual && (
             <Badge variant="secondary" className="text-xs text-green-600 bg-green-500/10 border-green-500/20">
-              Economize 25% no plano anual
+              {PLANOS_TEXTO_ECONOMIA_ANUAL}
             </Badge>
           )}
         </div>
@@ -144,7 +152,7 @@ export default function EscolherPlano() {
                 {plano.destaque && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground shadow-md px-4 py-1 text-xs font-semibold">
-                      Mais popular
+                      {PLANOS_TEXTO_MAIS_POPULAR}
                     </Badge>
                   </div>
                 )}
@@ -179,7 +187,7 @@ export default function EscolherPlano() {
                   {/* Recursos */}
                   <div>
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Recursos incluídos
+                      {PLANOS_TEXTO_RECURSOS_TITULO}
                     </h3>
                     <ul className="space-y-2">
                       {plano.recursos.map((recurso) => (
@@ -227,7 +235,7 @@ export default function EscolherPlano() {
         </div>
 
         <p className="text-center text-xs sm:text-sm text-muted-foreground mt-8">
-          Pagamento seguro via Stripe. Cancele quando quiser sem multa.
+          {PLANOS_TEXTO_PAGAMENTO_STRIPE}
         </p>
       </main>
     </div>

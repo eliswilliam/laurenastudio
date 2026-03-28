@@ -149,11 +149,13 @@ def _derive_photo_query(obj: dict[str, Any], brief: str, site_name: str) -> str:
         "cidade",
         "nome",
         "titulo",
+        "title",
         "nome",
         "localizacao",
         "marca",
         "label",
         "titulo",
+        "category",
     ):
         v = obj.get(key)
         if isinstance(v, str) and v.strip():
@@ -166,18 +168,60 @@ def _derive_photo_query(obj: dict[str, Any], brief: str, site_name: str) -> str:
     return (q + " professional photography")[:140].strip()
 
 
+def _enrich_landing_placeholder_avatars(
+    ph: dict[str, Any],
+    brief: str,
+    site_name: str,
+    used_queries: set[str],
+) -> None:
+    """URLs avatars témoignages (template landing-placeholders)."""
+    for i in (1, 2, 3):
+        k = f"TESTIMONIAL_{i}_AVATAR"
+        v = ph.get(k)
+        if not isinstance(v, str) or not _needs_image_replace(v):
+            continue
+        obj = {
+            "photo_search_query": "",
+            "nome": ph.get(f"TESTIMONIAL_{i}_NAME"),
+            "titulo": ph.get(f"TESTIMONIAL_{i}_ROLE"),
+        }
+        q = _derive_photo_query(obj, brief, site_name)
+        if q in used_queries:
+            q = f"{q} portrait"
+        used_queries.add(q)
+        photo = _search_pexels_first_photo_sync(q)
+        label = str(obj.get("nome") or q)[:40]
+        if photo:
+            ph[k] = photo["url"]
+        else:
+            ph[k] = placeholder_image_url(label)
+
+
 def _sync_enrich_site_template(structure: dict, brief: str) -> dict:
     """
     Parcourt `site` (hôtel / e-commerce / portfolio) et remplace les URLs placeholder
     (Unsplash, pravatar, vide) par des liens https Pexels.
     """
     data = copy.deepcopy(structure)
+    tid = (data.get("template_id") or "").strip()
     site = data.get("site")
     if not isinstance(site, dict):
         return data
 
-    site_name = (site.get("nome") or site.get("nom") or "Site").strip()
     used_queries: set[str] = set()
+    if tid in ("landing-placeholders", "advertising-agency"):
+        if tid == "landing-placeholders":
+            ph = site.get("placeholders")
+            if isinstance(ph, dict):
+                sn = str(ph.get("SITE_TITLE") or "Site").strip()
+                _enrich_landing_placeholder_avatars(ph, brief, sn, used_queries)
+        return data
+
+    meta = site.get("meta")
+    if isinstance(meta, dict) and str(meta.get("siteTitle") or "").strip():
+        site_name = str(meta.get("siteTitle") or "").strip()
+    else:
+        site_name = (site.get("nome") or site.get("nom") or "Site").strip()
 
     def walk(obj: Any) -> None:
         if isinstance(obj, dict):
@@ -194,7 +238,13 @@ def _sync_enrich_site_template(structure: dict, brief: str) -> dict:
                     used_queries.add(q)
                     photo = _search_pexels_first_photo_sync(q)
                     label = (
-                        str(obj.get("nome") or obj.get("titulo") or obj.get("cidade") or q)[:40]
+                        str(
+                            obj.get("nome")
+                            or obj.get("titulo")
+                            or obj.get("title")
+                            or obj.get("cidade")
+                            or q
+                        )[:40]
                     )
                     if photo:
                         obj[k] = photo["url"]

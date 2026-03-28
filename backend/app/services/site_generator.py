@@ -442,7 +442,14 @@ def generate_html(structure: dict) -> str:
     """Render the JSON structure into a complete HTML string."""
     data = copy.deepcopy(structure)
     if data.get("render_mode") == "site_template_v1" or (
-        (data.get("template_id") or "").strip() in ("hotel-reserva", "ecommerce", "portfolio")
+        (data.get("template_id") or "").strip()
+        in (
+            "hotel-reserva",
+            "ecommerce",
+            "portfolio",
+            "landing-placeholders",
+            "advertising-agency",
+        )
         and isinstance(data.get("site"), dict)
     ):
         from app.services.site_template_render.render import render_site_template_html

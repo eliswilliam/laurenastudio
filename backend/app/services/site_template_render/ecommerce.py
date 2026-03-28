@@ -1,4 +1,4 @@
-﻿"""Rendu single-page pour le framework ecommerce (JSON `site`)."""
+"""Rendu single-page pour le framework ecommerce (JSON `site`)."""
 from __future__ import annotations
 
 from typing import Any
@@ -9,6 +9,13 @@ from app.services.site_template_render._utils import (
     google_fonts_link,
     jinja_env,
 )
+
+# Bandeau défilant : contenu figé côté rendu (l’IA ne peut pas le modifier visuellement).
+_CANONICAL_TICKER_MESSAGES: list[dict[str, str]] = [
+    {"label": "Frete grátis em compras acima de R$299"},
+    {"label": "Novidades todas as semanas"},
+    {"label": "Trocas em até 30 dias"},
+]
 
 _DEFAULT_PAL = {
     "bg": "#0A0A0A",
@@ -275,15 +282,15 @@ def _normalize_ecommerce_secoes(secoes: list[Any]) -> None:
 
 def render_ecommerce(site: dict[str, Any]) -> str:
     design = site.get("design") or {}
-    paleta = {**_DEFAULT_PAL, **(design.get("paleta") or {})}
+    # Palette figée : fond / surfaces inchangés par la sortie IA (accents inchangés aussi).
+    paleta = dict(_DEFAULT_PAL)
     tip = design.get("tipografia") or {}
     fd = font_query_name(tip.get("display"))
     fc = font_query_name(tip.get("corpo"))
     fonts_url = google_fonts_link(tip.get("display"), tip.get("corpo"))
     secoes = site.get("secoes") or []
     _normalize_ecommerce_secoes(secoes)
-    ticker_sec = next((s for s in secoes if s.get("tipo") == "banner_animado"), None)
-    ticker = ticker_sec.get("mensagens") if ticker_sec else []
+    ticker = list(_CANONICAL_TICKER_MESSAGES)
     nav_sec = next((s for s in secoes if s.get("tipo") == "navegacao"), None)
     nav_cats = (nav_sec.get("categorias") or []) if nav_sec else []
     nome = site.get("nome") or "Loja"

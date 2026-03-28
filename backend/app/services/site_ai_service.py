@@ -117,6 +117,27 @@ def _responses_api_unsupported(exc: APIStatusError) -> bool:
     return "response" in b and ("not found" in b or "unknown" in b or "invalid" in b)
 
 
+def _responses_output_parse_failed(exc: APIStatusError) -> bool:
+    """
+    Groq /responses sometimes returns 400 output_parse_failed (model output not parseable
+    by the API). chat.completions does not hit that path — fall back.
+    """
+    if exc.status_code != 400:
+        return False
+    code = getattr(exc, "code", None)
+    if code == "output_parse_failed":
+        return True
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        err = body.get("error")
+        if isinstance(err, dict) and err.get("code") == "output_parse_failed":
+            return True
+    msg = (getattr(exc, "message", None) or str(exc)).lower()
+    if "output_parse_failed" in msg or "could not be parsed" in msg:
+        return True
+    return False
+
+
 def _sync_groq_responses_create(
     *,
     instructions: str,
@@ -138,6 +159,9 @@ def _sync_groq_responses_create(
         )
     except APIStatusError as exc:
         if _responses_api_unsupported(exc):
+            raise
+        if _responses_output_parse_failed(exc):
+            # Caller (_sync_groq_completion) falls back to chat.completions.
             raise
         _groq_handle_errors(exc, context=context)
     except (RateLimitError, APIConnectionError) as exc:
@@ -250,6 +274,18 @@ def _sync_groq_completion(
                 temperature=temperature,
                 context=context,
             )
+        if _responses_output_parse_failed(exc):
+            logger.warning(
+                "Groq [%s] responses API output_parse_failed; fallback chat.completions.",
+                context,
+            )
+            return _sync_groq_chat_completions(
+                messages,
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                context=context,
+            )
         _groq_handle_errors(exc, context=context)
 
 
@@ -258,9 +294,20 @@ You are an expert web designer. The user input is a **full chat transcript** (Us
 Apply the latest User requests for edits; Assistant (Laurena) lines are agreed refinements.
 You MUST reply with a single JSON object (no markdown fences, no extra text).
 
+## STRUCTURE LOCK (critical)
+- Do **not** add, remove, or rename keys in the canonical `site` schema for the chosen `template_id`.
+- Do **not** omit listed keys: use "" or short sensible defaults if a detail is unknown.
+- Adapt **copy**, **image URLs**, and **tipografia** (font *names* only for hotel/ecommerce) to the user's taste — **not** page background colours or global palette (see COLOUR LOCK below).
+- For **landing-placeholders** and **advertising-agency**: never output `html_template`, **`theme`**, or invented placeholder keys.
+
+## COLOUR / THEME LOCK
+- **hotel-reserva** & **ecommerce**: set **design.paleta** to `{}` (empty object). The renderer uses **fixed** palette and backgrounds. You may still set **design.tipografia** (Google Font *names* for display/body).
+- **portfolio**: omit **color** on each project or use `""` — card accents are **fixed** in the engine. Optional **design.typographie** only (no palette).
+- **landing-placeholders** & **advertising-agency**: **no** `theme` key — CSS colours are **frozen** in the template file.
+
 ## Output shape (always)
 {
-  "template_id": "hotel-reserva" | "ecommerce" | "portfolio",
+  "template_id": "hotel-reserva" | "ecommerce" | "portfolio" | "landing-placeholders" | "advertising-agency",
   "site": { ... }
 }
 
@@ -268,6 +315,9 @@ You MUST reply with a single JSON object (no markdown fences, no extra text).
 - **hotel-reserva** — hotels, travel, bookings, stays, destinations, reservations.
 - **ecommerce** — shop, fashion, products, catalog, cart, retail, clothing.
 - **portfolio** — personal site, CV, developer/designer portfolio, freelance, case studies.
+- **landing-placeholders** — luxury / dark single-page marketing (creative studio, personal brand, high-end services)
+  with fixed navbar–hero–features–stats–testimonials–cta–footer; use when the brief fits this narrative arc and not a shop/hotel/portfolio multi-case layout.
+- **advertising-agency** — creative / ad agency, brutalist editorial, bold Bebas-style headlines, split hero with **animated ticker** (CSS fixed; you only fill **TICKER_TEXT** and other placeholders).
 
 The **site** object MUST follow the canonical structure for that template (keys and nested shapes below).
 Respect section **order** and **tipo** / **type** values so the renderer can map them.
@@ -297,10 +347,10 @@ Top-level: id, nome, tipo, idioma, arquivo, design, secoes[], optional modal_res
 ---
 
 ### B) template_id = "ecommerce" (Portuguese: idioma "pt-BR")
-- **design.paleta**: bg, surface, surface2, border, lime, lime_dim, white, muted, muted2, red (HEX).
+- **design.paleta**: MUST be `{}` (empty — all colours fixed in the renderer).
 - **design.tipografia**: display, corpo, mono (optional).
 - **secoes[]** **tipo**:
-  - **banner_animado**: mensagens[] (ticker)
+  - **banner_animado**: keep this block first with `mensagens` as 2–4 short PT strings if you want a valid tree; **the live site ticker text is fixed in the renderer and does not change from your strings** (carousel/bandeau non modifiable côté rendu).
   - **navegacao**: logo, categorias[] (strings OR { "label", "href"/"url" }), features[] (hints)
   - **hero**: label_colecao (optional **label**), titulo, subtitulo, **botoes** as strings OR objects
     `{ "label", "href" or "url", "primario" or "primary" (boolean) }`, **stats** as `{ "valor" or "value", "label" }`,
@@ -315,29 +365,77 @@ Top-level: id, nome, tipo, idioma, arquivo, design, secoes[], optional modal_res
 
 ---
 
-### C) template_id = "portfolio" (French copy: langue "fr")
-- **design.palette** + **design.typographie** { display, mono, corps }.
-- **profil** (optional): nom, titre, localisation, contacts, etc.
-- **sections[]** **type**:
-  - **navigation**: logo, liens[] (anchor ids), cta
-  - **hero**: label, titre_lignes[] OR titre, sous_titre, boutons[], stats[] { valeur, label }, indicateur_scroll
-  - **a_propos**: numero_section, titre, photo, biographie[], infos{}, tags_tech[]
-  - **competences_onglets**: numero_section, titre, categories[] { id, label, competences[] { nom, icone, niveau } }
-  - **grille_projets**: numero_section, titre, projets[] { numero, nom, description, image, liens, ... }
-  - **timeline**: numero_section, titre, experiences[] { periode, poste, entreprise, lieu, description, technologies }
-  - **contact**: numero_section, titre, intro, informations[], formulaire { champs[], bouton, toast_succes }
-  - **footer**: logo, copyright, reseaux[]
+### C) template_id = "portfolio" (single structured object `site`, no `sections[]`)
+The **site** root MUST use exactly this shape (keys required; arrays may be empty only if nothing to show):
+
+- **meta**: { **siteTitle**, **siteDescription**, **lang** (e.g. "fr"), **favicon** (single Unicode glyph or short symbol for kicker, e.g. "✦") }
+- **hero**: { **firstName**, **lastName**, **title**, **tagline**, **ctaLabel**, **ctaAnchor** (e.g. "#projets") }
+- **about**: { **heading**, **bio** (long string), **skills** [ strings ], **availability** }
+- **projects**: [ { **id**, **title**, **category**, **year**, **description**, **tags** [ strings ], **color** omit or `""` (fixed in renderer), **image** (optional https URL or empty), **photo_search_query** (optional English; same object as **image** when image is placeholder) } ]
+- **services**: [ { **icon** (short text e.g. "Aa" or "◈"), **title**, **description** } ]
+- **contact**: { **heading**, **subheading**, **email**, **phone**, **location**, **social**: [ { **label**, **url** } ] }
+- **footer**: { **copyright**, **madeWith** }
+
+Optional **design.typographie**: { **display**, **corps** } — Google Font names; only these may tune fonts (no palette / background overrides for portfolio — the renderer fixes layout colours).
+
+Copy language: follow **meta.lang** (default French for portfolio unless the user asks otherwise).
+
+---
+
+### D) template_id = "landing-placeholders" (single page, HTML fixed in engine)
+The `site` object MUST contain **only**:
+- **lang** (optional, default `"fr"`): HTML `lang` attribute.
+- **placeholders**: object with **exactly** these keys (all strings; fill from the brief; use "" only if unavoidable):
+  CTA_BTN_PRIMARY, CTA_BTN_SECONDARY, CTA_DESC, CTA_LABEL, CTA_TITLE,
+  FEATURES_DESC, FEATURES_LABEL, FEATURES_TITLE,
+  FEATURE_1_DESC, FEATURE_1_ICON, FEATURE_1_TITLE,
+  FEATURE_2_DESC, FEATURE_2_ICON, FEATURE_2_TITLE,
+  FEATURE_3_DESC, FEATURE_3_ICON, FEATURE_3_TITLE,
+  FOOTER_COPY, FOOTER_LINK_1, FOOTER_LINK_2, FOOTER_LINK_3,
+  HERO_BTN_PRIMARY, HERO_BTN_SECONDARY, HERO_EYEBROW, HERO_SUBTITLE, HERO_TITLE_ACCENT, HERO_TITLE_LINE1, HERO_TITLE_LINE2,
+  LOGO_TEXT, NAV_CTA, NAV_LINK_1, NAV_LINK_2, NAV_LINK_3, SITE_TITLE,
+  STAT_1_LABEL, STAT_1_NUMBER, STAT_2_LABEL, STAT_2_NUMBER, STAT_3_LABEL, STAT_3_NUMBER,
+  TESTIMONIALS_LABEL, TESTIMONIALS_TITLE,
+  TESTIMONIAL_1_AVATAR, TESTIMONIAL_1_NAME, TESTIMONIAL_1_ROLE, TESTIMONIAL_1_TEXT,
+  TESTIMONIAL_2_AVATAR, TESTIMONIAL_2_NAME, TESTIMONIAL_2_ROLE, TESTIMONIAL_2_TEXT,
+  TESTIMONIAL_3_AVATAR, TESTIMONIAL_3_NAME, TESTIMONIAL_3_ROLE, TESTIMONIAL_3_TEXT
+Do **not** output `meta`, `html_template`, **`theme`**, or any other top-level keys under `site`.
+
+---
+
+### E) template_id = "advertising-agency" (brutalist / editorial, HTML fixed in engine)
+The `site` object MUST contain **only**:
+- **lang** (optional, default `"fr"`).
+- **placeholders** with **exactly** these keys (all strings):
+  CLIENTS_LABEL, CLIENT_1, CLIENT_2, CLIENT_3, CLIENT_4, CLIENT_5,
+  CTA_BTN, CTA_LINE1, CTA_LINE2, CTA_SUB,
+  FOOTER_CITY, FOOTER_COL1_L1, FOOTER_COL1_L2, FOOTER_COL1_L3, FOOTER_COL1_L4, FOOTER_COL1_TITLE,
+  FOOTER_COL2_L1, FOOTER_COL2_L2, FOOTER_COL2_L3, FOOTER_COL2_TITLE, FOOTER_COL3_TITLE,
+  FOOTER_COPY, FOOTER_EMAIL, FOOTER_PHONE, FOOTER_TAGLINE,
+  HERO_BADGE, HERO_BTN1, HERO_BTN2, HERO_DESC, HERO_EMOJI, HERO_LINE1, HERO_LINE2, HERO_LINE3, HERO_TAG,
+  LOGO_ACCENT, LOGO_PART1, NAV_1, NAV_2, NAV_3, NAV_CONTACT,
+  PORTFOLIO_TAG, PORTFOLIO_TITLE, PROCESS_TAG, PROCESS_TITLE,
+  SERVICES_LINK, SERVICES_TAG, SERVICES_TITLE,
+  SERVICE_1_NAME, SERVICE_1_TAG1, SERVICE_1_TAG2,
+  SERVICE_2_NAME, SERVICE_2_TAG1, SERVICE_2_TAG2,
+  SERVICE_3_NAME, SERVICE_3_TAG1, SERVICE_3_TAG2,
+  SERVICE_4_NAME, SERVICE_4_TAG1, SERVICE_4_TAG2,
+  SITE_TITLE,
+  STEP_1_DESC, STEP_1_TITLE, STEP_2_DESC, STEP_2_TITLE, STEP_3_DESC, STEP_3_TITLE, STEP_4_DESC, STEP_4_TITLE,
+  TICKER_TEXT,
+  WORK_1_CAT, WORK_1_EMOJI, WORK_1_NAME, WORK_2_CAT, WORK_2_EMOJI, WORK_2_NAME, WORK_3_CAT, WORK_3_EMOJI, WORK_3_NAME
+The hero **ticker** animation is defined in CSS; you only provide the repeating **TICKER_TEXT** phrase — do **not** output `theme` or `html_template`.
 
 ---
 
 ## Global rules
-- For ecommerce/portfolio **buttons and nav links**: use JSON **objects** `{ "label": "...", "href": "#id" }` when you need custom anchors — never output Python-style repr text; the renderer maps **primario** / **primary** for button style.
-- ONE static index page; internal navigation uses **#section-id** matching each section **id** (same page).
-- **Colours & fonts**: fill **paleta** / **palette** and **tipografia** / **typographie** from the user's brief (mood, sector, named colours). Do not invent random unrelated palettes.
-  **CRITICAL**: For **portfolio** and **ecommerce**, NEVER modify the main background colours (e.g. `bg`, `surface`, or the root background hex in palette). Keep the background colours exactly as they are in the base template so the layout does not degrade. You may only customize accent/primary colours and typography.
-- **Images**: you MAY use temporary https://images.unsplash.com/... URLs OR leave **imagem** empty; the pipeline replaces them with **Pexels** using **photo_search_query** when present.
+- For **ecommerce** buttons and nav links: use JSON **objects** `{ "label": "...", "href": "#id" }` when you need custom anchors — never output Python-style repr text; the renderer maps **primario** / **primary** for button style. For **portfolio**, set **hero.ctaAnchor** to hash anchors only (e.g. `#projets`, `#about`, `#contact`).
+- ONE static index page; hotel/ecommerce use **#section-id** per section **id**. Portfolio uses fixed section ids: #about, #projets, #services, #contact.
+- **Colours**: follow **COLOUR / THEME LOCK** — no AI-driven background or global palette for hotel, ecommerce, portfolio, or placeholder templates.
+- **Fonts (hotel/ecommerce only)**: you may tune **design.tipografia** / **typographie** with Google Font *names*; do not try to change colours via JSON.
+- **Images**: you MAY use temporary https://images.unsplash.com/... URLs OR leave **imagem** / **image** empty; the pipeline replaces them with **Pexels** using **photo_search_query** when present.
   On every object that contains **imagem** / **image** / **photo** / **avatar**, add **photo_search_query** (English, 4–12 words: subject, setting, mood) on the **same object**.
-- ALL user-facing copy in **site** must match the language implied by **idioma** / **langue** (Portuguese for hotel/ecommerce, French for portfolio unless the user clearly asks another language).
+- ALL user-facing copy must match the page language: **idioma** / **langue** for hotel/ecommerce; **meta.lang** for portfolio; **lang** for **landing-placeholders** and **advertising-agency**.
 - **photo_search_query** values are always English (stock API).
 - No base64 images. No root-relative internal URLs like "/loja" — use "#id-de-section".
 - **Encoding**: Output MUST be valid UTF-8. Every user-facing string in **site** MUST use real Unicode characters
@@ -375,9 +473,13 @@ def _sync_generate_site_structure(brief: str) -> dict:
         ) from exc
 
     tid = (structure.get("template_id") or "").strip()
-    has_triple = tid in ("hotel-reserva", "ecommerce", "portfolio") and isinstance(
-        structure.get("site"), dict
-    )
+    has_triple = tid in (
+        "hotel-reserva",
+        "ecommerce",
+        "portfolio",
+        "landing-placeholders",
+        "advertising-agency",
+    ) and isinstance(structure.get("site"), dict)
     has_legacy = isinstance(structure.get("sections"), list) and len(structure.get("sections") or []) > 0
     has_framework = bool(structure.get("projectInfo")) and bool(structure.get("page"))
     if not has_legacy and not has_framework and not has_triple:
@@ -395,7 +497,7 @@ def _sync_chat_reply(messages: list[dict], latest_user: str) -> str:
 
     system_text = (
         "You are Laurena (chat / brief refinement), inside Laurena Studio. "
-        "Another model generates the actual HTML when the user clicks « Gerar site ». "
+        "Another model fills a fixed JSON schema when the user clicks « Gerar site » — it must not change key names or page structure, only content and styling fields allowed by that template. "
         "CRITICAL PRODUCT FACTS (never contradict): "
         "« Gerar site » builds a REAL multi-section static site (HTML+CSS+JS), preview + ZIP. "
         "You do NOT output full HTML in chat — you refine the brief in natural language. "

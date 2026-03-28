@@ -1,4 +1,4 @@
-﻿"""Rendu single-page pour le framework hotel-reserva (JSON `site`)."""
+"""Rendu single-page pour le framework hotel-reserva (JSON `site`)."""
 from __future__ import annotations
 
 from typing import Any
@@ -62,7 +62,10 @@ nav a:hover{color:var(--gold)}
 .feature{background:var(--white);padding:20px;border-radius:14px;border:1px solid var(--sand)}
 .testimonials{padding:64px 0;background:var(--sand)}
 .testimonial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:28px}
-.t-card{background:var(--white);padding:20px;border-radius:14px}
+.t-card{background:var(--white);padding:20px;border-radius:14px;border:1px solid rgba(139,115,85,.12)}
+.t-quote{margin-bottom:14px;font-size:.95rem;line-height:1.55;color:var(--dark);white-space:pre-wrap}
+.t-author-row{display:flex;align-items:center;gap:12px;margin-top:4px}
+.t-avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--sand);border:2px solid var(--sand)}
 .newsletter{padding:56px 0;text-align:center;background:linear-gradient(135deg,var(--gold_light),var(--gold))}
 .newsletter input{padding:14px 16px;border-radius:10px;border:1px solid var(--sand);width:min(400px,100%);margin:auto 8px auto 0}
 footer{padding:48px 0;background:var(--dark);color:var(--cream);font-size:.875rem}
@@ -216,10 +219,10 @@ footer a{color:var(--gold_light)}
     <div class="testimonial-grid">
       {% for t in s.depoimentos or [] %}
       <div class="t-card">
-        <p style="margin-bottom:12px;font-size:.95rem">{{ t.texto|e }}</p>
-        <div style="display:flex;align-items:center;gap:10px">
-          {% if t.avatar %}<img src="{{ t.avatar|e }}" width="40" height="40" style="border-radius:50%" alt="">{% endif %}
-          <div><strong>{{ t.autor|e }}</strong><br><small>{{ t.cidade|e }}</small></div>
+        <p class="t-quote">{{ t.texto|e }}</p>
+        <div class="t-author-row">
+          {% if t.avatar %}<img class="t-avatar" src="{{ t.avatar|e }}" width="48" height="48" alt="" loading="lazy" decoding="async">{% endif %}
+          <div><strong>{{ t.autor|e }}</strong><br><small style="color:var(--muted)">{{ t.cidade|e }}</small></div>
         </div>
       </div>
       {% endfor %}
@@ -317,7 +320,8 @@ def _normalize_hotel_secoes(secoes: list[Any]) -> None:
 
 def render_hotel(site: dict[str, Any]) -> str:
     design = site.get("design") or {}
-    paleta = {**_DEFAULT_HOTEL_PAL, **(design.get("paleta") or {})}
+    # Palette figée : l'IA ne doit pas modifier les couleurs de fond / thème (voir prompt + merge).
+    paleta = dict(_DEFAULT_HOTEL_PAL)
     tip = design.get("tipografia") or {}
     secoes = site.get("secoes") or []
     _normalize_hotel_secoes(secoes)

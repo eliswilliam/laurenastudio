@@ -10,6 +10,59 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# Lines that are only an image URL (model sometimes puts Pexels/Unsplash in testimonial text).
+_STANDALONE_IMG_URL = re.compile(
+    r"^https?://[^\s]+\.(?:jpe?g|png|webp|gif)(?:\?[^\s]*)?\s*$",
+    re.IGNORECASE,
+)
+_PEXELS_UNSPLASH_LINE = re.compile(
+    r"^https?://images\.(?:pexels|unsplash)\.com/\S+\s*$",
+    re.IGNORECASE,
+)
+
+
+def _strip_standalone_image_urls_from_text(text: str) -> tuple[str, str]:
+    """Remove URL-only lines from testimonial copy; return (cleaned_text, first_url_found)."""
+    if not text or not isinstance(text, str):
+        return (str(text).strip() if text else ""), ""
+    first_url = ""
+    kept: list[str] = []
+    for line in text.splitlines():
+        s = line.strip()
+        if _PEXELS_UNSPLASH_LINE.match(s) or _STANDALONE_IMG_URL.match(s):
+            if not first_url:
+                first_url = s
+            continue
+        kept.append(line)
+    cleaned = "\n".join(kept).strip()
+    return cleaned, first_url
+
+
+def _normalize_hotel_testimonial_avatars(site: dict[str, Any]) -> None:
+    """Move image URLs erroneously placed in depoimento.texto into avatar; fixes naked URLs in quotes."""
+    secoes = site.get("secoes")
+    if not isinstance(secoes, list):
+        return
+    for sec in secoes:
+        if not isinstance(sec, dict):
+            continue
+        if str(sec.get("tipo") or "").strip() != "testimonials":
+            continue
+        deps = sec.get("depoimentos")
+        if not isinstance(deps, list):
+            continue
+        for t in deps:
+            if not isinstance(t, dict):
+                continue
+            texto = str(t.get("texto") or "")
+            avatar = str(t.get("avatar") or "").strip()
+            cleaned, url = _strip_standalone_image_urls_from_text(texto)
+            if url and not avatar:
+                t["avatar"] = url
+            if cleaned != texto:
+                t["texto"] = cleaned
+
+
 # Tailwind / noms de couleur → hex (couleurs fréquentes)
 _PRIMARY_NAME_TO_HEX: dict[str, str] = {
     "blue-600": "#2563eb",
@@ -270,11 +323,62 @@ def normalize_site_structure(structure: dict) -> dict:
         return structure
 
     tid = (structure.get("template_id") or "").strip()
+    if tid == "landing-placeholders" and isinstance(structure.get("site"), dict):
+        from app.services.site_template_render.landing_placeholders import merge_landing_site
+
+        site = merge_landing_site(structure["site"])
+        ph = site.get("placeholders") or {}
+        nome = str(ph.get("SITE_TITLE") or "").strip() or "Site"
+        idioma = str(site.get("lang") or "fr").strip()[:12] or "fr"
+        desc = str(ph.get("CTA_DESC") or ph.get("HERO_SUBTITLE") or nome)[:160]
+        return {
+            "render_mode": "site_template_v1",
+            "template_id": tid,
+            "site": site,
+            "site_name": nome,
+            "page_title": nome,
+            "description": desc,
+            "html_lang": idioma,
+        }
+
+    if tid == "advertising-agency" and isinstance(structure.get("site"), dict):
+        from app.services.site_template_render.agency_placeholders import merge_agency_site
+
+        site = merge_agency_site(structure["site"])
+        ph = site.get("placeholders") or {}
+        nome = str(ph.get("SITE_TITLE") or "").strip() or "Agence"
+        idioma = str(site.get("lang") or "fr").strip()[:12] or "fr"
+        desc = str(ph.get("HERO_DESC") or ph.get("FOOTER_TAGLINE") or nome)[:160]
+        return {
+            "render_mode": "site_template_v1",
+            "template_id": tid,
+            "site": site,
+            "site_name": nome,
+            "page_title": nome,
+            "description": desc,
+            "html_lang": idioma,
+        }
+
     if tid in ("hotel-reserva", "ecommerce", "portfolio") and isinstance(structure.get("site"), dict):
         site = structure["site"]
-        nome = (site.get("nome") or site.get("nom") or "Site").strip() or "Site"
-        idioma = (site.get("idioma") or site.get("langue") or "pt-BR").strip()
-        desc = (str(site.get("nome") or site.get("nom") or ""))[:160]
+        if tid == "hotel-reserva":
+            _normalize_hotel_testimonial_avatars(site)
+        if tid == "portfolio" and isinstance(site.get("meta"), dict):
+            meta = site["meta"]
+            nome = (str(meta.get("siteTitle") or "").strip() or "Portfolio")
+            idioma = (str(meta.get("lang") or "fr").strip()[:12] or "fr")
+            desc = str(meta.get("siteDescription") or nome)[:160]
+        elif tid == "portfolio":
+            hero = site.get("hero") if isinstance(site.get("hero"), dict) else {}
+            fn = str(hero.get("firstName") or "").strip()
+            ln = str(hero.get("lastName") or "").strip()
+            nome = (f"{fn} {ln}".strip() or "Portfolio")
+            idioma = "fr"
+            desc = nome[:160]
+        else:
+            nome = (site.get("nome") or site.get("nom") or "Site").strip() or "Site"
+            idioma = (site.get("idioma") or site.get("langue") or "pt-BR").strip()
+            desc = (str(site.get("nome") or site.get("nom") or ""))[:160]
         return {
             "render_mode": "site_template_v1",
             "template_id": tid,

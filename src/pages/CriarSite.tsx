@@ -22,7 +22,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import api, { getJobStatus } from '@/lib/api';
 import { type JobStatus, type Mensagem, MENSAGEM_ABERTURA_TEXTO } from '@/lib/criarSiteChat';
@@ -113,7 +112,7 @@ function stripInfraFromBotText(text: string): string {
     .trim();
 }
 
-/** Un seul panneau chat (mobile Tabs vs colonne desktop) pour éviter un double fil de messages. */
+/** Desktop : colonne chat séparée de la prévia ; mobile : même colonne (messages puis iframe). */
 function useIsWideLg() {
   const [wide, setWide] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -176,7 +175,6 @@ export default function CriarSite() {
   const [sessionLoading, setSessionLoading] = useState(false);
   const [pollProjectId, setPollProjectId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'chat' | 'preview'>('chat');
   const [mobilePublishOpen, setMobilePublishOpen] = useState(false);
   /** Projeto aberto pelo painel Histórico: sem novas mensagens para /sites/chat. */
   const [conversationReadOnly, setConversationReadOnly] = useState(false);
@@ -318,7 +316,6 @@ export default function CriarSite() {
 
   const iniciarNovoSite = () => {
     setPollProjectId(null);
-    setMobileTab('chat');
     setMobilePublishOpen(false);
     setConversationReadOnly(false);
     resetAll();
@@ -386,10 +383,10 @@ export default function CriarSite() {
     const opts: ScrollIntoViewOptions = { behavior: 'smooth', block: 'end', inline: 'nearest' };
     if (isWideLg) {
       fim.current?.scrollIntoView(opts);
-    } else if (mobileTab === 'chat') {
+    } else {
       fimMobile.current?.scrollIntoView(opts);
     }
-  }, [lista, aEnviar, aGerar, aPublicar, mobileTab, isWideLg]);
+  }, [lista, aEnviar, aGerar, aPublicar, isWideLg]);
 
   useEffect(() => {
     getPublishConfig()
@@ -659,15 +656,8 @@ export default function CriarSite() {
     }
   }
 
-  return (
-    <div
-      className={cn(
-        'animate-fade-in w-full max-w-7xl mx-auto flex flex-col px-3 sm:px-4',
-        'min-h-[calc(100dvh-8.5rem)] md:min-h-[calc(100dvh-7rem)]',
-        // Mobile: barra fixa acima do bottom nav (h-16) + margem — evita botões escondidos
-        emConversa && !isWideLg && 'max-md:pb-[10rem] md:pb-[5.75rem]'
-      )}
-    >
+  const mainChrome = (
+    <>
       <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
         <div
           className={cn(
@@ -909,56 +899,22 @@ export default function CriarSite() {
             <div ref={fim} className="h-px" />
           </div>
         ) : (
-          <Tabs
-            value={mobileTab}
-            onValueChange={(v) => setMobileTab(v as 'chat' | 'preview')}
-            className="flex flex-1 flex-col min-h-0 min-w-0 -mx-0.5 max-lg:overflow-hidden"
-          >
-            <TabsList
-              className={cn(
-                'grid w-full grid-cols-2 shrink-0 h-10 p-1 rounded-xl bg-muted/60 border border-border/50',
-                'max-lg:sticky max-lg:z-20',
-                'max-lg:top-[calc(3.5rem+7.25rem)] max-lg:md:top-[calc(4rem+7.25rem)]',
-                'max-lg:-mx-1 max-lg:px-0',
-                'mb-3'
+          <div className="flex flex-1 flex-col overflow-y-auto min-h-0 mt-0 gap-4 scroll-pb-2">
+            <div className="space-y-6 md:space-y-8 pr-1 -mr-1 pb-2 w-full min-w-0">
+              {messageNodes}
+              {(aEnviar || aGerar || aPublicar) && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
+                  {aPublicar
+                    ? 'A publicar em segundo plano. Pode fechar esta página — o progresso continua.'
+                    : aGerar
+                      ? 'A gerar o site em segundo plano. Pode fechar esta página — o progresso continua.'
+                      : LOADING_TEXTO}
+                </div>
               )}
-            >
-              <TabsTrigger
-                value="chat"
-                className="text-xs rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
-                Conversa com a IA
-              </TabsTrigger>
-              <TabsTrigger
-                value="preview"
-                className="text-xs rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
-                Ver o site
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent
-              value="chat"
-              className="flex-1 overflow-y-auto min-h-0 mt-0 data-[state=inactive]:hidden flex flex-col scroll-pb-2"
-            >
-              <div className="space-y-6 md:space-y-8 pr-1 -mr-1 pb-4 flex-1 w-full min-w-0">
-                {messageNodes}
-                {(aEnviar || aGerar || aPublicar) && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
-                    {aPublicar
-                      ? 'A publicar em segundo plano. Pode fechar esta página — o progresso continua.'
-                      : aGerar
-                        ? 'A gerar o site em segundo plano. Pode fechar esta página — o progresso continua.'
-                        : LOADING_TEXTO}
-                  </div>
-                )}
-                <div ref={fimMobile} className="h-px" />
-              </div>
-            </TabsContent>
-            <TabsContent
-              value="preview"
-              className="flex-1 min-h-[min(60dvh,520px)] mt-0 flex flex-col data-[state=inactive]:hidden"
-            >
+              <div ref={fimMobile} className="h-px" />
+            </div>
+            <div className="shrink-0 flex flex-col min-h-[min(50dvh,420px)] pb-2">
               {siteResult && previewAbsUrl ? (
                 <div className="flex flex-col flex-1 min-h-0 rounded-xl border border-border/70 bg-muted/20 overflow-hidden shadow-sm">
                   <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/90 shrink-0">
@@ -967,17 +923,17 @@ export default function CriarSite() {
                   <iframe
                     title="Pré-visualização do site gerado"
                     src={previewAbsUrl}
-                    className="w-full flex-1 min-h-[280px] bg-white"
+                    className="w-full flex-1 min-h-[260px] bg-white"
                     sandbox="allow-scripts allow-same-origin allow-forms"
                   />
                 </div>
               ) : (
-                <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center text-sm text-muted-foreground min-h-[200px]">
+                <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center text-sm text-muted-foreground min-h-[180px]">
                   Gere o site para ver a pré-visualização aqui.
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
         )}
 
         {erro && (
@@ -994,9 +950,8 @@ export default function CriarSite() {
           </div>
         )}
 
-        {/* Composeur : accueil / chat desktop / onglet « Conversa » mobile — masqué sur « Ver o site » */}
-        {(!emConversa || isWideLg || mobileTab === 'chat') && (
-          <div className="shrink-0 pt-3 md:pt-4 pb-1 bg-gradient-to-t from-background via-background to-transparent">
+        {/* Composeur — mobile : scroll (messages + prévia) puis cette zone fixe en bas de colonne */}
+        <div className="shrink-0 pt-3 md:pt-4 pb-1 bg-gradient-to-t from-background via-background to-transparent">
             <div
               className={cn(
                 'flex items-end gap-2 rounded-[1.35rem] border border-border/60',
@@ -1054,7 +1009,6 @@ export default function CriarSite() {
               </p>
             )}
           </div>
-        )}
       </div>
 
       {emConversa && isWideLg && (
@@ -1245,6 +1199,19 @@ export default function CriarSite() {
         </>
       )}
       </div>
+    </>
+  );
+
+  return (
+    <div
+      className={cn(
+        'animate-fade-in w-full max-w-7xl mx-auto flex flex-col px-3 sm:px-4',
+        'min-h-[calc(100dvh-8.5rem)] md:min-h-[calc(100dvh-7rem)]',
+        emConversa && !isWideLg && 'max-md:pb-[10rem] md:pb-[5.75rem]',
+        emConversa && !isWideLg && 'max-lg:-mx-0.5 max-lg:overflow-hidden'
+      )}
+    >
+      {mainChrome}
     </div>
   );
 }

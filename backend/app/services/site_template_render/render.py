@@ -5,9 +5,19 @@ from typing import Any
 
 from app.services.site_template_render.ecommerce import render_ecommerce
 from app.services.site_template_render.hotel import render_hotel
+from app.services.site_template_render.agency_placeholders import render_agency_placeholders
+from app.services.site_template_render.landing_placeholders import render_landing_placeholders
 from app.services.site_template_render.portfolio import render_portfolio
 
-_TEMPLATE_IDS = frozenset({"hotel-reserva", "ecommerce", "portfolio"})
+_TEMPLATE_IDS = frozenset(
+    {
+        "hotel-reserva",
+        "ecommerce",
+        "portfolio",
+        "landing-placeholders",
+        "advertising-agency",
+    }
+)
 
 
 def render_site_template_html(structure: dict[str, Any]) -> str:
@@ -21,6 +31,10 @@ def render_site_template_html(structure: dict[str, Any]) -> str:
         return render_ecommerce(site)
     if tid == "portfolio":
         return render_portfolio(site)
+    if tid == "landing-placeholders":
+        return render_landing_placeholders(site)
+    if tid == "advertising-agency":
+        return render_agency_placeholders(site)
     raise ValueError(f"site_template: unknown template_id {tid!r}")
 
 

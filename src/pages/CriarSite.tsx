@@ -270,19 +270,6 @@ export default function CriarSite() {
           setSiteResult({ previewUrl });
           setPublicSiteUrl(userFacingSiteUrl(s.publish_slug, s.site_url));
           setPublishSlug(s.publish_slug ?? '');
-          setLista((prev) => {
-            const marker = 'Site gerado com sucesso';
-            if (prev.some((m) => m.texto.includes(marker))) return prev;
-            return [
-              ...prev,
-              {
-                id: ID(),
-                papel: 'bot',
-                texto:
-                  'Site gerado com sucesso! Use os botões abaixo para ver a pré-visualização.',
-              },
-            ];
-          });
           setPollProjectId(null);
           setAGerar(false);
           void refreshProjects();
@@ -332,20 +319,27 @@ export default function CriarSite() {
   const messageNodes = useMemo(
     () =>
       lista.map((m) => (
-        <div key={m.id} className="w-full min-w-0">
+        <div key={m.id} className="w-full min-w-0 flex flex-col pt-1">
           {m.papel === 'bot' ? (
-            <div className="max-w-[95%] md:max-w-2xl">
-              <p className="whitespace-pre-wrap text-[15px] sm:text-base leading-[1.65] text-foreground">
-                {stripInfraFromBotText(m.texto)}
-              </p>
+            <div className="flex w-full min-w-0 justify-start">
+              <div className="flex gap-3 max-w-[95%] md:max-w-2xl">
+                <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <Wand2 className="h-4 w-4" />
+                </div>
+                <div className="rounded-2xl px-5 py-3.5 bg-muted/30 border border-border/50 text-foreground text-[15px] sm:text-base leading-[1.65]">
+                  <p className="whitespace-pre-wrap">
+                    {stripInfraFromBotText(m.texto)}
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="flex w-full min-w-0 justify-end">
               <div
                 className={cn(
-                  'max-w-[min(100%,32rem)] rounded-2xl px-4 py-3',
-                  'bg-muted/80 dark:bg-muted/50 text-foreground',
-                  'text-[15px] sm:text-base leading-relaxed'
+                  'max-w-[min(100%,32rem)] rounded-2xl px-5 py-3.5',
+                  'bg-primary text-primary-foreground shadow-sm',
+                  'text-[15px] sm:text-base leading-[1.65]'
                 )}
               >
                 <p className="whitespace-pre-wrap">{m.texto}</p>
@@ -497,28 +491,16 @@ export default function CriarSite() {
               'Publicação concluída! O seu site foi publicado. ' +
               'Pode levar até 45 minutos para o endereço personalizado ficar disponível — use a pré-visualização enquanto isso.';
           } else {
-            textoSucesso =
-              'A publicação terminou com avisos. Use a pré-visualização para validar o site; o URL público pode demorar alguns minutos.';
+            // Em vez de enviar para o chat, setamos um alerta se houver erro
+            setErro('A publicação terminou com avisos. O URL público pode demorar alguns minutos.');
           }
 
-          const msg: Mensagem = {
-            id: ID(),
-            papel: 'bot',
-            texto: textoSucesso,
-          };
-          setLista((p) => [...p, msg]);
           setAPublicar(false);
           clearPublishJob();
         } else if (j.status === 'failed') {
           finish();
           const msg = j.error || 'Erro ao publicar.';
           setErro(msg);
-          const bot: Mensagem = {
-            id: ID(),
-            papel: 'bot',
-            texto: `Não foi possível publicar: ${msg}`,
-          };
-          setLista((p) => [...p, bot]);
           setAPublicar(false);
           clearPublishJob();
         }
@@ -572,12 +554,7 @@ export default function CriarSite() {
     } catch (err: any) {
       const msg = err?.message || 'Erro ao comunicar com a IA.';
       setErro(msg);
-      const bot: Mensagem = {
-        id: ID(),
-        papel: 'bot',
-        texto: `Desculpe, ocorreu um erro: ${msg}`,
-      };
-      setLista((p) => [...p, bot]);
+      // Removed errMsg to avoid polluting chat history with system errors
     } finally {
       setAEnviar(false);
     }
@@ -591,13 +568,6 @@ export default function CriarSite() {
     setPublicSiteUrl(null);
     setPublishSlug('');
 
-    const gerando: Mensagem = {
-      id: ID(),
-      papel: 'bot',
-      texto: 'A gerar o site com base no briefing. Isto pode demorar alguns segundos…',
-    };
-    setLista((p) => [...p, gerando]);
-
     try {
       const { data } = await api.post<{ jobId: string; projectId: string; message: string }>(
         '/sites/generate',
@@ -607,12 +577,6 @@ export default function CriarSite() {
     } catch (err: any) {
       const msg = err?.message || 'Erro ao gerar o site.';
       setErro(msg);
-      const errMsg: Mensagem = {
-        id: ID(),
-        papel: 'bot',
-        texto: `Erro na geração: ${msg}`,
-      };
-      setLista((p) => [...p, errMsg]);
       setAGerar(false);
     }
   }
@@ -646,12 +610,6 @@ export default function CriarSite() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao publicar.';
       setErro(msg);
-      const bot: Mensagem = {
-        id: ID(),
-        papel: 'bot',
-        texto: `Não foi possível publicar: ${msg}`,
-      };
-      setLista((p) => [...p, bot]);
       setAPublicar(false);
     }
   }
@@ -675,6 +633,22 @@ export default function CriarSite() {
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {emConversa && projectId && (
+                <Button
+                  variant={siteResult ? 'outline' : 'default'}
+                  size="sm"
+                  className="h-9 rounded-md text-xs hidden sm:flex font-medium"
+                  onClick={gerarSite}
+                  disabled={aGerar || aPublicar || !projectId}
+                >
+                  {aGerar ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                  ) : (
+                    <Wand2 className="w-3.5 h-3.5 mr-1.5" />
+                  )}
+                  {BOTAO_GERAR}
+                </Button>
+              )}
               <SheetTrigger asChild>
                 <Button type="button" variant="outline" size="sm" className="gap-1.5 h-9">
                   <History className="w-4 h-4" />
@@ -850,33 +824,6 @@ export default function CriarSite() {
                 {MENSAGEM_ABERTURA_TEXTO}
               </p>
             </div>
-
-            <div className="w-full max-w-3xl space-y-3">
-              <p className="text-center text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
-                {LABEL_SUGESTOES}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                {SUGESTOES_CRIAR_SITE.map((item) => (
-                  <button
-                    key={item.titulo}
-                    type="button"
-                    onClick={() => setRascunho(item.prompt)}
-                    className={cn(
-                      'text-left rounded-2xl border border-border/70 bg-background',
-                      'px-4 py-3.5 shadow-sm transition-colors duration-150',
-                      'hover:bg-muted/40 hover:border-border',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                      'focus-visible:ring-offset-background'
-                    )}
-                  >
-                    <span className="block text-sm font-medium text-foreground">{item.titulo}</span>
-                    <span className="mt-1 block text-xs text-muted-foreground leading-snug line-clamp-2">
-                      {item.prompt}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         ) : isWideLg ? (
           <div
@@ -1021,20 +968,6 @@ export default function CriarSite() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 justify-end">
-              <Button
-                variant={siteResult ? 'outline' : 'default'}
-                size="sm"
-                className="h-9 rounded-full text-xs"
-                onClick={gerarSite}
-                disabled={aGerar || aPublicar || !projectId}
-              >
-                {aGerar ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Wand2 className="w-3.5 h-3.5" />
-                )}
-                {BOTAO_GERAR}
-              </Button>
               {previewAbsUrl && (
                 <Button variant="secondary" size="sm" className="h-9 rounded-full text-xs gap-1.5" asChild>
                   <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer">

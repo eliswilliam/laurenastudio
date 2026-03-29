@@ -457,10 +457,18 @@ def _sync_generate_site_structure(brief: str) -> dict:
         context="site_structure",
     )
 
-    if raw.startswith("```"):
-        raw = raw.split("\n", 1)[-1]
-    if raw.endswith("```"):
-        raw = raw.rsplit("```", 1)[0]
+    import re
+    # Try to extract a markdown JSON block first
+    match = re.search(r'```(?:json)?(.*?)```', raw, re.DOTALL)
+    if match:
+        raw = match.group(1).strip()
+    else:
+        # Otherwise, try to find the outermost JSON object
+        start_idx = raw.find('{')
+        end_idx = raw.rfind('}')
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            raw = raw[start_idx:end_idx+1]
+        
     raw = raw.strip()
 
     try:

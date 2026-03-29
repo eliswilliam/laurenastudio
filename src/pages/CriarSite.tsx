@@ -178,6 +178,7 @@ export default function CriarSite() {
   const [mobilePublishOpen, setMobilePublishOpen] = useState(false);
   /** Projeto aberto pelo painel Histórico: sem novas mensagens para /sites/chat. */
   const [conversationReadOnly, setConversationReadOnly] = useState(false);
+  const [lastGenTime, setLastGenTime] = useState(Date.now());
   const isWideLg = useIsWideLg();
 
   const refreshProjects = useCallback(async () => {
@@ -268,6 +269,7 @@ export default function CriarSite() {
           finish();
           const previewUrl = s.preview_url;
           setSiteResult({ previewUrl });
+          setLastGenTime(Date.now());
           setPublicSiteUrl(userFacingSiteUrl(s.publish_slug, s.site_url));
           setPublishSlug(s.publish_slug ?? '');
           setPollProjectId(null);
@@ -355,9 +357,17 @@ export default function CriarSite() {
   const previewAbsUrl = useMemo(() => {
     if (!siteResult?.previewUrl) return null;
     const u = siteResult.previewUrl;
-    if (u.startsWith('http')) return u;
-    return `${window.location.origin}${u.startsWith('/') ? '' : '/'}${u}`;
-  }, [siteResult?.previewUrl]);
+    const base = u.startsWith('http') ? u : `${window.location.origin}${u.startsWith('/') ? '' : '/'}${u}`;
+    
+    // Adicionar cache-buster para forçar o iframe a atualizar quando for regerado
+    try {
+      const urlObj = new URL(base);
+      urlObj.searchParams.set('t', lastGenTime.toString());
+      return urlObj.toString();
+    } catch {
+      return base;
+    }
+  }, [siteResult?.previewUrl, lastGenTime]);
 
   /** 1 = briefing · 2 = a gerar · 3 = pré-visualizar · 4 = site online */
   const flowStepActive = useMemo(() => {
@@ -411,6 +421,7 @@ export default function CriarSite() {
           const r = j.result;
           const previewUrl = String(r.previewUrl ?? '');
           setSiteResult({ previewUrl });
+          setLastGenTime(Date.now());
           const pronto: Mensagem = {
             id: ID(),
             papel: 'bot',
@@ -551,6 +562,11 @@ export default function CriarSite() {
 
       const bot: Mensagem = { id: ID(), papel: 'bot', texto: data.reply };
       setLista((p) => [...p, bot]);
+        
+      if (data.job_id) {
+        setGenerateJobId(data.job_id);
+        setAGerar(true);
+      }
     } catch (err: any) {
       const msg = err?.message || 'Erro ao comunicar com a IA.';
       setErro(msg);
@@ -864,9 +880,11 @@ export default function CriarSite() {
             <div className="shrink-0 flex flex-col min-h-[min(50dvh,420px)] pb-2">
               {siteResult && previewAbsUrl ? (
                 <div className="flex flex-col flex-1 min-h-0 rounded-xl border border-border/70 bg-muted/20 overflow-hidden shadow-sm">
-                  <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/90 shrink-0">
-                    Pré-visualização no painel
-                  </p>
+                  {!conversationReadOnly && (
+                    <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/90 shrink-0">
+                      Pré-visualização no painel
+                    </p>
+                  )}
                   <iframe
                     title="Pré-visualização do site gerado"
                     src={previewAbsUrl}
@@ -961,12 +979,19 @@ export default function CriarSite() {
       {emConversa && isWideLg && (
         <div className="flex flex-col min-h-0 min-w-0 lg:col-span-1 rounded-xl border border-border/80 bg-card/30 shadow-sm overflow-hidden">
           <div className="flex flex-col gap-3 p-3 border-b border-border/60 bg-muted/25 sm:flex-row sm:items-center sm:justify-between shrink-0">
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold tracking-tight">Pré-visualização</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                HTML e CSS como no navegador
-              </p>
-            </div>
+            {!conversationReadOnly && (
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold tracking-tight">Pré-visualização</h2>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  HTML e CSS como no navegador
+                </p>
+              </div>
+            )}
+            {conversationReadOnly && (
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold tracking-tight">Site</h2>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2 justify-end">
               {previewAbsUrl && (
                 <Button variant="secondary" size="sm" className="h-9 rounded-full text-xs gap-1.5" asChild>

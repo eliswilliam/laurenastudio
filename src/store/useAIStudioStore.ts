@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 export type StudioMode = null | 'image' | 'video' | 'audio';
 
@@ -9,7 +8,7 @@ export interface StudioChatMessage {
   content: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'text' | 'audio';
-  /** ISO string — persist-friendly */
+  /** ISO string */
   timestamp: string;
 }
 
@@ -30,19 +29,14 @@ const initial = {
   input: '',
 };
 
-export const useAIStudioStore = create<AIStudioState>()(
-  persist(
-    (set) => ({
-      ...initial,
+export const useAIStudioStore = create<AIStudioState>()((set) => ({
+  ...initial,
 
-      setMode: (mode) => set({ mode }),
-      setMessages: (fn) =>
-        set((state) => ({
-          messages: typeof fn === 'function' ? fn(state.messages) : fn,
-        })),
-      setInput: (input) => set({ input }),
-      resetStudio: () => set({ ...initial }),
-    }),
-    { name: 'laurena-ai-studio' }
-  )
-);
+  setMode: (mode) => set({ mode }),
+  setMessages: (fn) =>
+    set((state) => ({
+      messages: typeof fn === 'function' ? fn(state.messages) : fn,
+    })),
+  setInput: (input) => set({ input }),
+  resetStudio: () => set({ ...initial }),
+}));

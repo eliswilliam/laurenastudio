@@ -53,6 +53,7 @@ router = APIRouter(prefix="/sites", tags=["Site Builder"])
 @router.post("/chat", response_model=SiteChatResponse, summary="Chat with Laurena about a site")
 async def site_chat(
     payload: SiteChatRequest,
+    current_user: User = Depends(get_current_user),
     workspace_id: str = Depends(get_workspace_id),
     subscription: Subscription = Depends(verify_active_subscription),
     db: AsyncSession = Depends(get_db),
@@ -61,7 +62,9 @@ async def site_chat(
     project: SiteProject | None = None
     if payload.project_id:
         result = await db.execute(
-            select(SiteProject).where(
+            select(SiteProject)
+            .options(selectinload(SiteProject.prompts))
+            .where(
                 SiteProject.id == payload.project_id,
                 SiteProject.workspace_id == workspace_id,
             )
@@ -110,7 +113,34 @@ async def site_chat(
     await db.flush()
 
     prompt_count = len(payload.messages) + 1
-    return SiteChatResponse(project_id=project.id, reply=reply, message_count=prompt_count)
+    
+    # "Lovable" approach: automatically enqueue a generation job with every chat message
+    # if there is an active project. We compile the latest briefs just like manual "Gerar site"
+    
+    # Re-fetch prompts to include the newly added ones
+    prompts_result = await db.execute(select(SitePrompt).where(SitePrompt.project_id == project.id).order_by(SitePrompt.created_at.asc()))
+    plist = prompts_result.scalars().all()
+    
+    brief = build_site_generation_brief_from_prompts(plist)
+    project.user_prompt = brief
+    project.status = "generating"
+    
+    job = await create_job(
+        db,
+        job_type="generate_site",
+        user_id=current_user.id,
+        project_id=project.id,
+        input_payload=None,
+    )
+    await db.commit()
+    await enqueue_generate_job(str(job.id))
+
+    return SiteChatResponse(
+        project_id=project.id, 
+        reply=reply, 
+        message_count=prompt_count,
+        job_id=str(job.id)
+    )
 
 
 # ── POST /sites/generate ────────────────────────────────────────────────────

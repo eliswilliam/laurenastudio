@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 export interface MarketingImageResult {
   image_url: string | null;
@@ -51,21 +50,16 @@ const initial = {
   videoResult: null as MarketingVideoResult | null,
 };
 
-export const useMarketingAIStore = create<MarketingAIState>()(
-  persist(
-    (set) => ({
-      ...initial,
+export const useMarketingAIStore = create<MarketingAIState>()((set) => ({
+  ...initial,
 
-      setSelectedType: (selectedType) => set({ selectedType }),
-      setVideoMode: (videoMode) => set({ videoMode }),
-      setBrandName: (brandName) => set({ brandName }),
-      setAdText: (adText) => set({ adText }),
-      setPrompt: (prompt) => set({ prompt }),
-      setReferenceMime: (referenceMime) => set({ referenceMime }),
-      setImageResult: (imageResult) => set({ imageResult }),
-      setVideoResult: (videoResult) => set({ videoResult }),
-      resetForm: () => set({ ...initial }),
-    }),
-    { name: 'laurena-marketing-ai' }
-  )
-);
+  setSelectedType: (selectedType) => set({ selectedType }),
+  setVideoMode: (videoMode) => set({ videoMode }),
+  setBrandName: (brandName) => set({ brandName }),
+  setAdText: (adText) => set({ adText }),
+  setPrompt: (prompt) => set({ prompt }),
+  setReferenceMime: (referenceMime) => set({ referenceMime }),
+  setImageResult: (imageResult) => set({ imageResult }),
+  setVideoResult: (videoResult) => set({ videoResult }),
+  resetForm: () => set({ ...initial }),
+}));

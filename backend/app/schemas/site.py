@@ -21,6 +21,7 @@ class SiteChatResponse(BaseModel):
     project_id: str
     reply: str
     message_count: int
+    job_id: str | None = None
 
 
 # ── Generate site ────────────────────────────────────────────────────────────

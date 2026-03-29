@@ -4,7 +4,7 @@ import ArticleCard from "@/components/ArticleCard";
 import { getArticleById, getRelatedArticles } from "@/data/articles";
 import { Facebook, Twitter, Linkedin, Link2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 const Article = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +18,7 @@ const Article = () => {
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
-    toast.success("Link copied to clipboard!");
+    notify.success("Link copied to clipboard!");
   };
 
   const getCategoryClass = (cat: string) => {

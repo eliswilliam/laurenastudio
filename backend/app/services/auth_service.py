@@ -5,8 +5,9 @@ All business logic for authentication and user account management.
 import random
 import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -63,6 +64,7 @@ async def register_user(db: AsyncSession, payload: RegisterRequest) -> AuthRespo
         email=payload.email,
         password_hash=hash_password(payload.password),
         is_active=True,
+        full_name=payload.full_name,
     )
     db.add(user)
     await db.flush()  # flush to get the user.id without committing
@@ -283,23 +285,25 @@ async def update_user_profile(
 ) -> UserRead:
     # Optional password change — requires current_password verification
     if payload.new_password:
-        if not payload.current_password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A senha atual é obrigatória para alterar a senha.",
-            )
-        if not user.password_hash or not verify_password(
-            payload.current_password, user.password_hash
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Senha atual incorreta.",
-            )
         if len(payload.new_password) < 8:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="A nova senha deve ter pelo menos 8 caracteres.",
             )
+        # Conta só OAuth (sem password_hash): pode definir senha sem « senha atual ».
+        if user.password_hash:
+            if not payload.current_password:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="A senha atual é obrigatória para alterar a senha.",
+                )
+            if not verify_password(
+                payload.current_password, user.password_hash
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Senha atual incorreta.",
+                )
         user.password_hash = hash_password(payload.new_password)
 
     # Update profile fields (only if provided)
@@ -312,6 +316,45 @@ async def update_user_profile(
     if payload.avatar_url is not None:
         user.avatar_url = payload.avatar_url
 
+    await db.commit()
+    await db.refresh(user)
+    return UserRead.model_validate(user)
+
+
+AVATAR_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "avatars"
+AVATAR_MAX_BYTES = 5 * 1024 * 1024
+AVATAR_TYPES = frozenset({"image/jpeg", "image/png", "image/gif", "image/webp"})
+AVATAR_EXT = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+}
+
+
+async def upload_user_avatar(
+    db: AsyncSession, user: User, file: UploadFile
+) -> UserRead:
+    """Guarda imagem em /uploads/avatars e atualiza user.avatar_url (máx. 5MB)."""
+    ct = (file.content_type or "").split(";")[0].strip().lower()
+    if ct not in AVATAR_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use JPG, PNG, GIF ou WebP.",
+        )
+    raw = await file.read()
+    if len(raw) > AVATAR_MAX_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Ficheiro demasiado grande (máx. 5MB).",
+        )
+    AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+    ext = AVATAR_EXT.get(ct, ".img")
+    fname = f"{uuid.uuid4().hex}{ext}"
+    fpath = AVATAR_DIR / fname
+    fpath.write_bytes(raw)
+    rel = f"/uploads/avatars/{fname}"
+    user.avatar_url = rel[:500]
     await db.commit()
     await db.refresh(user)
     return UserRead.model_validate(user)

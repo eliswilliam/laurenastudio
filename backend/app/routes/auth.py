@@ -4,7 +4,7 @@ Authentication endpoints: register, login, forgot-password, verify-reset-code,
 reset-password, Google OAuth (GET /google  →  GET /google/callback).
 A `get_current_user` dependency is also exposed for protecting other routes.
 """
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
@@ -184,6 +184,20 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
 ) -> UserRead:
     return await auth_service.update_user_profile(db, current_user, payload)
+
+
+@router.post(
+    "/me/avatar",
+    response_model=UserRead,
+    summary="Upload profile avatar (max 5MB)",
+)
+async def upload_my_avatar(
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserRead:
+    return await auth_service.upload_user_avatar(db, current_user, file)
+
 
 # ── GET /auth/google ───────────────────────────────────────────────────────────
 

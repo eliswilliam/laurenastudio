@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAIStudioStore, type StudioChatMessage, type StudioMode } from '@/store/useAIStudioStore';
 import {
   BrainCircuit,
@@ -22,6 +22,10 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import api, { getAiVideoJobStatus } from '@/lib/api';
 import AIInferenceAnimation from '@/components/shared/AIInferenceAnimation';
+
+/** Rótulos exibidos na UI (os IDs técnicos enviados à API permanecem inalterados). */
+const STUDIO_LABEL_IMAGE_MODEL = 'nano banana2';
+const STUDIO_LABEL_VIDEO_MODEL = 'veo3';
 
 export default function AIStudio() {
   const mode = useAIStudioStore((s) => s.mode);
@@ -61,6 +65,15 @@ export default function AIStudio() {
       setReferencePreview('');
       setReferenceImage('');
   };
+
+  useEffect(() => {
+    resetStudioStore();
+    setIsGenerating(false);
+    setReferenceImage('');
+    setReferencePreview('');
+    setReferenceMime('image/png');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [resetStudioStore]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -235,7 +248,7 @@ export default function AIStudio() {
                 </div>
                 <Badge variant="secondary" className="gap-1">
                   <BrainCircuit className="w-3 h-3" />
-                  black-forest-labs/flux-1.1-pro
+                  {STUDIO_LABEL_IMAGE_MODEL}
                 </Badge>
               </CardContent>
             </Card>
@@ -256,7 +269,7 @@ export default function AIStudio() {
                 </div>
                 <Badge variant="secondary" className="gap-1">
                   <BrainCircuit className="w-3 h-3" />
-                  hailuo-2.3-fast
+                  {STUDIO_LABEL_VIDEO_MODEL}
                 </Badge>
               </CardContent>
             </Card>
@@ -291,7 +304,11 @@ export default function AIStudio() {
   const modeLabel =
     mode === 'image' ? 'Imagem' : mode === 'video' ? 'Vídeo' : 'Áudio';
   const modeModel =
-    mode === 'image' ? 'black-forest-labs/flux-1.1-pro' : mode === 'video' ? 'hailuo-2.3-fast' : 'Azure Neural TTS';
+    mode === 'image'
+      ? STUDIO_LABEL_IMAGE_MODEL
+      : mode === 'video'
+        ? STUDIO_LABEL_VIDEO_MODEL
+        : 'Azure Neural TTS';
 
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-8rem)]">
@@ -526,9 +543,9 @@ export default function AIStudio() {
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
           {mode === 'image'
-            ? 'black-forest-labs/flux-1.1-pro gera imagens de alta qualidade.'
+            ? `${STUDIO_LABEL_IMAGE_MODEL} gera imagens de alta qualidade.`
             : mode === 'video'
-              ? 'hailuo-2.3-fast: a geração de vídeo pode levar alguns minutos.'
+              ? `${STUDIO_LABEL_VIDEO_MODEL}: a geração de vídeo pode levar alguns minutos.`
               : 'Azure Speech TTS: converta textos em voz ultrarrealista.'}
         </p>
       </div>

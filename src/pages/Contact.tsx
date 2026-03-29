@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -14,7 +14,7 @@ const Contact = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Message sent! We'll get back to you soon.");
+    notify.success("Message sent! We'll get back to you soon.");
     setFormData({ name: "", email: "", subject: "", message: "" });
   };
 

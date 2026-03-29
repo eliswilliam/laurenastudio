@@ -46,39 +46,39 @@ export const SUGESTOES_CRIAR_SITE = [
   {
     titulo: 'Landing SaaS',
     prompt:
-      'Landing para produto digital: hero com mockup, secção de benefícios, preços em 2 tiers e FAQ.',
+      'Landing para produto digital: hero com mockup, seção de benefícios, preços em 2 planos e FAQ.',
   },
   {
     titulo: 'Restaurante',
     prompt:
-      'Site para restaurante: carta/menu por categorias, reservas online, localização e horários.',
+      'Site para restaurante: cardápio por categorias, reservas online, localização e horários.',
   },
   {
     titulo: 'Portfólio',
     prompt:
-      'Portfólio de designer: galeria em grid, página sobre o autor e formulário de contacto minimalista.',
+      'Portfólio de designer: galeria em grid, página sobre o autor e formulário de contato minimalista.',
   },
 ] as const;
 
 const PLACEHOLDER_PROMPT =
-  'Descreva o site que imagina: sector, páginas, público, estética, referências…';
+  'Descreva o site que imagina: setor, páginas, público, estética, referências…';
 const LABEL_SUGESTOES = 'Ideias para começar';
-const TITULO_PAGINA = 'Crie o seu site';
+const TITULO_PAGINA = 'Crie seu site';
 const BOTAO_GERAR = 'Gerar site';
 const BOTAO_PUBLICAR = 'Publicar';
 const DICA_TECLADO = 'Enter envia · Shift+Enter nova linha';
-const LOADING_TEXTO = 'Laurena está a pensar…';
+const LOADING_TEXTO = 'Laurena está pensando…';
 const POLL_MS = 2500;
 
 const FLOW_STEPS = [
   { n: 1, short: 'Briefing', Icon: BrainCircuit },
   { n: 2, short: 'Gerar', Icon: Wand2 },
-  { n: 3, short: 'Preview', Icon: LayoutTemplate },
+  { n: 3, short: 'Prévia', Icon: LayoutTemplate },
   { n: 4, short: 'Online', Icon: Globe },
 ] as const;
 
-/** Não listar no Histórico (conta) — título técnico da área de preview, não nome de projeto. */
-const EXCLUDE_FROM_PROJECT_HISTORY_NAME = 'Pré-visualização (HTML + CSS como no navegador)';
+/** Não listar no histórico (conta): título técnico da prévia, não nome de projeto. */
+const EXCLUDE_FROM_PROJECT_HISTORY_NAME = 'Prévia (HTML + CSS como no navegador)';
 
 const ROOT_DOMAIN =
   (import.meta.env.VITE_ROOT_DOMAIN as string | undefined)?.trim() || 'laurenastudio.pro';
@@ -89,7 +89,7 @@ function slugValid(s: string): boolean {
   return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(t);
 }
 
-/** URL público apenas (subdomínio); não expõe GitHub nem Cloud Run. */
+/** URL pública apenas (subdomínio); não expõe GitHub nem Cloud Run. */
 function userFacingSiteUrl(slug: string | null | undefined, siteUrl: string | null | undefined): string | null {
   const s = (slug ?? '').trim().toLowerCase();
   if (s && slugValid(s)) {
@@ -112,7 +112,7 @@ function stripInfraFromBotText(text: string): string {
     .trim();
 }
 
-/** Desktop : colonne chat séparée de la prévia ; mobile : même colonne (messages puis iframe). */
+/** Desktop: chat em coluna separada da prévia; mobile: mesma coluna (mensagens e iframe). */
 function useIsWideLg() {
   const [wide, setWide] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -176,7 +176,7 @@ export default function CriarSite() {
   const [pollProjectId, setPollProjectId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [mobilePublishOpen, setMobilePublishOpen] = useState(false);
-  /** Projeto aberto pelo painel Histórico: sem novas mensagens para /sites/chat. */
+  /** Projeto aberto pelo painel Histórico: sem novas mensagens para /sites/chat (somente leitura). */
   const [conversationReadOnly, setConversationReadOnly] = useState(false);
   const [lastGenTime, setLastGenTime] = useState(Date.now());
   const isWideLg = useIsWideLg();
@@ -321,15 +321,15 @@ export default function CriarSite() {
   const messageNodes = useMemo(
     () =>
       lista.map((m) => (
-        <div key={m.id} className="w-full min-w-0 flex flex-col pt-1">
+        <div key={m.id} className="w-full min-w-0 flex flex-col py-1.5 isolate">
           {m.papel === 'bot' ? (
             <div className="flex w-full min-w-0 justify-start">
-              <div className="flex gap-3 max-w-[95%] md:max-w-2xl">
+              <div className="flex min-w-0 max-w-[min(100%,95vw)] items-start gap-3 md:max-w-2xl">
                 <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
                   <Wand2 className="h-4 w-4" />
                 </div>
-                <div className="rounded-2xl px-5 py-3.5 bg-muted/30 border border-border/50 text-foreground text-[15px] sm:text-base leading-[1.65]">
-                  <p className="whitespace-pre-wrap">
+                <div className="min-w-0 flex-1 overflow-hidden break-words rounded-2xl border border-border/50 bg-muted/30 px-5 py-3.5 text-[15px] leading-[1.65] text-foreground sm:text-base">
+                  <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                     {stripInfraFromBotText(m.texto)}
                   </p>
                 </div>
@@ -339,12 +339,12 @@ export default function CriarSite() {
             <div className="flex w-full min-w-0 justify-end">
               <div
                 className={cn(
-                  'max-w-[min(100%,32rem)] rounded-2xl px-5 py-3.5',
+                  'min-w-0 max-w-[min(100%,32rem)] overflow-hidden break-words rounded-2xl px-5 py-3.5',
                   'bg-primary text-primary-foreground shadow-sm',
                   'text-[15px] sm:text-base leading-[1.65]'
                 )}
               >
-                <p className="whitespace-pre-wrap">{m.texto}</p>
+                <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{m.texto}</p>
               </div>
             </div>
           )}
@@ -369,7 +369,7 @@ export default function CriarSite() {
     }
   }, [siteResult?.previewUrl, lastGenTime]);
 
-  /** 1 = briefing · 2 = a gerar · 3 = pré-visualizar · 4 = site online */
+  /** 1 = briefing · 2 = gerando · 3 = prévia · 4 = site no ar */
   const flowStepActive = useMemo(() => {
     if (publicSiteUrl) return 4;
     if (siteResult?.previewUrl) return 3;
@@ -382,8 +382,7 @@ export default function CriarSite() {
   }, [publicSiteUrl]);
 
   useEffect(() => {
-    // block: 'end' — aligne le bas du fil (repère h-px) au bas du scrollport.
-    // Sans cela, le défaut peut centrer le repère et faire « remonter » la dernière bulle.
+    // block: 'end' — alinha a âncora h-px ao fim da área rolável (última mensagem visível).
     const opts: ScrollIntoViewOptions = { behavior: 'smooth', block: 'end', inline: 'nearest' };
     if (isWideLg) {
       fim.current?.scrollIntoView(opts);
@@ -494,12 +493,12 @@ export default function CriarSite() {
           let textoSucesso = '';
           if (deployOk && vis) {
             textoSucesso =
-              `Publicação concluída! O seu site público: ${vis}\n\n` +
+              `Publicação concluída! Seu site público: ${vis}\n\n` +
               'Pode levar até 45 minutos para o endereço ficar totalmente disponível. ' +
               'Enquanto isso, use a pré-visualização acima.';
           } else if (deployOk) {
             textoSucesso =
-              'Publicação concluída! O seu site foi publicado. ' +
+              'Publicação concluída! Seu site foi publicado. ' +
               'Pode levar até 45 minutos para o endereço personalizado ficar disponível — use a pré-visualização enquanto isso.';
           } else {
             // Em vez de enviar para o chat, setamos um alerta se houver erro
@@ -605,7 +604,7 @@ export default function CriarSite() {
 
     const slug = publishSlug.trim().toLowerCase();
     if (requirePublishSlug && !slug) {
-      setErro('Indique um subdomínio (slug) para publicar com o seu domínio personalizado.');
+      setErro('Informe um subdomínio (slug) para publicar com seu domínio personalizado.');
       setAPublicar(false);
       return;
     }
@@ -641,10 +640,10 @@ export default function CriarSite() {
             'border-b border-border/50 shadow-sm'
           )}
         >
-          <div className="flex items-start justify-between gap-3 py-3">
-            <div className="min-w-0 space-y-0.5">
-              <h1 className="text-lg font-semibold tracking-tight">{TITULO_PAGINA}</h1>
-              <p className="text-xs text-muted-foreground leading-snug max-w-md hidden sm:block">
+          <div className="flex items-start justify-between gap-2 py-1.5 sm:py-2 md:gap-3">
+            <div className="min-w-0 space-y-0">
+              <h1 className="text-base sm:text-lg font-semibold tracking-tight leading-tight">{TITULO_PAGINA}</h1>
+              <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug max-w-md hidden sm:block mt-0.5">
                 Um fluxo único: conversar com a Laurena, gerar o site, ver o resultado e publicar.
               </p>
             </div>
@@ -677,7 +676,7 @@ export default function CriarSite() {
             </div>
           </div>
 
-          <nav className="pb-3" aria-label="Progresso no criador de sites">
+          <nav className="pb-1.5 sm:pb-2 pt-0.5" aria-label="Progresso no criador de sites">
             <div className="flex items-center w-full max-w-3xl" role="list">
               {FLOW_STEPS.map(({ n, short, Icon }, idx) => {
                 const done = flowStepActive > n;
@@ -731,7 +730,7 @@ export default function CriarSite() {
         <SheetContent side="left" className="w-[min(100vw,420px)] flex flex-col gap-3">
           <SheetHeader>
             <SheetTitle>Histórico de projetos</SheetTitle>
-            <SheetDescription>Abra um projeto guardado na sua conta.</SheetDescription>
+            <SheetDescription>Abra um projeto salvo na sua conta.</SheetDescription>
           </SheetHeader>
           <Button
             type="button"
@@ -748,7 +747,7 @@ export default function CriarSite() {
             {projectsLoading ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                A carregar…
+                Carregando…
               </div>
             ) : filteredProjects.length === 0 ? (
               <p className="text-[11px] text-muted-foreground leading-snug">
@@ -786,7 +785,7 @@ export default function CriarSite() {
 
       <div
         className={cn(
-          'flex flex-col flex-1 min-w-0 w-full relative lg:grid lg:grid-cols-2 lg:gap-4 lg:items-stretch lg:min-h-0',
+          'flex flex-col flex-1 min-w-0 min-h-0 w-full relative lg:grid lg:grid-cols-2 lg:gap-4 lg:items-stretch',
           sessionLoading && 'opacity-55 pointer-events-none'
         )}
       >
@@ -816,7 +815,13 @@ export default function CriarSite() {
         </div>
       )}
 
-      <div className={cn('flex-1 flex flex-col min-h-0 lg:col-span-1', !emConversa && 'justify-center lg:col-span-2')}>
+      <div
+        className={cn(
+          'flex-1 flex flex-col min-h-0',
+          !emConversa && 'justify-center lg:col-span-2',
+          emConversa && (conversationReadOnly ? 'lg:col-span-2' : 'lg:col-span-1')
+        )}
+      >
         {((generateJob?.logs?.length ?? 0) > 0 || (publishJob?.logs?.length ?? 0) > 0) && emConversa && (
           <details className="mb-3 shrink-0 rounded-lg border border-border/50 bg-muted/15 text-[11px] font-mono text-muted-foreground">
             <summary className="cursor-pointer select-none px-3 py-2 text-xs font-sans text-foreground">
@@ -853,9 +858,9 @@ export default function CriarSite() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
                 {aPublicar
-                  ? 'A publicar em segundo plano. Pode fechar esta página — o progresso continua.'
+                  ? 'Publicando em segundo plano. Você pode fechar esta página — o progresso continua.'
                   : aGerar
-                    ? 'A gerar o site em segundo plano. Pode fechar esta página — o progresso continua.'
+                    ? 'Gerando o site em segundo plano. Você pode fechar esta página — o progresso continua.'
                     : LOADING_TEXTO}
               </div>
             )}
@@ -869,35 +874,35 @@ export default function CriarSite() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
                   {aPublicar
-                    ? 'A publicar em segundo plano. Pode fechar esta página — o progresso continua.'
+                    ? 'Publicando em segundo plano. Você pode fechar esta página — o progresso continua.'
                     : aGerar
-                      ? 'A gerar o site em segundo plano. Pode fechar esta página — o progresso continua.'
+                      ? 'Gerando o site em segundo plano. Você pode fechar esta página — o progresso continua.'
                       : LOADING_TEXTO}
                 </div>
               )}
               <div ref={fimMobile} className="h-px" />
             </div>
-            <div className="shrink-0 flex flex-col min-h-[min(50dvh,420px)] pb-2">
-              {siteResult && previewAbsUrl ? (
-                <div className="flex flex-col flex-1 min-h-0 rounded-xl border border-border/70 bg-muted/20 overflow-hidden shadow-sm">
-                  {!conversationReadOnly && (
+            {!conversationReadOnly && (
+              <div className="shrink-0 flex flex-col min-h-[min(50dvh,420px)] pb-2">
+                {siteResult && previewAbsUrl ? (
+                  <div className="flex flex-col flex-1 min-h-0 rounded-xl border border-border/70 bg-muted/20 overflow-hidden shadow-sm">
                     <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/90 shrink-0">
                       Pré-visualização no painel
                     </p>
-                  )}
-                  <iframe
-                    title="Pré-visualização do site gerado"
-                    src={previewAbsUrl}
-                    className="w-full flex-1 min-h-[260px] bg-white"
-                    sandbox="allow-scripts allow-same-origin allow-forms"
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center text-sm text-muted-foreground min-h-[180px]">
-                  Gere o site para ver a pré-visualização aqui.
-                </div>
-              )}
-            </div>
+                    <iframe
+                      title="Pré-visualização do site gerado"
+                      src={previewAbsUrl}
+                      className="w-full flex-1 min-h-[260px] bg-white"
+                      sandbox="allow-scripts allow-same-origin allow-forms"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center text-sm text-muted-foreground min-h-[180px]">
+                    Gere o site para ver a pré-visualização aqui.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -907,16 +912,36 @@ export default function CriarSite() {
           </div>
         )}
 
-        {conversationReadOnly && emConversa && (
-          <div className="mx-auto mb-3 max-w-xl rounded-lg border border-amber-500/35 bg-amber-500/[0.08] px-3 py-2.5 text-xs text-amber-950/90 dark:text-amber-100/90 leading-snug">
-            <strong className="font-semibold">Projeto do histórico.</strong> A conversa com a Laurena está
-            desativada neste projeto. Pode pré-visualizar, gerar de novo ou publicar. Para um novo briefing
-            com a IA, use <strong>Novo site</strong>.
-          </div>
-        )}
-
-        {/* Composeur — mobile : scroll (messages + prévia) puis cette zone fixe en bas de colonne */}
-        <div className="shrink-0 pt-3 md:pt-4 pb-1 bg-gradient-to-t from-background via-background to-transparent">
+        {/* Composer: shrink-0 + sticky no fundo da coluna para não subir com o scroll da página */}
+        <div
+          className={cn(
+            'shrink-0 z-30',
+            'sticky bottom-0',
+            'pt-2 md:pt-3 pb-1',
+            'border-t border-border/40 lg:border-t-0',
+            'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/88',
+            'bg-gradient-to-t from-background via-background/95 to-transparent lg:from-transparent lg:via-transparent'
+          )}
+        >
+            {!conversationReadOnly && !emConversa && (
+              <div className="mb-3 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">{LABEL_SUGESTOES}</p>
+                <div className="flex flex-wrap gap-2">
+                  {SUGESTOES_CRIAR_SITE.map((s) => (
+                    <Button
+                      key={s.titulo}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-full text-xs font-medium"
+                      onClick={() => setRascunho(s.prompt)}
+                    >
+                      {s.titulo}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div
               className={cn(
                 'flex items-end gap-2 rounded-[1.35rem] border border-border/60',
@@ -939,7 +964,7 @@ export default function CriarSite() {
                 }}
                 placeholder={
                   conversationReadOnly
-                    ? 'Conversa bloqueada — abra «Novo site» para enviar mensagens à IA.'
+                    ? 'Conversa bloqueada — abra "Novo site" para enviar mensagens à IA.'
                     : PLACEHOLDER_PROMPT
                 }
                 rows={1}
@@ -976,28 +1001,21 @@ export default function CriarSite() {
           </div>
       </div>
 
-      {emConversa && isWideLg && (
+      {emConversa && isWideLg && !conversationReadOnly && (
         <div className="flex flex-col min-h-0 min-w-0 lg:col-span-1 rounded-xl border border-border/80 bg-card/30 shadow-sm overflow-hidden">
           <div className="flex flex-col gap-3 p-3 border-b border-border/60 bg-muted/25 sm:flex-row sm:items-center sm:justify-between shrink-0">
-            {!conversationReadOnly && (
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold tracking-tight">Pré-visualização</h2>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  HTML e CSS como no navegador
-                </p>
-              </div>
-            )}
-            {conversationReadOnly && (
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold tracking-tight">Site</h2>
-              </div>
-            )}
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold tracking-tight">Pré-visualização</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                HTML e CSS como no navegador
+              </p>
+            </div>
             <div className="flex flex-wrap items-center gap-2 justify-end">
               {previewAbsUrl && (
                 <Button variant="secondary" size="sm" className="h-9 rounded-full text-xs gap-1.5" asChild>
                   <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-3.5 h-3.5" />
-                    Abrir no separador
+                    Abrir em nova aba
                   </a>
                 </Button>
               )}
@@ -1015,7 +1033,7 @@ export default function CriarSite() {
               <LayoutTemplate className="w-10 h-10 opacity-30 mb-3" />
               <p className="font-medium text-foreground">Ainda sem site gerado</p>
               <p className="mt-1 max-w-xs">
-                Quando o briefing estiver claro, use «Gerar site» para ver o resultado aqui.
+                Quando o briefing estiver claro, use “Gerar site” para ver o resultado aqui.
               </p>
             </div>
           )}
@@ -1088,7 +1106,7 @@ export default function CriarSite() {
                 <span className="ml-1.5 hidden min-[360px]:inline">{BOTAO_GERAR}</span>
                 <span className="ml-1.5 inline min-[360px]:hidden">Gerar</span>
               </Button>
-              {previewAbsUrl && (
+              {!conversationReadOnly && previewAbsUrl && (
                 <Button variant="secondary" size="sm" className="rounded-xl h-10 px-3 shrink-0" asChild>
                   <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer" title="Abrir pré-visualização">
                     <ExternalLink className="w-4 h-4" />
@@ -1110,7 +1128,10 @@ export default function CriarSite() {
             </div>
           </div>
           <Sheet open={mobilePublishOpen} onOpenChange={setMobilePublishOpen}>
-            <SheetContent side="bottom" className="rounded-t-2xl max-h-[90dvh] flex flex-col">
+            <SheetContent
+              side="top"
+              className="rounded-b-2xl max-h-[90dvh] flex flex-col pt-[max(1.5rem,env(safe-area-inset-top))]"
+            >
               <SheetHeader className="text-left border-b border-border/50 pb-3">
                 <SheetTitle>Publicar o site</SheetTitle>
                 <SheetDescription>
@@ -1163,7 +1184,8 @@ export default function CriarSite() {
   return (
     <div
       className={cn(
-        'animate-fade-in w-full max-w-7xl mx-auto flex flex-col px-3 sm:px-4',
+        'animate-fade-in w-full max-w-7xl mx-auto flex flex-col flex-1 min-h-0 px-3 sm:px-4',
+        '-mt-2 pt-0 sm:-mt-1 md:mt-0 md:pt-0',
         'min-h-[calc(100dvh-8.5rem)] md:min-h-[calc(100dvh-7rem)]',
         emConversa && !isWideLg && 'max-md:pb-[10rem] md:pb-[5.75rem]',
         emConversa && !isWideLg && 'max-lg:-mx-0.5 max-lg:overflow-hidden'

@@ -13,8 +13,11 @@ export interface UserRead {
   full_name?: string | null;
   avatar_url?: string | null;
   google_id?: string | null;
+  facebook_id?: string | null;
   phone?: string | null;
   bio?: string | null;
+  /** Indica se o utilizador já tem senha local (login por e-mail). */
+  password_set?: boolean;
 }
 
 export interface TokenResponse {
@@ -56,12 +59,16 @@ export interface UserUpdateRequest {
 export async function apiRegister(
   email: string,
   password: string,
-  account_name = 'Minha conta'
+  account_name = 'Minha conta',
+  full_name?: string | null
 ): Promise<AuthResponse> {
   const res = await api.post<AuthResponse>('/auth/register', {
     email,
     password,
     account_name,
+    ...(full_name != null && String(full_name).trim() !== ''
+      ? { full_name: String(full_name).trim() }
+      : {}),
   });
   return res.data;
 }
@@ -113,6 +120,24 @@ export async function apiMe(): Promise<UserRead> {
 export async function apiUpdateProfile(data: UserUpdateRequest): Promise<UserRead> {
   const res = await api.put<UserRead>('/auth/me', data);
   return res.data;
+}
+
+export async function apiUploadAvatar(file: File): Promise<UserRead> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await api.post<UserRead>('/auth/me/avatar', form);
+  return res.data;
+}
+
+/** URL absoluta para `<img src>` ou avatar na topbar (paths relativos passam pelo mesmo host que o SPA). */
+export function resolveAvatarDisplayUrl(avatar_url: string | null | undefined): string | undefined {
+  if (!avatar_url?.trim()) return undefined;
+  const u = avatar_url.trim();
+  if (u.startsWith('http://') || u.startsWith('https://')) return u;
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}${u.startsWith('/') ? u : `/${u}`}`;
+  }
+  return u;
 }
 
 /**

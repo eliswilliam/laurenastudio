@@ -24,15 +24,15 @@ export interface Mensagem {
   texto: string;
 }
 
-/** Mensagem de abertura (tom claro, orientado à acção). */
+/** Mensagem de abertura (pt-BR). */
 export const MENSAGEM_ABERTURA_TEXTO =
-  'Olá! Sou a Laurena. Descreva o site (negócio, páginas, estilo). Quando estiver pronto, clique em Gerar site: a aplicação cria um site estático real (HTML com CSS integrado, responsivo), pré-visualizável aqui. Envie várias mensagens para afinar o briefing.';
+  'Olá! Sou a Laurena. Descreva o site (negócio, páginas, estilo). Quando estiver pronto, clique em Gerar site: a aplicação cria um site estático real (HTML com CSS integrado, responsivo), que você pode visualizar aqui. Envie várias mensagens para afinar o briefing.';
 
 export function respostaBot(_indiceUser: number, ultima: string): string {
   if (ultima.length < 25) {
-    return 'Podemos aprofundar? Cores, tipos de letra, secções ou um site que goste como referência.';
+    return 'Podemos aprofundar? Cores, tipografia, seções ou um site que você goste como referência.';
   }
-  return 'Perfeito. Já tenho uma base sólida para o brief. Quer acrescentar algo ou prefere abrir o editor agora?';
+  return 'Perfeito. Já tenho uma base sólida para o briefing. Quer acrescentar algo ou prefere seguir com a geração?';
 }
 
 export function resumoUsuario(lista: Mensagem[]): string {

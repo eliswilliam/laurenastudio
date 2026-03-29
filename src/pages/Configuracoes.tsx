@@ -1,23 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Settings,
   User,
-  Palette,
-  Link2,
-  Globe,
   Save,
   Camera,
-  Plus,
   Trash2,
-  Check,
-  ExternalLink,
   Lock,
   Eye,
   EyeOff,
   Loader2,
   AlertCircle,
-  Download,
+  Globe,
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,26 +20,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { apiMe, apiUpdateProfile } from '@/lib/authApi';
+import {
+  apiMe,
+  apiUpdateProfile,
+  apiUploadAvatar,
+  resolveAvatarDisplayUrl,
+} from '@/lib/authApi';
 import { useAuthStore } from '@/store/useAuthStore';
-
-const contasSociais = [
-  { id: '1', plataforma: 'Instagram', nome: '@laurena.studio', conectada: true, cor: '#E1306C' },
-  { id: '2', plataforma: 'Facebook', nome: 'Laurena Studio Page', conectada: true, cor: '#1877F2' },
-  { id: '3', plataforma: 'Twitter/X', nome: '@laurenastudio', conectada: true, cor: '#000000' },
-  { id: '4', plataforma: 'LinkedIn', nome: 'Laurena Studio', conectada: false, cor: '#0A66C2' },
-  { id: '5', plataforma: 'TikTok', nome: '', conectada: false, cor: '#000000' },
-  { id: '6', plataforma: 'YouTube', nome: '', conectada: false, cor: '#FF0000' },
-];
 
 export default function Configuracoes() {
   const { toast } = useToast();
@@ -72,24 +55,15 @@ export default function Configuracoes() {
     confirmar: '',
   });
   const [mostrarSenha, setMostrarSenha] = useState(false);
-
-  // ── Branding + notifications (local state, not persisted to DB yet) ───────
-  const [branding, setBranding] = useState({
-    corPrimaria: '#C15F3C',
-    corSecundaria: '#B1ADA1',
-    fonte: 'Inter',
-    tomVoz: 'profissional',
-    assinatura: 'Equipe Laurena Studio',
-  });
+  const [passwordSet, setPasswordSet] = useState(true);
+  const [oauthProvider, setOauthProvider] = useState<'google' | 'facebook' | null>(null);
+  const [salvandoSenha, setSalvandoSenha] = useState(false);
+  const [carregandoAvatar, setCarregandoAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [notificacoes, setNotificacoes] = useState({
     email: true,
     push: true,
-    postPublicado: true,
-    relatorioSemanal: true,
-    erroPublicacao: true,
-    novoComentario: false,
-    limiteUso: true,
   });
 
   // ── Load real user on mount ───────────────────────────────────────────────
@@ -106,6 +80,14 @@ export default function Configuracoes() {
           bio: user.bio ?? '',
           avatarUrl: user.avatar_url ?? '',
         });
+        setPasswordSet(
+          user.password_set ?? !(Boolean(user.google_id) || Boolean(user.facebook_id))
+        );
+        setOauthProvider(user.google_id ? 'google' : user.facebook_id ? 'facebook' : null);
+        atualizarUsuario({
+          nome: user.full_name?.trim() || user.email.split('@')[0],
+          avatar: resolveAvatarDisplayUrl(user.avatar_url),
+        });
       } catch {
         toast({
           title: 'Erro ao carregar perfil',
@@ -116,8 +98,10 @@ export default function Configuracoes() {
         if (!cancelled) setCarregandoPerfil(false);
       }
     })();
-    return () => { cancelled = true; };
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- carregar perfil uma vez ao montar
 
   // ── Compute initials for avatar ───────────────────────────────────────────
   const initials = perfil.nome
@@ -129,43 +113,34 @@ export default function Configuracoes() {
         .toUpperCase()
     : perfil.email.slice(0, 2).toUpperCase();
 
-  // ── Save profile ──────────────────────────────────────────────────────────
-  const handleSalvarPerfil = async () => {
-    // Validate password change if requested
-    if (senha.nova) {
-      if (!senha.atual) {
-        toast({ title: 'Informe a senha atual', variant: 'destructive' });
-        return;
-      }
-      if (senha.nova.length < 8) {
-        toast({ title: 'A nova senha deve ter pelo menos 8 caracteres', variant: 'destructive' });
-        return;
-      }
-      if (senha.nova !== senha.confirmar) {
-        toast({ title: 'As senhas não coincidem', variant: 'destructive' });
-        return;
-      }
-    }
+  const displayAvatarUrl = resolveAvatarDisplayUrl(perfil.avatarUrl);
 
+  // ── Save profile (dados pessoais apenas) ──────────────────────────────────
+  const handleSalvarPerfil = async () => {
     setSalvandoPerfil(true);
     try {
       const updated = await apiUpdateProfile({
-        full_name: perfil.nome || null,
-        phone: perfil.telefone || null,
-        bio: perfil.bio || null,
-        avatar_url: perfil.avatarUrl || null,
-        ...(senha.nova
-          ? { current_password: senha.atual, new_password: senha.nova }
-          : {}),
+        full_name: perfil.nome.trim() || null,
+        phone: perfil.telefone.trim() || null,
+        bio: perfil.bio.trim() || null,
       });
 
-      // Update Zustand store so header/nav reflects new name
-      atualizarUsuario({ nome: updated.full_name ?? '', avatar: updated.avatar_url ?? undefined });
+      setPerfil((p) => ({
+        ...p,
+        nome: updated.full_name ?? '',
+        telefone: updated.phone ?? '',
+        bio: updated.bio ?? '',
+        avatarUrl: updated.avatar_url ?? p.avatarUrl,
+      }));
+      atualizarUsuario({
+        nome: updated.full_name?.trim() || updated.email.split('@')[0],
+        avatar: resolveAvatarDisplayUrl(updated.avatar_url),
+      });
 
-      // Clear password fields
-      setSenha({ atual: '', nova: '', confirmar: '' });
-
-      toast({ title: 'Perfil atualizado', description: 'Suas informações foram salvas com sucesso.' });
+      toast({
+        title: 'Perfil atualizado',
+        description: 'Suas informações foram salvas com sucesso.',
+      });
     } catch (err: unknown) {
       toast({
         title: 'Erro ao salvar',
@@ -174,6 +149,95 @@ export default function Configuracoes() {
       });
     } finally {
       setSalvandoPerfil(false);
+    }
+  };
+
+  const handleAlterarSenha = async () => {
+    if (!senha.nova || senha.nova.length < 8) {
+      toast({
+        title: 'Nova senha inválida',
+        description: 'A nova senha deve ter pelo menos 8 caracteres.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (senha.nova !== senha.confirmar) {
+      toast({ title: 'As senhas não coincidem', variant: 'destructive' });
+      return;
+    }
+    if (passwordSet && !senha.atual.trim()) {
+      toast({ title: 'Informe a senha atual', variant: 'destructive' });
+      return;
+    }
+
+    setSalvandoSenha(true);
+    try {
+      await apiUpdateProfile({
+        ...(passwordSet ? { current_password: senha.atual } : {}),
+        new_password: senha.nova,
+      });
+      setSenha({ atual: '', nova: '', confirmar: '' });
+      setPasswordSet(true);
+      toast({
+        title: 'Senha atualizada',
+        description: 'A sua senha foi alterada com sucesso.',
+      });
+    } catch (err: unknown) {
+      toast({
+        title: 'Erro ao alterar senha',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSalvandoSenha(false);
+    }
+  };
+
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Formato inválido',
+        description: 'Use JPG, PNG, GIF ou WebP.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Arquivo muito grande',
+        description: 'Tamanho máximo: 5 MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setCarregandoAvatar(true);
+    try {
+      await apiUploadAvatar(file);
+      const user = await apiMe();
+      const path = user.avatar_url ?? '';
+      setPerfil((p) => ({
+        ...p,
+        avatarUrl: path,
+      }));
+      atualizarUsuario({
+        nome: user.full_name?.trim() || user.email.split('@')[0],
+        avatar: resolveAvatarDisplayUrl(path),
+      });
+      toast({
+        title: 'Foto atualizada',
+        description: 'Sua foto de perfil foi salva no servidor e associada à sua conta.',
+      });
+    } catch (err: unknown) {
+      toast({
+        title: 'Erro ao enviar foto',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCarregandoAvatar(false);
     }
   };
 
@@ -247,27 +311,15 @@ export default function Configuracoes() {
           Configurações
         </h1>
         <p className="text-muted-foreground">
-          Gerencie seu perfil, branding e integrações.
+          Gerencie seu perfil, notificações e privacidade.
         </p>
       </div>
 
       <Tabs defaultValue="perfil" className="space-y-6">
-        <TabsList className="grid w-full max-w-2xl grid-cols-5">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="perfil" className="gap-1.5 text-xs sm:text-sm">
             <User className="w-3.5 h-3.5" />
             Perfil
-          </TabsTrigger>
-          <TabsTrigger value="branding" className="gap-1.5 text-xs sm:text-sm">
-            <Palette className="w-3.5 h-3.5" />
-            Branding
-          </TabsTrigger>
-          <TabsTrigger value="conexoes" className="gap-1.5 text-xs sm:text-sm">
-            <Link2 className="w-3.5 h-3.5" />
-            Conexões
-          </TabsTrigger>
-          <TabsTrigger value="contas" className="gap-1.5 text-xs sm:text-sm">
-            <Globe className="w-3.5 h-3.5" />
-            Redes
           </TabsTrigger>
           <TabsTrigger value="privacidade" className="gap-1.5 text-xs sm:text-sm">
             <Lock className="w-3.5 h-3.5" />
@@ -291,11 +343,18 @@ export default function Configuracoes() {
                 <>
                   {/* Avatar */}
                   <div className="flex items-center gap-4">
-                    {perfil.avatarUrl ? (
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      className="hidden"
+                      onChange={handleAvatarFile}
+                    />
+                    {displayAvatarUrl ? (
                       <img
-                        src={perfil.avatarUrl}
-                        alt={perfil.nome}
-                        className="w-20 h-20 rounded-full object-cover"
+                        src={displayAvatarUrl}
+                        alt={perfil.nome || perfil.email}
+                        className="w-20 h-20 rounded-full object-cover border border-border"
                       />
                     ) : (
                       <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
@@ -303,11 +362,24 @@ export default function Configuracoes() {
                       </div>
                     )}
                     <div>
-                      <Button variant="outline" size="sm" className="gap-1.5">
-                        <Camera className="w-3.5 h-3.5" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={carregandoAvatar}
+                        onClick={() => avatarInputRef.current?.click()}
+                      >
+                        {carregandoAvatar ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Camera className="w-3.5 h-3.5" />
+                        )}
                         Alterar foto
                       </Button>
-                      <p className="text-xs text-muted-foreground mt-1">JPG, PNG ou GIF. Máx 5MB.</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        JPG, PNG, GIF ou WebP. Máx 5MB.
+                      </p>
                     </div>
                   </div>
 
@@ -379,48 +451,74 @@ export default function Configuracoes() {
                   Alterar Senha
                 </CardTitle>
                 <CardDescription>
-                  Preencha apenas se quiser alterar sua senha atual.
+                  {passwordSet
+                    ? 'Introduza a senha atual e a nova senha para atualizar o acesso por e-mail.'
+                    : oauthProvider
+                      ? 'Ainda não tem senha local. Defina uma para também poder entrar com e-mail e senha.'
+                      : 'Defina uma nova senha para a sua conta.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Senha atual</Label>
-                  <div className="relative">
-                    <Input
-                      type={mostrarSenha ? 'text' : 'password'}
-                      value={senha.atual}
-                      onChange={(e) => setSenha({ ...senha, atual: e.target.value })}
-                      placeholder="••••••••"
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setMostrarSenha(!mostrarSenha)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      tabIndex={-1}
-                    >
-                      {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                {oauthProvider && (
+                  <Alert className="border-primary/25 bg-primary/5">
+                    <Globe className="h-4 w-4 text-primary" />
+                    <div className="min-w-0">
+                      <AlertTitle className="text-sm">
+                        Conta associada ao{' '}
+                        {oauthProvider === 'google' ? 'Google' : 'Facebook'}
+                      </AlertTitle>
+                      <AlertDescription className="text-xs text-muted-foreground">
+                        O seu login principal foi feito com{' '}
+                        {oauthProvider === 'google' ? 'Google' : 'Facebook'}. Pode continuar a usar esse
+                        método ou, abaixo, {passwordSet ? 'alterar' : 'definir'} uma senha para entrar
+                        também com e-mail e senha.
+                      </AlertDescription>
+                    </div>
+                  </Alert>
+                )}
+                {passwordSet && (
+                  <div className="space-y-2">
+                    <Label>Senha atual</Label>
+                    <div className="relative">
+                      <Input
+                        type={mostrarSenha ? 'text' : 'password'}
+                        value={senha.atual}
+                        onChange={(e) => setSenha({ ...senha, atual: e.target.value })}
+                        placeholder="••••••••"
+                        className="pr-10"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarSenha(!mostrarSenha)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        tabIndex={-1}
+                      >
+                        {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Nova senha</Label>
+                    <Label>{passwordSet ? 'Nova senha' : 'Senha'}</Label>
                     <Input
                       type={mostrarSenha ? 'text' : 'password'}
                       value={senha.nova}
                       onChange={(e) => setSenha({ ...senha, nova: e.target.value })}
                       placeholder="Mínimo 8 caracteres"
                       minLength={8}
+                      autoComplete="new-password"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Confirmar nova senha</Label>
+                    <Label>Confirmar {passwordSet ? 'nova senha' : 'senha'}</Label>
                     <Input
                       type={mostrarSenha ? 'text' : 'password'}
                       value={senha.confirmar}
                       onChange={(e) => setSenha({ ...senha, confirmar: e.target.value })}
-                      placeholder="Repita a nova senha"
+                      placeholder="Repita a senha"
+                      autoComplete="new-password"
                     />
                     {senha.confirmar && senha.nova !== senha.confirmar && (
                       <p className="text-xs text-destructive">As senhas não coincidem.</p>
@@ -429,17 +527,24 @@ export default function Configuracoes() {
                 </div>
                 <div className="flex justify-end">
                   <Button
-                    onClick={handleSalvarPerfil}
-                    disabled={salvandoPerfil || !senha.atual || !senha.nova || senha.nova !== senha.confirmar}
+                    type="button"
+                    onClick={() => void handleAlterarSenha()}
+                    disabled={
+                      salvandoSenha ||
+                      !senha.nova ||
+                      senha.nova.length < 8 ||
+                      senha.nova !== senha.confirmar ||
+                      (passwordSet && !senha.atual.trim())
+                    }
                     variant="outline"
                     className="gap-1.5"
                   >
-                    {salvandoPerfil ? (
+                    {salvandoSenha ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Lock className="w-4 h-4" />
                     )}
-                    Alterar Senha
+                    {passwordSet ? 'Alterar Senha' : 'Definir Senha'}
                   </Button>
                 </div>
               </CardContent>
@@ -473,26 +578,6 @@ export default function Configuracoes() {
                   onCheckedChange={(v) => setNotificacoes({ ...notificacoes, push: v })}
                 />
               </div>
-              <div className="border-t pt-4 space-y-3">
-                <p className="text-sm font-medium text-muted-foreground">Tipos de notificação</p>
-                {[
-                  { key: 'postPublicado', label: 'Post publicado com sucesso' },
-                  { key: 'relatorioSemanal', label: 'Relatório semanal de performance' },
-                  { key: 'erroPublicacao', label: 'Erro na publicação' },
-                  { key: 'novoComentario', label: 'Novo comentário nas postagens' },
-                  { key: 'limiteUso', label: 'Alerta de limite de uso' },
-                ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between">
-                    <span className="text-sm">{item.label}</span>
-                    <Switch
-                      checked={notificacoes[item.key as keyof typeof notificacoes] as boolean}
-                      onCheckedChange={(v) =>
-                        setNotificacoes({ ...notificacoes, [item.key]: v })
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
               <div className="flex justify-end pt-2">
                 <Button variant="outline" onClick={() => handleSalvar('notificações')} className="gap-1.5">
                   <Save className="w-4 h-4" />
@@ -503,272 +588,44 @@ export default function Configuracoes() {
           </Card>
         </TabsContent>
 
-        {/* Branding */}
-        <TabsContent value="branding" className="space-y-6">
-          <Card className="rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-base">Identidade Visual</CardTitle>
-              <CardDescription>
-                Personalize a aparência do conteúdo gerado pela IA.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Cor primária</Label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={branding.corPrimaria}
-                      onChange={(e) => setBranding({ ...branding, corPrimaria: e.target.value })}
-                      className="w-10 h-10 rounded cursor-pointer border"
-                    />
-                    <Input
-                      value={branding.corPrimaria}
-                      onChange={(e) => setBranding({ ...branding, corPrimaria: e.target.value })}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Cor secundária</Label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={branding.corSecundaria}
-                      onChange={(e) => setBranding({ ...branding, corSecundaria: e.target.value })}
-                      className="w-10 h-10 rounded cursor-pointer border"
-                    />
-                    <Input
-                      value={branding.corSecundaria}
-                      onChange={(e) => setBranding({ ...branding, corSecundaria: e.target.value })}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Fonte preferida</Label>
-                <Select value={branding.fonte} onValueChange={(v) => setBranding({ ...branding, fonte: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Inter">Inter</SelectItem>
-                    <SelectItem value="Poppins">Poppins</SelectItem>
-                    <SelectItem value="Roboto">Roboto</SelectItem>
-                    <SelectItem value="Montserrat">Montserrat</SelectItem>
-                    <SelectItem value="Open Sans">Open Sans</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tom de voz padrão</Label>
-                <Select value={branding.tomVoz} onValueChange={(v) => setBranding({ ...branding, tomVoz: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="profissional">Profissional</SelectItem>
-                    <SelectItem value="casual">Casual</SelectItem>
-                    <SelectItem value="inspirador">Inspirador</SelectItem>
-                    <SelectItem value="humoristico">Humorístico</SelectItem>
-                    <SelectItem value="educativo">Educativo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Assinatura de posts</Label>
-                <Input
-                  value={branding.assinatura}
-                  onChange={(e) => setBranding({ ...branding, assinatura: e.target.value })}
-                  placeholder="Texto de assinatura no rodapé dos posts"
-                />
-              </div>
-
-              {/* Preview */}
-              <div className="border rounded-xl p-4 space-y-3">
-                <p className="text-xs text-muted-foreground font-medium">Preview da marca</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg" style={{ backgroundColor: branding.corPrimaria }} />
-                  <div className="w-10 h-10 rounded-lg" style={{ backgroundColor: branding.corSecundaria }} />
-                  <span style={{ fontFamily: branding.fonte }} className="font-semibold">
-                    {branding.fonte}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground italic">
-                  Tom: {branding.tomVoz} · Assinatura: {branding.assinatura}
-                </p>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={() => handleSalvar('branding')} className="gap-1.5">
-                  <Save className="w-4 h-4" />
-                  Salvar Branding
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Conexões API */}
-        <TabsContent value="conexoes" className="space-y-6">
-          <Card className="rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-base">Chaves de API</CardTitle>
-              <CardDescription>
-                Gerencie suas chaves de API para integrações externas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">Chave de Produção</p>
-                    <p className="text-xs text-muted-foreground">Criada em 10/01/2026</p>
-                  </div>
-                  <Badge variant="outline" className="text-green-600 border-green-200">Ativa</Badge>
-                </div>
-                <div className="flex gap-2">
-                  <Input value="lrn_prod_••••••••••••••••••••mk4f" readOnly className="font-mono text-xs" />
-                  <Button variant="outline" size="sm">Copiar</Button>
-                </div>
-              </div>
-              <div className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">Chave de Desenvolvimento</p>
-                    <p className="text-xs text-muted-foreground">Criada em 10/01/2026</p>
-                  </div>
-                  <Badge variant="outline" className="text-yellow-600 border-yellow-200">Teste</Badge>
-                </div>
-                <div className="flex gap-2">
-                  <Input value="lrn_test_••••••••••••••••••••9x2a" readOnly className="font-mono text-xs" />
-                  <Button variant="outline" size="sm">Copiar</Button>
-                </div>
-              </div>
-              <Button variant="outline" className="gap-1.5">
-                <Plus className="w-4 h-4" />
-                Gerar Nova Chave
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-base">Webhooks</CardTitle>
-              <CardDescription>
-                Receba eventos em tempo real na sua aplicação.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-sm">Post publicado</p>
-                  <Badge variant="outline" className="text-green-600 border-green-200">Ativo</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground font-mono">
-                  https://api.meusite.com/webhooks/laurena
-                </p>
-                <div className="flex gap-2 mt-2">
-                  <Button variant="ghost" size="sm" className="text-xs">Editar</Button>
-                  <Button variant="ghost" size="sm" className="text-xs text-destructive">
-                    <Trash2 className="w-3 h-3 mr-1" />
-                    Remover
-                  </Button>
-                </div>
-              </div>
-              <Button variant="outline" className="gap-1.5">
-                <Plus className="w-4 h-4" />
-                Adicionar Webhook
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Contas Sociais */}
-        <TabsContent value="contas" className="space-y-6">
-          <Card className="rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-base">Redes Sociais Conectadas</CardTitle>
-              <CardDescription>
-                Conecte e gerencie suas contas de redes sociais.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {contasSociais.map((conta) => (
-                <div key={conta.id} className="flex items-center justify-between border rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                      style={{ backgroundColor: conta.cor }}
-                    >
-                      {conta.plataforma[0]}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{conta.plataforma}</p>
-                      {conta.conectada ? (
-                        <p className="text-xs text-muted-foreground">{conta.nome}</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">Não conectado</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {conta.conectada ? (
-                      <>
-                        <Badge variant="outline" className="text-green-600 border-green-200 gap-1">
-                          <Check className="w-3 h-3" />
-                          Conectado
-                        </Badge>
-                        <Button variant="ghost" size="sm" className="text-xs text-destructive">
-                          Desconectar
-                        </Button>
-                      </>
-                    ) : (
-                      <Button size="sm" className="gap-1.5">
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        Conectar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ── Privacidade e Exclusão de Dados ── */}
+        {/* ── Privacidade (LGPD) — visual alinhado à marca Laurena ── */}
         <TabsContent value="privacidade" className="space-y-6">
-          {/* Exclusão de Dados */}
-          <Card className="rounded-xl border-red-200 bg-red-50/50">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2 text-red-700">
-                <AlertCircle className="w-4 h-4" />
-                Exclusão de Dados (LGPD)
+          <Card className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/[0.07] via-card to-card shadow-md">
+            <CardHeader className="space-y-1 pb-2">
+              <CardTitle className="text-base flex items-center gap-2 text-foreground">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <AlertCircle className="w-4 h-4" />
+                </span>
+                Exclusão de dados (LGPD)
               </CardTitle>
-              <CardDescription>
-                Solicite a exclusão permanente de todos os seus dados pessoais da plataforma.
+              <CardDescription className="text-muted-foreground">
+                Solicite a exclusão permanente dos seus dados pessoais na plataforma Laurena Studio.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-white p-4 rounded-lg border border-red-200">
-                <h4 className="text-sm font-semibold text-red-700 mb-2">⚠️ Atenção: Ação Irreversível</h4>
-                <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
-                  <li>Todos os seus dados serão permanentemente deletados</li>
-                  <li>Você será imediatamente desconectado</li>
-                  <li>Não é possível recuperar dados após a exclusão</li>
-                  <li>Conforme LGPD, removeremos em até 30 dias</li>
+            <CardContent className="space-y-4 pt-2">
+              <div className="rounded-xl border border-border/80 bg-card/90 p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-2">
+                  Ação irreversível
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-1.5 ml-4 list-disc marker:text-primary/70">
+                  <li>Os seus dados serão eliminados de forma permanente.</li>
+                  <li>A sessão será encerrada imediatamente.</li>
+                  <li>Não será possível recuperar informações após o pedido.</li>
+                  <li>Em conformidade com a LGPD, o processamento pode levar até 30 dias.</li>
                 </ul>
               </div>
 
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Para solicitar a exclusão de sua conta e dados associados, clique no botão abaixo.
+                  Para continuar, abra a central de exclusão (nova janela). Será pedida autenticação com o
+                  seu token de sessão atual.
                 </p>
                 <Button
+                  type="button"
                   onClick={handleOpenDeleteDataPage}
                   disabled={carregandoDeletion}
-                  className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+                  variant="destructive"
+                  className="inline-flex items-center gap-2"
                   size="sm"
                 >
                   {carregandoDeletion ? (
@@ -776,40 +633,13 @@ export default function Configuracoes() {
                   ) : (
                     <Trash2 className="w-4 h-4" />
                   )}
-                  {carregandoDeletion ? 'Carregando...' : 'Acessar Central de Exclusão de Dados'}
+                  {carregandoDeletion ? 'Abrindo…' : 'Abrir central de exclusão de dados'}
                 </Button>
-                <p className="text-xs text-muted-foreground">
-                  Nota importante: A exclusão de dados é permanente e não pode ser desfeita. Seus posts, comentários, configurações e toda a atividade será removida.
+                <p className="text-xs text-muted-foreground leading-relaxed border-l-2 border-primary/25 pl-3">
+                  A exclusão é definitiva: posts, chats, sites gerados e preferências ligadas à conta podem
+                  ser removidos. Leia com atenção as informações na página aberta antes de confirmar.
                 </p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Download de Dados */}
-          <Card className="rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Baixar Meus Dados
-              </CardTitle>
-              <CardDescription>
-                Solicite uma cópia de todos os seus dados pessoais em formato portável.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Você tem direito a receber uma cópia de seus dados conforme a LGPD. Clique abaixo para solicitar um arquivo contendo:
-              </p>
-              <ul className="text-sm space-y-2 ml-4 list-disc text-muted-foreground">
-                <li>Informações de perfil</li>
-                <li>Histórico de posts e conteúdo criado</li>
-                <li>Dados de interações na plataforma</li>
-                <li>Histórico de análises e campanhas</li>
-              </ul>
-              <Button variant="outline" className="gap-2">
-                <Download className="w-4 h-4" />
-                Solicitar Download dos Dados
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>

@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToast } from '@/hooks/use-toast';
-import { apiMe } from '@/lib/authApi';
+import { apiMe, resolveAvatarDisplayUrl } from '@/lib/authApi';
 import { apiBillingStatus } from '@/lib/billingApi';
 
 export default function AuthCallback() {
@@ -44,9 +44,9 @@ export default function AuthCallback() {
         login(
           {
             id: user.id,
-            nome: user.full_name || user.email.split('@')[0],
+            nome: user.full_name?.trim() || user.email.split('@')[0],
             email: user.email,
-            avatar: user.avatar_url ?? undefined,
+            avatar: resolveAvatarDisplayUrl(user.avatar_url),
             plano: 'starter',
             criadoEm: user.created_at,
           },

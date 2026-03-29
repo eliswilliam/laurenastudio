@@ -9,6 +9,15 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     account_name: str = "Minha conta"
+    full_name: str | None = None
+
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def normalize_full_name(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s[:255] if s else None
 
     @field_validator("password")
     @classmethod

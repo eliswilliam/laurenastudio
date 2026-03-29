@@ -80,9 +80,9 @@ function renderPage(initialPath = "/criar-site") {
 }
 
 describe("CriarSite", () => {
-  it("mostra ecrã inicial com titulo e ideias", () => {
+  it("mostra tela inicial com título e ideias", () => {
     renderPage();
-    expect(screen.getByText(/Crie o seu site/i)).toBeInTheDocument();
+    expect(screen.getByText(/Crie seu site/i)).toBeInTheDocument();
     expect(screen.getByText("Ideias para começar")).toBeInTheDocument();
     expect(
       screen.getByRole("textbox", { name: /Prompt para descrever o site/i })
@@ -102,7 +102,7 @@ describe("CriarSite", () => {
   it("envia mensagem e mostra resposta do backend", async () => {
     const user = userEvent.setup();
     renderPage();
-    const texto = "Quero um site para a minha agência de design com portfólio";
+    const texto = "Quero um site para minha agência de design com portfólio";
     const prompt = screen.getByRole("textbox", { name: /Prompt para descrever o site/i });
     await user.type(prompt, texto);
     await user.click(screen.getByRole("button", { name: /Enviar mensagem/i }));
@@ -138,7 +138,7 @@ describe("CriarSite", () => {
     );
 
     expect(
-      screen.getByRole("link", { name: /Abrir no separador/i })
+      screen.getByRole("link", { name: /Abrir em nova aba/i })
     ).toBeInTheDocument();
   });
 });

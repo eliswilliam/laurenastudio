@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
   fetchNotifications,
@@ -10,6 +10,17 @@ import {
 } from '@/lib/notificationsApi';
 
 export type { AppNotification };
+
+/** Não exibir no painel: cada login/registo gerava linhas que “enchiam” a lista. */
+const EXCLUDE_FROM_INBOX_KINDS = new Set(['auth_login', 'auth_register']);
+
+function filterInboxItems(items: AppNotification[]) {
+  return items.filter((i) => !EXCLUDE_FROM_INBOX_KINDS.has(i.kind));
+}
+
+function countUnread(items: AppNotification[]) {
+  return items.reduce((n, i) => n + (i.read ? 0 : 1), 0);
+}
 
 export function useNotifications() {
   const isAutenticado = useAuthStore((s) => s.isAutenticado);
@@ -24,9 +35,10 @@ export function useNotifications() {
     setLoading(true);
     try {
       const data = await fetchNotifications();
-      setItems(data.items);
-      setUnreadCount(data.unread_count);
-      knownIds.current = new Set(data.items.map((i) => i.id));
+      const filtered = filterInboxItems(data.items);
+      setItems(filtered);
+      setUnreadCount(countUnread(filtered));
+      knownIds.current = new Set(filtered.map((i) => i.id));
     } catch {
       /* silencioso: rede / 401 */
     } finally {
@@ -55,6 +67,7 @@ export function useNotifications() {
       es.onmessage = (ev) => {
         try {
           const n = JSON.parse(ev.data) as AppNotification;
+          if (EXCLUDE_FROM_INBOX_KINDS.has(n.kind)) return;
           if (knownIds.current.has(n.id)) return;
           knownIds.current.add(n.id);
           setItems((prev) => {
@@ -66,10 +79,7 @@ export function useNotifications() {
           }
           // Evita toast duplicado com o feedback imediato da página de login/cadastro
           if (n.kind !== 'auth_login' && n.kind !== 'auth_register') {
-            toast.success(n.title, {
-              description: n.body,
-              duration: 9000,
-            });
+            notify.success(n.title, n.body, 9000);
           }
         } catch {
           /* JSON inválido */
@@ -97,7 +107,7 @@ export function useNotifications() {
         return prev.map((x) => (x.id === id ? { ...x, read: true } : x));
       });
     } catch {
-      toast.error('Não foi possível marcar como lida.', { duration: 4000 });
+      notify.error('Não foi possível marcar como lida.', undefined, 4000);
     }
   }, []);
 
@@ -107,7 +117,7 @@ export function useNotifications() {
       setItems((prev) => prev.map((x) => ({ ...x, read: true })));
       setUnreadCount(0);
     } catch {
-      toast.error('Não foi possível limpar as notificações.', { duration: 4000 });
+      notify.error('Não foi possível limpar as notificações.', undefined, 4000);
     }
   }, []);
 

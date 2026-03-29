@@ -2,14 +2,19 @@ import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
-const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000;
+/** Au-delà, la plus ancienne est retirée (comportement type notify.*). */
+const TOAST_LIMIT = 2;
+/** Délai après fermeture avant retrait du DOM (sync avec animation toast ~300ms). */
+const TOAST_REMOVE_DELAY = 350;
 
 type ToasterToast = ToastProps & {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
+  /** ms — 0 = persistant jusqu’à fermeture manuelle */
+  duration?: number;
+  closable?: boolean;
 };
 
 const actionTypes = {
@@ -179,8 +184,13 @@ function useToast() {
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+    dismiss: dismissToast,
   };
 }
 
-export { useToast, toast };
+/** Ferme un toast par id, ou tous si `toastId` est omis. */
+function dismissToast(toastId?: string) {
+  dispatch({ type: "DISMISS_TOAST", toastId });
+}
+
+export { useToast, toast, dismissToast };

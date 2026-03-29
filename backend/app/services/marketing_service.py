@@ -1,4 +1,4 @@
-﻿"""
+"""
 services/marketing_service.py
 Marketing AI â€” imagens via Replicate (FLUX); vÃ­deos via Replicate (Minimax).
 
@@ -97,11 +97,12 @@ def _sync_marketing_image(
     reference_mime: str = "image/png",
 ) -> tuple[str, bytes | None, str]:
     """Imagem publicitÃ¡ria via Replicate FLUX (text-to-image)."""
-    if reference_image_bytes:
-        logger.warning(
-            "Imagem de referÃªncia nÃ£o Ã© enviada ao FLUX (Replicate); use o texto para descrever o visual."
-        )
-    image_data = run_replicate_image(prompt, aspect_ratio="1:1", image_bytes=reference_image_bytes)
+    image_data = run_replicate_image(
+        prompt,
+        aspect_ratio="1:1",
+        image_bytes=reference_image_bytes,
+        reference_mime=reference_mime,
+    )
     return "", image_data, "image/webp"
 
 

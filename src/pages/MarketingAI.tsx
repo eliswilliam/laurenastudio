@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   useMarketingAIStore,
   type MarketingImageResult,
@@ -37,14 +37,54 @@ import {
   YouTubeIcon,
 } from '@/components/shared/SocialIcons';
 
+/** Cores oficiais / reconhecíveis por rede — ícones sempre legíveis. */
 const shareChannels = [
-  { key: 'facebook', Icon: FacebookIcon, label: 'Facebook', color: 'hover:text-blue-600' },
-  { key: 'instagram', Icon: InstagramIcon, label: 'Instagram', color: 'hover:text-pink-500' },
-  { key: 'threads', Icon: ThreadsIcon, label: 'Threads', color: 'hover:text-foreground' },
-  { key: 'twitter', Icon: TwitterIcon, label: 'X', color: 'hover:text-foreground' },
-  { key: 'whatsapp', Icon: WhatsAppIcon, label: 'WhatsApp', color: 'hover:text-green-500' },
-  { key: 'tiktok', Icon: TikTokIcon, label: 'TikTok', color: 'hover:text-foreground' },
-  { key: 'youtube', Icon: YouTubeIcon, label: 'YouTube', color: 'hover:text-red-600' },
+  {
+    key: 'facebook',
+    Icon: FacebookIcon,
+    label: 'Facebook',
+    btnClass:
+      'border-[#1877F2]/45 bg-[#1877F2]/12 text-[#1877F2] hover:bg-[#1877F2]/22 shadow-sm shadow-[#1877F2]/10',
+  },
+  {
+    key: 'instagram',
+    Icon: InstagramIcon,
+    label: 'Instagram',
+    btnClass:
+      'border-pink-500/40 bg-gradient-to-br from-[#f58529]/20 via-[#dd2a7b]/20 to-[#8134af]/25 text-pink-600 dark:text-pink-400 hover:from-[#f58529]/30 hover:via-[#dd2a7b]/30 hover:to-[#8134af]/35',
+  },
+  {
+    key: 'threads',
+    Icon: ThreadsIcon,
+    label: 'Threads',
+    btnClass: 'border-zinc-400/50 bg-zinc-900/[0.08] text-zinc-900 dark:text-zinc-100 hover:bg-zinc-900/15 dark:hover:bg-zinc-100/10',
+  },
+  {
+    key: 'twitter',
+    Icon: TwitterIcon,
+    label: 'X',
+    btnClass: 'border-zinc-800/40 bg-zinc-950/[0.08] text-zinc-900 dark:text-zinc-50 hover:bg-zinc-950/18',
+  },
+  {
+    key: 'whatsapp',
+    Icon: WhatsAppIcon,
+    label: 'WhatsApp',
+    btnClass:
+      'border-[#25D366]/45 bg-[#25D366]/12 text-[#128C7E] dark:text-[#25D366] hover:bg-[#25D366]/22',
+  },
+  {
+    key: 'tiktok',
+    Icon: TikTokIcon,
+    label: 'TikTok',
+    btnClass:
+      'border-cyan-500/35 bg-black/80 text-white hover:bg-black hover:border-[#FE2C55]/50 ring-1 ring-inset ring-white/5',
+  },
+  {
+    key: 'youtube',
+    Icon: YouTubeIcon,
+    label: 'YouTube',
+    btnClass: 'border-[#FF0000]/45 bg-[#FF0000]/12 text-[#FF0000] hover:bg-[#FF0000]/20',
+  },
 ] as const;
 
 export default function MarketingAI() {
@@ -72,6 +112,14 @@ export default function MarketingAI() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    resetFormStore();
+    setReferenceImage(null);
+    setReferencePreview(null);
+    setLoading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [resetFormStore]);
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -516,14 +564,15 @@ export default function MarketingAI() {
                       Compartilhar
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {shareChannels.map(({ key, Icon, label, color }) => (
+                      {shareChannels.map(({ key, Icon, label, btnClass }) => (
                         <button
                           key={key}
+                          type="button"
                           onClick={() => handleShare(key)}
                           title={label}
-                          className={`w-10 h-10 rounded-xl border flex items-center justify-center text-muted-foreground transition-colors ${color} hover:border-primary/40 hover:bg-primary/5`}
+                          className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-colors ${btnClass}`}
                         >
-                          <Icon className="w-4.5 h-4.5" />
+                          <Icon className="w-5 h-5" />
                         </button>
                       ))}
                     </div>

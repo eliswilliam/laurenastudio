@@ -54,12 +54,12 @@ export default function AppLayout() {
 
       <div
         className={cn(
-          'transition-all duration-300',
+          'transition-all duration-300 flex flex-col min-h-screen',
           collapsed ? 'md:ml-[68px]' : 'md:ml-[250px]'
         )}
       >
         <AppTopbar />
-        <main className="p-4 md:p-6 pb-24 md:pb-6">
+        <main className="flex-1 flex flex-col min-h-0 p-4 md:p-6 pb-24 md:pb-6">
           <Outlet />
         </main>
       </div>

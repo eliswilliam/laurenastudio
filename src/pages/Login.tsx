@@ -6,8 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useToast } from '@/hooks/use-toast';
-import { apiLogin, redirectToGoogleLogin, redirectToFacebookLogin } from '@/lib/authApi';
+import { notify } from '@/lib/notify';
+import {
+  apiLogin,
+  redirectToGoogleLogin,
+  redirectToFacebookLogin,
+  resolveAvatarDisplayUrl,
+} from '@/lib/authApi';
 import { useEffect } from 'react';
 
 export default function Login() {
@@ -18,17 +23,11 @@ export default function Login() {
   const { login, fetchBillingStatus } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { toast } = useToast();
-
   // Show error if redirected back from Google with an error
   useEffect(() => {
     const error = searchParams.get('error');
     if (error) {
-      toast({
-        title: 'Erro no login com Google',
-        description: decodeURIComponent(error),
-        variant: 'destructive',
-      });
+      notify.error('Erro no login com Google', decodeURIComponent(error));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -42,26 +41,23 @@ export default function Login() {
       login(
         {
           id: data.user.id,
-          nome: data.user.email.split('@')[0],
+          nome: data.user.full_name?.trim() || data.user.email.split('@')[0],
           email: data.user.email,
+          avatar: resolveAvatarDisplayUrl(data.user.avatar_url),
           plano: 'starter',
           criadoEm: data.user.created_at,
         },
         data.tokens.access_token
       );
-      toast({
-        title: 'Login realizado com sucesso',
-        description: 'Bem-vindo ao Laurena Studio.',
-      });
+      notify.success('Login realizado com sucesso', 'Bem-vindo ao Laurena Studio.');
       // Check billing status; redirect to plan selection if no active plan
       const hasActivePlan = await fetchBillingStatus();
       navigate(hasActivePlan ? '/dashboard' : '/escolher-plano');
     } catch (err: unknown) {
-      toast({
-        title: 'Erro ao entrar',
-        description: err instanceof Error ? err.message : 'Credenciais inválidas.',
-        variant: 'destructive',
-      });
+      notify.error(
+        'Erro ao entrar',
+        err instanceof Error ? err.message : 'Credenciais inválidas.'
+      );
     } finally {
       setCarregando(false);
     }

@@ -7,7 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToast } from '@/hooks/use-toast';
-import { apiRegister, redirectToGoogleLogin, redirectToFacebookLogin } from '@/lib/authApi';
+import {
+  apiRegister,
+  redirectToGoogleLogin,
+  redirectToFacebookLogin,
+  resolveAvatarDisplayUrl,
+} from '@/lib/authApi';
 import { useEffect } from 'react';
 
 function AcceptTermsNotice() {
@@ -65,12 +70,21 @@ export default function Registro() {
     if (!email || !senha) return;
     setCarregando(true);
     try {
-      const data = await apiRegister(email, senha, nome ? `Conta de ${nome}` : 'Minha conta');
+      const data = await apiRegister(
+        email,
+        senha,
+        nome.trim() ? `Conta de ${nome.trim()}` : 'Minha conta',
+        nome.trim() || null
+      );
       login(
         {
           id: data.user.id,
-          nome: nome || data.user.email.split('@')[0],
+          nome:
+            data.user.full_name?.trim() ||
+            nome.trim() ||
+            data.user.email.split('@')[0],
           email: data.user.email,
+          avatar: resolveAvatarDisplayUrl(data.user.avatar_url),
           plano: 'starter',
           criadoEm: data.user.created_at,
         },

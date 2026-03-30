@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, Megaphone, Layers, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,34 +14,37 @@ import {
   resolveAvatarDisplayUrl,
 } from '@/lib/authApi';
 import { useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 function AcceptTermsNotice() {
+  const { t } = useTranslation();
   return (
     <p className="text-center text-[0.8125rem] leading-relaxed text-muted-foreground sm:text-left">
-      Ao continuar, você aceita a{' '}
+      {t('pages.register.termsBefore')}{' '}
       <a
         href="/privacidade.html"
         target="_blank"
         rel="noopener noreferrer"
         className="font-medium text-foreground underline decoration-primary/40 underline-offset-2 transition-colors hover:text-primary"
       >
-        Política de Privacidade
+        {t('pages.register.privacyPolicy')}
       </a>{' '}
-      e os{' '}
+      {t('pages.register.termsAnd')}{' '}
       <a
         href="/termos.html"
         target="_blank"
         rel="noopener noreferrer"
         className="font-medium text-foreground underline decoration-primary/40 underline-offset-2 transition-colors hover:text-primary"
       >
-        Termos de uso
+        {t('pages.register.termsOfUse')}
       </a>{' '}
-      da Laurena Studio.
+      {t('pages.register.termsAfter')}
     </p>
   );
 }
 
 export default function Registro() {
+  const { t } = useTranslation();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -52,12 +55,20 @@ export default function Registro() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
-  // Show error if redirected back from Google with an error
+  const pillars = useMemo(
+    () => [
+      { icon: Megaphone, title: t('pages.login.pillar1Title'), desc: t('pages.login.pillar1Desc') },
+      { icon: Layers, title: t('pages.login.pillar2Title'), desc: t('pages.login.pillar2Desc') },
+      { icon: Globe, title: t('pages.login.pillar3Title'), desc: t('pages.login.pillar3Desc') },
+    ],
+    [t]
+  );
+
   useEffect(() => {
     const error = searchParams.get('error');
     if (error) {
       toast({
-        title: 'Erro no registro com Google',
+        title: t('pages.register.googleErrorTitle'),
         description: decodeURIComponent(error),
         variant: 'destructive',
       });
@@ -91,15 +102,14 @@ export default function Registro() {
         data.tokens.access_token
       );
       toast({
-        title: 'Conta criada com sucesso',
-        description: 'Bem-vindo ao Laurena Studio.',
+        title: t('pages.register.successTitle'),
+        description: t('pages.register.successDesc'),
       });
-      // New users never have a subscription; go to plan selection
       navigate('/escolher-plano');
     } catch (err: unknown) {
       toast({
-        title: 'Erro ao criar conta',
-        description: err instanceof Error ? err.message : 'Tente novamente.',
+        title: t('pages.register.errorTitle'),
+        description: err instanceof Error ? err.message : t('pages.register.errorDesc'),
         variant: 'destructive',
       });
     } finally {
@@ -109,7 +119,6 @@ export default function Registro() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Lado esquerdo - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/95 via-primary to-primary/75 relative overflow-hidden items-center justify-center p-10 xl:p-14">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRWMjhIMjR2MmgxinptMC00VjI0SDI0djJoMTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
         <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-white/15 blur-3xl" />
@@ -119,39 +128,22 @@ export default function Registro() {
             <img src="/android-chrome-192x192.png" alt="Laurena Studio" className="h-12 w-12 rounded-xl shadow-lg shadow-black/20 ring-2 ring-white/20" />
             <span className="font-bagel text-3xl tracking-[0.2em] text-white drop-shadow-sm">LAURENA</span>
           </div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-white/60">Studio com IA</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-white/60">{t('pages.login.studioAi')}</p>
           <h1 className="text-balance text-4xl font-bold leading-[1.35] tracking-tight xl:text-[2.65rem]">
-            Crie campanhas publicitárias e sites{' '}
+            {t('pages.login.heroTitle')}{' '}
             <span className="relative inline-block">
               <span className="relative z-10 bg-gradient-to-r from-white to-white/85 bg-clip-text text-transparent">
-                com IA
+                {t('pages.login.heroTitleHighlight')}
               </span>
               <span className="absolute -inset-x-1 -bottom-0.5 z-0 h-3 rounded-sm bg-white/25" aria-hidden />
             </span>
           </h1>
           <p className="mt-6 max-w-[34rem] text-base leading-relaxed text-white/82 md:text-lg">
-            Aqui você cria imagens, vídeos e áudio para suas campanhas de anúncio, gera textos e conteúdos visuais e cria sites
-            completos sem programar.{' '}
-            <span className="font-medium text-white">Tudo com inteligência artificial.</span>
+            {t('pages.login.heroSubtitle')}{' '}
+            <span className="font-medium text-white">{t('pages.login.heroHighlight')}</span>
           </p>
           <ul className="mt-10 flex flex-col gap-3 sm:grid sm:grid-cols-3 sm:gap-4">
-            {[
-              {
-                icon: Megaphone,
-                title: 'Campanhas',
-                desc: 'Imagens, vídeos e áudio para anúncios',
-              },
-              {
-                icon: Layers,
-                title: 'Conteúdo',
-                desc: 'Textos, imagens, vídeos e áudio',
-              },
-              {
-                icon: Globe,
-                title: 'Sites',
-                desc: 'Sem programar, com IA',
-              },
-            ].map(({ icon: Icon, title, desc }) => (
+            {pillars.map(({ icon: Icon, title, desc }) => (
               <li
                 key={title}
                 className="group flex gap-3 rounded-2xl border border-white/15 bg-white/[0.08] p-4 shadow-lg shadow-black/5 backdrop-blur-md transition-all duration-300 hover:border-white/25 hover:bg-white/[0.14]"
@@ -169,7 +161,6 @@ export default function Registro() {
         </div>
       </div>
 
-      {/* Lado direito - Formulário (rodapé com link de login fixo ao fundo da viewport) */}
       <div className="flex min-h-screen min-h-[100dvh] flex-1 flex-col bg-background">
         <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 py-5 sm:px-10 sm:py-6 lg:px-12">
           <div className="mx-auto w-full max-w-md">
@@ -178,9 +169,9 @@ export default function Registro() {
             <span className="font-bagel tracking-wider text-xl">LAURENA</span>
           </div>
 
-          <h2 className="text-2xl font-bold mb-1">Criar sua conta</h2>
+          <h2 className="text-2xl font-bold mb-1">{t('pages.register.formTitle')}</h2>
           <p className="text-muted-foreground mb-4">
-            Preencha os dados abaixo para começar.
+            {t('pages.register.formSubtitle')}
           </p>
 
           <Button
@@ -206,7 +197,7 @@ export default function Registro() {
                 fill="#EA4335"
               />
             </svg>
-            Continuar com Google
+            {t('pages.login.continueGoogle')}
           </Button>
 
           <Button
@@ -217,24 +208,24 @@ export default function Registro() {
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
               <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.883v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
             </svg>
-            Continuar com Facebook
+            {t('pages.login.continueFacebook')}
           </Button>
 
           <div className="relative my-4">
             <Separator />
             <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground">
-              ou
+              {t('common.or')}
             </span>
           </div>
 
           <form onSubmit={handleRegistro} className="space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="nome">Nome completo</Label>
+              <Label htmlFor="nome">{t('pages.register.fullName')}</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="nome"
-                  placeholder="Seu nome"
+                  placeholder={t('pages.register.namePlaceholder')}
                   className="pl-10 h-11"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
@@ -243,13 +234,13 @@ export default function Registro() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu@email.com"
+                  placeholder={t('pages.login.emailPlaceholder')}
                   className="pl-10 h-11"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -258,13 +249,13 @@ export default function Registro() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="senha">Senha</Label>
+              <Label htmlFor="senha">{t('auth.password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="senha"
                   type={mostrarSenha ? 'text' : 'password'}
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder={t('pages.register.passwordMin')}
                   className="pl-10 pr-10 h-11"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
@@ -287,10 +278,10 @@ export default function Registro() {
               {carregando ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Criando conta...
+                  {t('pages.register.creating')}
                 </div>
               ) : (
-                'Criar conta grátis'
+                t('pages.register.submit')
               )}
             </Button>
           </form>
@@ -299,9 +290,9 @@ export default function Registro() {
 
         <div className="shrink-0 border-t border-border/60 bg-background px-4 py-3 sm:px-10">
           <p className="text-center text-sm text-muted-foreground">
-            Já tem uma conta?{' '}
+            {t('pages.register.hasAccount')}{' '}
             <Link to="/login" className="text-primary font-medium hover:underline">
-              Fazer login
+              {t('pages.register.signIn')}
             </Link>
           </p>
         </div>

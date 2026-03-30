@@ -25,6 +25,13 @@
     "confirmPassword": "Confirmer le mot de passe"
   },
   "common": {
+    "unlimited": "Illimité",
+    "or": "ou",
+    "user": "Utilisateur",
+    "retry": "Réessayer",
+    "back": "Retour",
+    "active": "Actif",
+    "inactive": "Inactif",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "delete": "Supprimer",

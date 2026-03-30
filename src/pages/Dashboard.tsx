@@ -2,9 +2,8 @@
  * Dashboard.tsx
  * Maindashboard: REAL account info, subscription plan,
  * and usage data fetched from the FastAPI /billing endpoints.
- * All hardcoded mock data has been removed.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Music,
@@ -43,8 +42,7 @@ import {
 } from 'recharts';
 import { useAuthStore } from '@/store/useAuthStore';
 import { PLAN_DISPLAY_NAMES } from '@/data/planos';
-
-// ── Helpers ────────────────────────────────────────────────────────────────
+import { useTranslation } from '@/hooks/useTranslation';
 
 const planIcons: Record<string, React.ReactNode> = {
   starter: <Zap className="w-5 h-5" />,
@@ -63,33 +61,25 @@ function pct(used: number, limit: number): number {
   return Math.min(Math.round((used / limit) * 100), 100);
 }
 
-function limitLabel(limit: number): string {
-  return limit <= 0 ? 'Ilimitado' : String(limit);
-}
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '-';
-  return new Date(iso).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-// ── Component ──────────────────────────────────────────────────────────────
-
 export default function Dashboard() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { usuario, planoNome, billingStatus, fetchBillingStatus } = useAuthStore();
   const [loading, setLoading] = useState(!billingStatus);
 
-  // Always fetch fresh billing data on mount (critical after Stripe redirect)
+  const formatDate = (iso: string | null | undefined): string => {
+    if (!iso) return '-';
+    return new Date(iso).toLocaleDateString(i18n.language, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
   useEffect(() => {
     fetchBillingStatus().finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ── Derived data ─────────────────────────────────────────────────────────
 
   const sub = billingStatus?.subscription ?? null;
   const plan = sub?.plan ?? null;
@@ -104,40 +94,45 @@ export default function Dashboard() {
   const videoUsed = usage?.usage?.video_used ?? 0;
   const videoLimit = usage?.limits?.video_limit ?? 0;
 
-  // Build usage pie for the chart
-  const usagePieData = [
-    { name: 'Áudio IA', value: audioUsed, color: '#8b5cf6' },
-    { name: 'Texto IA', value: textUsed, color: '#3b82f6' },
-    { name: 'Imagem IA', value: imageUsed, color: '#10b981' },
-    { name: 'Vídeo IA', value: videoUsed, color: '#f59e0b' },
-  ].filter((d) => d.value > 0);
+  const planDisplay =
+    plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome ?? t('pages.dashboard.none');
 
-  // Usage bar data
-  const usageBarData = [
-    { name: 'Áudio IA', usado: audioUsed, limite: audioLimit },
-    { name: 'Texto IA', usado: textUsed, limite: textLimit },
-    { name: 'Imagem IA', usado: imageUsed, limite: imageLimit },
-    { name: 'Vídeo IA', usado: videoUsed, limite: videoLimit },
-  ];
+  const usagePieData = useMemo(
+    () =>
+      [
+        { name: t('pages.dashboard.kpiAudio'), value: audioUsed, color: '#8b5cf6' },
+        { name: t('pages.dashboard.kpiText'), value: textUsed, color: '#3b82f6' },
+        { name: t('pages.dashboard.kpiImage'), value: imageUsed, color: '#10b981' },
+        { name: t('pages.dashboard.kpiVideo'), value: videoUsed, color: '#f59e0b' },
+      ].filter((d) => d.value > 0),
+    [t, audioUsed, textUsed, imageUsed, videoUsed]
+  );
 
-  // ── Loading state ────────────────────────────────────────────────────────
+  const usageBarData = useMemo(
+    () => [
+      { name: t('pages.dashboard.kpiAudio'), usado: audioUsed, limite: audioLimit },
+      { name: t('pages.dashboard.kpiText'), usado: textUsed, limite: textLimit },
+      { name: t('pages.dashboard.kpiImage'), usado: imageUsed, limite: imageLimit },
+      { name: t('pages.dashboard.kpiVideo'), usado: videoUsed, limite: videoLimit },
+    ],
+    [t, audioUsed, textUsed, imageUsed, videoUsed, audioLimit, textLimit, imageLimit, videoLimit]
+  );
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground text-sm">Carregando dashboard…</p>
+          <p className="text-muted-foreground text-sm">{t('pages.dashboard.loading')}</p>
         </div>
       </div>
     );
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  const firstName = usuario?.nome?.split(' ')[0] ?? t('common.user');
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* ── Header: Welcome + Plan Badge ──────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Avatar className="h-12 w-12 border-2 border-primary/20">
@@ -148,10 +143,10 @@ export default function Dashboard() {
           </Avatar>
           <div>
             <h1 className="text-2xl font-bold">
-              Olá, {usuario?.nome?.split(' ')[0] ?? 'Usuário'}!
+              {t('pages.dashboard.hello', { name: firstName })}
             </h1>
             <p className="text-muted-foreground text-sm">
-              Bem-vindo(a) ao seu painel de controle
+              {t('pages.dashboard.welcome')}
             </p>
           </div>
         </div>
@@ -162,124 +157,116 @@ export default function Dashboard() {
             className={`gap-1.5 px-3 py-1.5 text-sm font-semibold capitalize ${planColors[planoNome] ?? ''}`}
           >
             {planIcons[planoNome] ?? <CreditCard className="w-4 h-4" />}
-            Plano {plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome}
+            {t('pages.dashboard.planBadge')} {plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome}
           </Badge>
         )}
       </div>
 
-      {/* ── Account & Subscription Info ───────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Account Card */}
         <Card className="rounded-xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Conta
+              {t('pages.dashboard.account')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
             <p className="text-lg font-semibold truncate">{usuario?.nome ?? '-'}</p>
             <p className="text-sm text-muted-foreground truncate">{usuario?.email ?? '-'}</p>
             <p className="text-xs text-muted-foreground">
-              Membro desde {formatDate(usuario?.criadoEm)}
+              {t('pages.dashboard.memberSince')} {formatDate(usuario?.criadoEm)}
             </p>
           </CardContent>
         </Card>
 
-        {/* Subscription Card */}
         <Card className="rounded-xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Assinatura
+              {t('pages.dashboard.subscription')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
             <div className="flex items-center gap-2">
               <p className="text-lg font-semibold capitalize">
-                {plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome ?? 'Nenhum'}
+                {planDisplay}
               </p>
               {billingStatus?.is_active && (
-                <Badge variant="default" className="bg-green-600 text-xs">Ativa</Badge>
+                <Badge variant="default" className="bg-green-600 text-xs">{t('common.active')}</Badge>
               )}
             </div>
             {plan && (
               <p className="text-muted-foreground text-sm">
-                R$ {plan.price_brl.toFixed(2)}/mês
+                R$ {plan.price_brl.toFixed(2)}{t('landing.plans.perMonth')}
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              Próxima cobrança: {formatDate(sub?.current_period_end)}
+              {t('pages.dashboard.nextCharge')} {formatDate(sub?.current_period_end)}
             </p>
           </CardContent>
         </Card>
 
-        {/* Quick Actions Card */}
         <Card className="rounded-xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Ações Rápidas
+              {t('pages.dashboard.quickActions')}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             <Button size="sm" onClick={() => navigate('/marketing-ai')} className="justify-start">
               <Megaphone className="w-4 h-4 mr-2" />
-              Marketing AI
+              {t('pages.dashboard.marketingAi')}
             </Button>
             <Button size="sm" variant="outline" onClick={() => navigate('/criar-site')} className="justify-start">
               <LayoutTemplate className="w-4 h-4 mr-2" />
-              Criar site
+              {t('pages.dashboard.createSite')}
             </Button>
             <Button size="sm" variant="outline" onClick={() => navigate('/ai-studio')} className="justify-start">
               <BrainCircuit className="w-4 h-4 mr-2" />
-              Gerar com IA
+              {t('pages.dashboard.generateAi')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => navigate('/pagamento')} className="justify-start">
               <CreditCard className="w-4 h-4 mr-2" />
-              Gerenciar Plano
+              {t('pages.dashboard.managePlan')}
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* ── KPI Cards: Usage ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard
           icon={<Music className="w-5 h-5 text-violet-500" />}
-          label="Áudio gerado (IA)"
+          label={t('pages.dashboard.kpiAudio')}
           value={audioUsed}
           limit={audioLimit}
         />
         <KpiCard
           icon={<BrainCircuit className="w-5 h-5 text-blue-500" />}
-          label="Gerações Texto IA"
+          label={t('pages.dashboard.kpiText')}
           value={textUsed}
           limit={textLimit}
         />
         <KpiCard
           icon={<ImageIcon className="w-5 h-5 text-emerald-500" />}
-          label="Gerações Imagem IA"
+          label={t('pages.dashboard.kpiImage')}
           value={imageUsed}
           limit={imageLimit}
         />
         <KpiCard
           icon={<Video className="w-5 h-5 text-amber-500" />}
-          label="Gerações Vídeo IA"
+          label={t('pages.dashboard.kpiVideo')}
           value={videoUsed}
           limit={videoLimit}
         />
       </div>
 
-      {/* ── Charts Row ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Usage Progress Bars */}
         <Card className="rounded-xl">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-primary" />
-              Uso do Plano
+              {t('pages.dashboard.usageTitle')}
             </CardTitle>
             <CardDescription>
-              Consumo atual vs. limites do plano{' '}
-              <span className="font-medium">{plan?.display_name ?? PLAN_DISPLAY_NAMES[planoNome ?? ''] ?? planoNome}</span>
+              {t('pages.dashboard.usageDesc', { plan: planDisplay })}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -294,23 +281,22 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Usage Distribution Pie */}
         <Card className="rounded-xl">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary" />
-              Distribuição de Uso
+              {t('pages.dashboard.distributionTitle')}
             </CardTitle>
             <CardDescription>
-              Como você está usando os recursos do seu plano
+              {t('pages.dashboard.distributionDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {usagePieData.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[250px] text-muted-foreground">
                 <BrainCircuit className="w-10 h-10 mb-3 opacity-40" />
-                <p className="text-sm">Nenhum uso registrado ainda.</p>
-                <p className="text-xs mt-1">Comece gerando áudio, texto ou imagens com IA!</p>
+                <p className="text-sm">{t('pages.dashboard.noUsage')}</p>
+                <p className="text-xs mt-1">{t('pages.dashboard.noUsageHint')}</p>
               </div>
             ) : (
               <div className="h-[250px]">
@@ -339,28 +325,27 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* ── Subscription Period ───────────────────────────────────────── */}
       {sub && (
         <Card className="rounded-xl">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-primary" />
-              Período da Assinatura
+              {t('pages.dashboard.periodTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm">
               <div>
-                <span className="text-muted-foreground">Início:</span>{' '}
+                <span className="text-muted-foreground">{t('pages.dashboard.start')}</span>{' '}
                 <span className="font-medium">{formatDate(sub.start_date)}</span>
               </div>
               <div className="hidden sm:block text-muted-foreground">→</div>
               <div>
-                <span className="text-muted-foreground">Próxima renovação:</span>{' '}
+                <span className="text-muted-foreground">{t('pages.dashboard.nextRenewal')}</span>{' '}
                 <span className="font-medium">{formatDate(sub.current_period_end)}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Status:</span>{' '}
+                <span className="text-muted-foreground">{t('pages.dashboard.status')}</span>{' '}
                 <Badge
                   variant="outline"
                   className={
@@ -369,12 +354,12 @@ export default function Dashboard() {
                       : 'border-amber-500 text-amber-600'
                   }
                 >
-                  {sub.status === 'active' ? 'Ativa' : sub.status}
+                  {sub.status === 'active' ? t('common.active') : sub.status}
                 </Badge>
               </div>
               <div className="sm:ml-auto">
                 <Button variant="outline" size="sm" onClick={() => navigate('/pagamento')}>
-                  Gerenciar Assinatura
+                  {t('pages.dashboard.manageSubscription')}
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
@@ -386,8 +371,6 @@ export default function Dashboard() {
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
-
 interface KpiCardProps {
   icon: React.ReactNode;
   label: string;
@@ -396,8 +379,10 @@ interface KpiCardProps {
 }
 
 function KpiCard({ icon, label, value, limit }: KpiCardProps) {
+  const { t } = useTranslation();
   const unlimited = limit <= 0;
   const percentage = pct(value, limit);
+  const limLabel = unlimited ? t('common.unlimited') : String(limit);
   return (
     <Card className="rounded-xl hover:shadow-md transition-shadow">
       <CardContent className="pt-5 pb-4 space-y-3">
@@ -408,12 +393,12 @@ function KpiCard({ icon, label, value, limit }: KpiCardProps) {
         <div className="flex items-end gap-1 flex-wrap">
           <span className="text-2xl font-bold">{value}</span>
           <span className="text-muted-foreground text-sm mb-0.5">
-            / {limitLabel(limit)}
+            / {limLabel}
           </span>
         </div>
         {!unlimited && <Progress value={percentage} className="h-2" />}
         <p className="text-xs text-muted-foreground">
-          {unlimited ? 'Sem limite mensal' : `${percentage}% utilizado`}
+          {unlimited ? t('pages.dashboard.noMonthlyLimit') : t('pages.dashboard.usagePct', { pct: percentage })}
         </p>
       </CardContent>
     </Card>
@@ -427,6 +412,7 @@ interface UsageRowProps {
 }
 
 function UsageRow({ label, used, limit }: UsageRowProps) {
+  const { t } = useTranslation();
   const unlimited = limit <= 0;
   const percentage = pct(used, limit);
   const isHigh = !unlimited && percentage >= 80;
@@ -436,7 +422,7 @@ function UsageRow({ label, used, limit }: UsageRowProps) {
         <span className="font-medium">{label}</span>
         <span className={`text-xs ${isHigh ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>
           {unlimited
-            ? `${used} / Ilimitado`
+            ? t('pages.dashboard.unlimitedPair', { used })
             : `${used} / ${limit} (${percentage}%)`}
         </span>
       </div>

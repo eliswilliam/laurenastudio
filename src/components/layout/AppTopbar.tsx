@@ -18,20 +18,16 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { apiGlobalSearch, type SearchResult } from '@/lib/billingApi';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useTranslation } from '@/hooks/useTranslation';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
-// Search type labels in PT-BR
-const searchTypeLabels: Record<string, string> = {
-  pages: 'Páginas',
-  posts: 'Posts',
-  media: 'Mídia',
-  campaigns: 'Campanhas',
-  social_accounts: 'Contas Sociais',
-};
+const SEARCH_TYPES = ['pages', 'posts', 'media', 'campaigns', 'social_accounts'] as const;
 
 export default function AppTopbar() {
+  const { t, i18n } = useTranslation();
   const { usuario, logout } = useAuthStore();
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(false);
@@ -42,7 +38,14 @@ export default function AppTopbar() {
     markAllRead,
   } = useNotifications();
 
-  // ── Global search state ───────────────────────────────────────────────
+  const searchTypeLabels = useMemo(() => {
+    const o: Record<string, string> = {};
+    for (const key of SEARCH_TYPES) {
+      o[key] = t(`pages.topbar.searchTypes.${key}`);
+    }
+    return o;
+  }, [t]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Record<string, SearchResult[]>>({});
   const [searchOpen, setSearchOpen] = useState(false);
@@ -50,7 +53,6 @@ export default function AppTopbar() {
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Close search dropdown on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
@@ -61,7 +63,6 @@ export default function AppTopbar() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Debounced search
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
@@ -97,7 +98,6 @@ export default function AppTopbar() {
 
   return (
     <header className="h-14 md:h-16 border-b border-border bg-background/80 backdrop-blur-sm flex items-center justify-between px-3 md:px-6 sticky top-0 z-30">
-      {/* Lado esquerdo — marca + busca (busca visível em todos os breakpoints) */}
       <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
         <div className="flex items-center gap-2 shrink-0 pr-1">
           <img
@@ -113,7 +113,7 @@ export default function AppTopbar() {
         <div className="relative flex-1 min-w-0 md:flex-initial" ref={searchRef}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/80 pointer-events-none" />
           <Input
-            placeholder="Buscar páginas do painel, mídia..."
+            placeholder={t('pages.topbar.searchPlaceholder')}
             className="pl-9 w-full min-w-0 h-9 bg-background/90 border-2 border-primary/45 text-foreground shadow-sm transition-colors hover:border-primary/70 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-0 md:w-72"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
@@ -149,14 +149,14 @@ export default function AppTopbar() {
           )}
           {searchOpen && searchQuery && Object.keys(searchResults).length === 0 && !searching && (
             <div className="absolute top-full left-0 right-0 mt-1 w-auto md:w-72 md:right-auto bg-popover border-2 border-primary/20 rounded-lg shadow-lg z-50 p-4 text-center text-sm text-muted-foreground">
-              Nenhum resultado para "{searchQuery}"
+              {t('pages.topbar.noResults', { query: searchQuery })}
             </div>
           )}
         </div>
       </div>
 
-      {/* Lado direito - Ações */}
       <div className="flex items-center gap-2 shrink-0">
+        <LanguageSwitcher />
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme}>
           {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </Button>
@@ -174,16 +174,16 @@ export default function AppTopbar() {
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-0">
             <div className="p-4 border-b flex items-center justify-between gap-2">
-              <h4 className="font-semibold text-sm">Notificações</h4>
+              <h4 className="font-semibold text-sm">{t('pages.topbar.notifications')}</h4>
               {naoLidas > 0 && (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => void markAllRead()}>
-                  Marcar todas como lidas
+                  {t('pages.topbar.markAllRead')}
                 </Button>
               )}
             </div>
             <div className="max-h-80 overflow-y-auto">
               {notificacoes.length === 0 ? (
-                <p className="p-4 text-sm text-muted-foreground text-center">Nenhuma notificação ainda.</p>
+                <p className="p-4 text-sm text-muted-foreground text-center">{t('pages.topbar.noNotifications')}</p>
               ) : (
                 notificacoes.map((n) => {
                   const badgeVariant =
@@ -210,7 +210,7 @@ export default function AppTopbar() {
                           <p className="text-sm font-medium">{n.title}</p>
                           <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap">{n.body}</p>
                           <p className="text-[10px] text-muted-foreground/80 mt-1">
-                            {new Date(n.created_at).toLocaleString('pt-BR')}
+                            {new Date(n.created_at).toLocaleString(i18n.language)}
                           </p>
                         </div>
                       </div>
@@ -232,7 +232,7 @@ export default function AppTopbar() {
                 </AvatarFallback>
               </Avatar>
               <span className="hidden sm:inline text-sm font-medium max-w-[120px] truncate">
-                {usuario?.nome || 'Usuário'}
+                {usuario?.nome || t('pages.topbar.userFallback')}
               </span>
               <ChevronDown className="w-3 h-3 opacity-50" />
             </Button>
@@ -240,7 +240,7 @@ export default function AppTopbar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div>
-                <p className="font-medium">{usuario?.nome || 'Usuário'}</p>
+                <p className="font-medium">{usuario?.nome || t('pages.topbar.userFallback')}</p>
                 <p className="text-xs text-muted-foreground font-normal">
                   {usuario?.email || 'usuario@email.com'}
                 </p>
@@ -248,13 +248,13 @@ export default function AppTopbar() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/configuracoes')}>
-              Meu Perfil
+              {t('pages.topbar.profile')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/pagamento')}>
-              Plano & Pagamento
+              {t('pages.topbar.billing')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/configuracoes')}>
-              Configurações
+              {t('pages.topbar.settings')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -264,7 +264,7 @@ export default function AppTopbar() {
               }}
               className="text-destructive"
             >
-              Sair
+              {t('auth.logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

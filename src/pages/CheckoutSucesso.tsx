@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/useAuthStore';
 import { apiVerifySession } from '@/lib/billingApi';
 import { PLAN_DISPLAY_NAMES } from '@/data/planos';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -51,10 +52,10 @@ type PageState = 'loading' | 'success' | 'pending' | 'canceled' | 'error';
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function CheckoutSucesso() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAutenticado, fetchBillingStatus, billingStatus, planoNome, usuario } =
-    useAuthStore();
+  const { isAutenticado, fetchBillingStatus, billingStatus, usuario } = useAuthStore();
 
   const [state, setState] = useState<PageState>('loading');
   const [message, setMessage] = useState('');
@@ -210,17 +211,17 @@ export default function CheckoutSucesso() {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold">Processando pagamento…</h1>
+              <h1 className="text-2xl font-bold">{t('pages.checkout.processingTitle')}</h1>
               <p className="text-muted-foreground">
-                Estamos confirmando sua assinatura com o Stripe.
+                {t('pages.checkout.processingDesc')}
                 <br />
-                Isso leva apenas alguns segundos.
+                {t('pages.checkout.processingHint')}
               </p>
             </div>
 
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              Verificação {attempt}/{maxAttempts}
+              {t('pages.checkout.verification', { current: attempt, max: maxAttempts })}
             </div>
           </CardContent>
         </Card>
@@ -240,21 +241,21 @@ export default function CheckoutSucesso() {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold">Checkout cancelado</h1>
+              <h1 className="text-2xl font-bold">{t('pages.checkout.canceledTitle')}</h1>
               <p className="text-muted-foreground">
-                Você saiu do checkout sem concluir o pagamento.
+                {t('pages.checkout.canceledDesc')}
                 <br />
-                Nenhuma cobrança foi realizada.
+                {t('pages.checkout.canceledHint')}
               </p>
             </div>
 
             <div className="flex flex-col gap-3">
               <Button size="lg" onClick={() => navigate('/escolher-plano')}>
                 <CreditCard className="w-4 h-4 mr-2" />
-                Escolher um plano
+                {t('pages.checkout.choosePlan')}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
-                Voltar ao login
+                {t('pages.checkout.backLogin')}
               </Button>
             </div>
           </CardContent>
@@ -275,19 +276,19 @@ export default function CheckoutSucesso() {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold">Pagamento pendente</h1>
+              <h1 className="text-2xl font-bold">{t('pages.checkout.pendingTitle')}</h1>
               <p className="text-muted-foreground">
-                {message || 'Seu boleto foi gerado. Assim que o pagamento for confirmado, sua assinatura será ativada automaticamente.'}
+                {message || t('pages.checkout.pendingDefault')}
               </p>
             </div>
 
             <div className="flex flex-col gap-3">
               <Button size="lg" onClick={handleRetry}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Verificar novamente
+                {t('pages.checkout.checkAgain')}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => navigate('/escolher-plano')}>
-                Voltar aos planos
+                {t('pages.checkout.backPlans')}
               </Button>
             </div>
           </CardContent>
@@ -308,24 +309,22 @@ export default function CheckoutSucesso() {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold">Ativação pendente</h1>
+              <h1 className="text-2xl font-bold">{t('pages.checkout.errorTitle')}</h1>
               <p className="text-muted-foreground">
-                Seu pagamento foi recebido pelo Stripe, mas a confirmação
-                ainda não chegou ao nosso servidor.
+                {t('pages.checkout.errorDesc')}
               </p>
               <p className="text-muted-foreground text-sm">
-                Isso pode acontecer com boletos ou se o webhook está atrasado.
-                Tente novamente em alguns instantes.
+                {t('pages.checkout.errorHint')}
               </p>
             </div>
 
             <div className="flex flex-col gap-3">
               <Button size="lg" onClick={handleRetry}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Tentar novamente
+                {t('common.retry')}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => navigate('/escolher-plano')}>
-                Voltar aos planos
+                {t('pages.checkout.backPlans')}
               </Button>
             </div>
           </CardContent>
@@ -347,11 +346,15 @@ export default function CheckoutSucesso() {
 
           {/* Thank you message */}
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold">Parabéns, {usuario?.nome?.split(' ')[0] ?? 'você'}!</h1>
+            <h1 className="text-3xl font-bold">
+              {t('pages.checkout.congrats', {
+                name: usuario?.nome?.split(' ')[0] ?? t('pages.checkout.congratsNameFallback'),
+              })}
+            </h1>
             <p className="text-muted-foreground text-lg">
-              Sua assinatura foi ativada com sucesso.
+              {t('pages.checkout.activated')}
               <br />
-              Obrigado por escolher o Laurena Studio.
+              {t('pages.checkout.thanks')}
             </p>
           </div>
 
@@ -365,33 +368,33 @@ export default function CheckoutSucesso() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-xl font-bold">{PLAN_DISPLAY_NAMES[plan.name] ?? plan.display_name ?? plan.name}</h2>
-                    <Badge className="bg-green-600 text-white text-xs">Ativa</Badge>
+                    <Badge className="bg-green-600 text-white text-xs">{t('common.active')}</Badge>
                   </div>
                   <p className="text-muted-foreground text-sm">
-                    R$ {plan.price_brl.toFixed(2)}/mês
+                    R$ {plan.price_brl.toFixed(2)} {t('landing.plans.perMonth')}
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-background rounded-lg p-3">
-                  <p className="text-muted-foreground text-xs">Texto IA/mês</p>
+                  <p className="text-muted-foreground text-xs">{t('pages.checkout.textPerMonth')}</p>
                   <p className="font-bold text-lg">{plan.text_limit === 0 ? '∞' : plan.text_limit}</p>
                 </div>
                 <div className="bg-background rounded-lg p-3">
-                  <p className="text-muted-foreground text-xs">Imagem IA/mês</p>
+                  <p className="text-muted-foreground text-xs">{t('pages.checkout.imagePerMonth')}</p>
                   <p className="font-bold text-lg">{plan.image_limit === 0 ? '∞' : plan.image_limit}</p>
                 </div>
                 <div className="bg-background rounded-lg p-3">
-                  <p className="text-muted-foreground text-xs">Vídeo IA/mês</p>
+                  <p className="text-muted-foreground text-xs">{t('pages.checkout.videoPerMonth')}</p>
                   <p className="font-bold text-lg">{plan.video_limit === 0 ? '∞' : plan.video_limit}</p>
                 </div>
               </div>
 
               {sub?.current_period_end && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Próxima cobrança:{' '}
-                  {new Date(sub.current_period_end).toLocaleDateString('pt-BR', {
+                  {t('pages.checkout.nextCharge')}{' '}
+                  {new Date(sub.current_period_end).toLocaleDateString(i18n.language, {
                     day: '2-digit',
                     month: 'long',
                     year: 'numeric',
@@ -404,7 +407,8 @@ export default function CheckoutSucesso() {
           {/* Account info */}
           {usuario && (
             <div className="text-sm text-muted-foreground">
-              Conta: <span className="font-medium text-foreground">{usuario.email}</span>
+              {t('pages.checkout.account')}{' '}
+              <span className="font-medium text-foreground">{usuario.email}</span>
             </div>
           )}
 
@@ -414,12 +418,12 @@ export default function CheckoutSucesso() {
             className="w-full text-base h-12"
             onClick={() => navigate('/dashboard', { replace: true })}
           >
-            Ir para o Painel
+            {t('pages.checkout.goDashboard')}
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
 
           <p className="text-xs text-muted-foreground">
-            Gerencie sua assinatura a qualquer momento em Configurações → Pagamento
+            {t('pages.checkout.manageHint')}
           </p>
         </CardContent>
       </Card>

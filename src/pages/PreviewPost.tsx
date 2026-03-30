@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { socialIcons } from '@/components/shared/SocialIcons';
 import type { PlataformaSocial } from '@/lib/types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface PreviewState {
   titulo: string;
@@ -15,18 +16,16 @@ interface PreviewState {
 }
 
 function InstagramPreview({ conteudo, titulo }: { conteudo: string; titulo: string }) {
+  const { t } = useTranslation();
   return (
     <div className="max-w-[380px] bg-white dark:bg-gray-950 border rounded-xl overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-3 p-3 border-b">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-500" />
         <span className="font-bagel text-sm tracking-wider">laurena.studio</span>
       </div>
-      {/* Image placeholder */}
       <div className="aspect-square bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-950 dark:to-purple-950 flex items-center justify-center">
-        <span className="text-muted-foreground text-sm">{titulo || 'Imagem do post'}</span>
+        <span className="text-muted-foreground text-sm">{titulo || t('pages.previewPost.instagramPlaceholder')}</span>
       </div>
-      {/* Actions */}
       <div className="p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -36,11 +35,11 @@ function InstagramPreview({ conteudo, titulo }: { conteudo: string; titulo: stri
           </div>
           <Bookmark className="w-6 h-6 cursor-pointer" />
         </div>
-        <p className="text-sm font-semibold">1.234 curtidas</p>
+        <p className="text-sm font-semibold">{t('pages.previewPost.instagramLikes')}</p>
         <p className="text-sm">
           <span className="font-bagel tracking-wider">laurena.studio </span>
           {conteudo.slice(0, 200)}
-          {conteudo.length > 200 && <span className="text-muted-foreground">...mais</span>}
+          {conteudo.length > 200 && <span className="text-muted-foreground">{t('pages.previewPost.more')}</span>}
         </p>
       </div>
     </div>
@@ -79,6 +78,7 @@ function TwitterPreview({ conteudo }: { conteudo: string }) {
 }
 
 function LinkedInPreview({ conteudo, titulo }: { conteudo: string; titulo: string }) {
+  const { t } = useTranslation();
   return (
     <div className="max-w-[500px] bg-white dark:bg-gray-950 border rounded-xl overflow-hidden">
       <div className="p-4 space-y-3">
@@ -86,7 +86,7 @@ function LinkedInPreview({ conteudo, titulo }: { conteudo: string; titulo: strin
           <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900" />
           <div>
             <p className="font-bagel tracking-wider text-sm">Laurena Studio</p>
-            <p className="text-xs text-muted-foreground">Marketing Digital · 1m</p>
+            <p className="text-xs text-muted-foreground">{t('pages.previewPost.linkedinSubtitle')}</p>
           </div>
         </div>
         <p className="text-sm whitespace-pre-wrap">{conteudo.slice(0, 500)}</p>
@@ -98,16 +98,16 @@ function LinkedInPreview({ conteudo, titulo }: { conteudo: string; titulo: strin
       )}
       <div className="border-t px-4 py-2 flex items-center justify-around text-muted-foreground text-xs">
         <div className="flex items-center gap-1 cursor-pointer hover:text-blue-600">
-          <ThumbsUp className="w-4 h-4" /> Gostei
+          <ThumbsUp className="w-4 h-4" /> {t('pages.previewPost.linkedinLike')}
         </div>
         <div className="flex items-center gap-1 cursor-pointer hover:text-blue-600">
-          <MessageCircle className="w-4 h-4" /> Comentar
+          <MessageCircle className="w-4 h-4" /> {t('pages.previewPost.linkedinComment')}
         </div>
         <div className="flex items-center gap-1 cursor-pointer hover:text-blue-600">
-          <Repeat2 className="w-4 h-4" /> Republicar
+          <Repeat2 className="w-4 h-4" /> {t('pages.previewPost.linkedinRepost')}
         </div>
         <div className="flex items-center gap-1 cursor-pointer hover:text-blue-600">
-          <Send className="w-4 h-4" /> Enviar
+          <Send className="w-4 h-4" /> {t('pages.previewPost.linkedinSend')}
         </div>
       </div>
     </div>
@@ -115,6 +115,7 @@ function LinkedInPreview({ conteudo, titulo }: { conteudo: string; titulo: strin
 }
 
 function FacebookPreview({ conteudo, titulo }: { conteudo: string; titulo: string }) {
+  const { t } = useTranslation();
   return (
     <div className="max-w-[500px] bg-white dark:bg-gray-950 border rounded-xl overflow-hidden">
       <div className="p-4 space-y-3">
@@ -122,7 +123,7 @@ function FacebookPreview({ conteudo, titulo }: { conteudo: string; titulo: strin
           <div className="w-10 h-10 rounded-full bg-blue-500" />
           <div>
             <p className="font-bagel tracking-wider text-sm">Laurena Studio</p>
-            <p className="text-xs text-muted-foreground">Agora mesmo · 🌐</p>
+            <p className="text-xs text-muted-foreground">{t('pages.previewPost.facebookNow')}</p>
           </div>
         </div>
         <p className="text-sm whitespace-pre-wrap">{conteudo.slice(0, 400)}</p>
@@ -133,22 +134,23 @@ function FacebookPreview({ conteudo, titulo }: { conteudo: string; titulo: strin
         </div>
       )}
       <div className="border-t px-4 py-2 flex items-center justify-around text-muted-foreground text-sm">
-        <span className="cursor-pointer hover:text-blue-600">👍 Curtir</span>
-        <span className="cursor-pointer hover:text-blue-600">💬 Comentar</span>
-        <span className="cursor-pointer hover:text-blue-600">↗️ Compartilhar</span>
+        <span className="cursor-pointer hover:text-blue-600">{t('pages.previewPost.facebookLike')}</span>
+        <span className="cursor-pointer hover:text-blue-600">{t('pages.previewPost.facebookComment')}</span>
+        <span className="cursor-pointer hover:text-blue-600">{t('pages.previewPost.facebookShare')}</span>
       </div>
     </div>
   );
 }
 
 function TikTokPreview({ conteudo }: { conteudo: string }) {
+  const { t } = useTranslation();
   return (
     <div className="max-w-[320px] bg-black text-white rounded-xl overflow-hidden relative" style={{ height: 560 }}>
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
       <div className="absolute bottom-0 left-0 right-12 p-4 space-y-2">
         <p className="font-bold text-sm">@laurenastudio</p>
         <p className="text-xs leading-relaxed">{conteudo.slice(0, 150)}</p>
-        <p className="text-xs opacity-70">🎵 som original · laurenastudio</p>
+        <p className="text-xs opacity-70">{t('pages.previewPost.tiktokSound')}</p>
       </div>
       <div className="absolute bottom-4 right-3 flex flex-col items-center gap-5">
         <div className="text-center">
@@ -169,6 +171,7 @@ function TikTokPreview({ conteudo }: { conteudo: string }) {
 }
 
 function YouTubePreview({ titulo, conteudo }: { titulo: string; conteudo: string }) {
+  const { t } = useTranslation();
   return (
     <div className="max-w-[500px] bg-white dark:bg-gray-950 border rounded-xl overflow-hidden">
       <div className="aspect-video bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 flex items-center justify-center">
@@ -177,10 +180,10 @@ function YouTubePreview({ titulo, conteudo }: { titulo: string; conteudo: string
         </div>
       </div>
       <div className="p-3 space-y-1">
-        <p className="font-semibold text-sm line-clamp-2">{titulo || 'Título do vídeo'}</p>
+        <p className="font-semibold text-sm line-clamp-2">{titulo || t('pages.previewPost.youtubeTitleFallback')}</p>
         <p className="text-xs text-muted-foreground">
           <span className="font-bagel tracking-wider">Laurena Studio</span>
-          {' '}· 1.2K views · 1 hora atrás
+          {t('pages.previewPost.youtubeMeta')}
         </p>
         <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{conteudo.slice(0, 150)}</p>
       </div>
@@ -207,6 +210,7 @@ const platformLabels: Record<PlataformaSocial, string> = {
 };
 
 export default function PreviewPost() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const state = (location.state as PreviewState) || {
@@ -226,19 +230,17 @@ export default function PreviewPost() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Preview do Post</h1>
-          <p className="text-muted-foreground">
-            Veja como seu post aparecerá em cada plataforma.
-          </p>
+          <h1 className="text-2xl font-bold">{t('pages.previewPost.title')}</h1>
+          <p className="text-muted-foreground">{t('pages.previewPost.subtitle')}</p>
         </div>
       </div>
 
       {!conteudo && (
         <Card className="rounded-xl">
           <CardContent className="p-8 text-center text-muted-foreground">
-            <p>Nenhum conteúdo para visualizar. Volte e crie um post primeiro.</p>
+            <p>{t('pages.previewPost.empty')}</p>
             <Button variant="outline" className="mt-4" onClick={() => navigate('/marketing-ai')}>
-              Marketing AI
+              {t('pages.previewPost.ctaMarketing')}
             </Button>
           </CardContent>
         </Card>

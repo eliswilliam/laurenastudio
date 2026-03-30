@@ -37,22 +37,22 @@ const iconesPlano: Record<string, React.ReactNode> = {
   business: <Building2 className="w-5 h-5" />,
 };
 
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '-';
-  return new Date(iso).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
 function pct(used: number, limit: number): number {
   if (limit <= 0) return 0;
   return Math.min(Math.round((used / limit) * 100), 100);
 }
 
 export default function Pagamento() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const formatDate = (iso: string | null | undefined): string => {
+    if (!iso) return '-';
+    return new Date(iso).toLocaleDateString(i18n.language, {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
   const [anual, setAnual] = useState(true);
   const [carregando, setCarregando] = useState<string | null>(null);
   const [portalCarregando, setPortalCarregando] = useState(false);
@@ -71,7 +71,7 @@ export default function Pagamento() {
       setBilling(data);
       fetchBillingStatus();
     } catch (err: unknown) {
-      setBillingError(err instanceof Error ? err.message : 'Erro ao carregar dados de faturamento.');
+      setBillingError(err instanceof Error ? err.message : t('pages.payment.billingLoadError'));
     } finally {
       setBillingLoading(false);
     }
@@ -86,24 +86,25 @@ export default function Pagamento() {
     const status = params.get('status');
     if (status === 'success') {
       toast({
-        title: 'Pagamento confirmado',
-        description: 'Sua assinatura foi ativada com sucesso.',
+        title: t('pages.payment.toastSuccessTitle'),
+        description: t('pages.payment.toastSuccessDesc'),
       });
       window.history.replaceState({}, '', '/pagamento');
       loadBilling();
     } else if (status === 'canceled') {
       toast({
-        title: 'Pagamento cancelado',
-        description: 'Você cancelou o checkout. Nenhuma cobrança foi feita.',
+        title: t('pages.payment.toastCanceledTitle'),
+        description: t('pages.payment.toastCanceledDesc'),
         variant: 'destructive',
       });
       window.history.replaceState({}, '', '/pagamento');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; toasts need stable t()
   }, []);
 
   const isActive = billing?.is_active ?? false;
   const planName = billing?.subscription?.plan?.name ?? null;
-  const planDisplayName = (planName ? PLAN_DISPLAY_NAMES[planName] : null) ?? billing?.subscription?.plan?.display_name ?? planName ?? 'Nenhum';
+  const planDisplayName = (planName ? PLAN_DISPLAY_NAMES[planName] : null) ?? billing?.subscription?.plan?.display_name ?? planName ?? t('pages.dashboard.none');
   const nextBillingDate = billing?.subscription?.current_period_end ?? null;
 
   const textUsed = billing?.usage?.usage?.text_used ?? 0;
@@ -130,8 +131,8 @@ export default function Pagamento() {
     } catch (err: unknown) {
       setCarregando(null);
       toast({
-        title: 'Erro no checkout',
-        description: err instanceof Error ? err.message : 'Não foi possível iniciar o pagamento.',
+        title: t('pages.payment.checkoutErrorTitle'),
+        description: err instanceof Error ? err.message : t('pages.payment.checkoutErrorDesc'),
         variant: 'destructive',
       });
     }
@@ -145,8 +146,8 @@ export default function Pagamento() {
     } catch (err: unknown) {
       setPortalCarregando(false);
       toast({
-        title: 'Erro',
-        description: err instanceof Error ? err.message : 'Não foi possível abrir o portal.',
+        title: t('pages.payment.portalErrorTitle'),
+        description: err instanceof Error ? err.message : t('pages.payment.portalErrorDesc'),
         variant: 'destructive',
       });
     }
@@ -158,10 +159,10 @@ export default function Pagamento() {
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <CreditCard className="w-6 h-6 text-primary" />
-          Plano e Pagamento
+          {t('pages.payment.title')}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Gerencie sua assinatura e acompanhe seu uso mensal.
+          {t('pages.payment.subtitle')}
         </p>
       </div>
 
@@ -170,13 +171,13 @@ export default function Pagamento() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-base">Plano Atual</CardTitle>
+              <CardTitle className="text-base">{t('pages.payment.currentPlan')}</CardTitle>
               <CardDescription>
                 {billingLoading
-                  ? 'Carregando\u2026'
+                  ? t('pages.payment.loading')
                   : isActive
-                    ? `Próxima cobrança em ${formatDate(nextBillingDate)}`
-                    : 'Nenhuma assinatura ativa'}
+                    ? t('pages.payment.nextChargeOn', { date: formatDate(nextBillingDate) })
+                    : t('pages.payment.noSubscription')}
               </CardDescription>
             </div>
             {!billingLoading && (
@@ -187,7 +188,7 @@ export default function Pagamento() {
                 variant={isActive ? 'default' : 'outline'}
               >
                 {planName ? iconesPlano[planName] : <AlertCircle className="w-4 h-4" />}
-                {isActive ? planDisplayName : 'Inativo'}
+                {isActive ? planDisplayName : t('common.inactive')}
               </Badge>
             )}
           </div>
@@ -196,7 +197,7 @@ export default function Pagamento() {
           {billingLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Carregando dados de uso\u2026
+              {t('pages.payment.loadingUsage')}
             </div>
           ) : billingError ? (
             <div className="flex flex-wrap items-center gap-2 text-destructive text-sm py-4">
@@ -204,7 +205,7 @@ export default function Pagamento() {
               {billingError}
               <Button variant="ghost" size="sm" onClick={loadBilling}>
                 <RefreshCw className="w-4 h-4 mr-1" />
-                Tentar novamente
+                {t('common.retry')}
               </Button>
             </div>
           ) : isActive ? (
@@ -212,7 +213,7 @@ export default function Pagamento() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Gerações IA (texto)</span>
+                    <span className="text-muted-foreground">{t('pages.payment.usageText')}</span>
                     <span className="font-medium">
                       {textUsed} / {textLimit > 0 ? textLimit : '\u221e'}
                     </span>
@@ -221,7 +222,7 @@ export default function Pagamento() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Gerações IA (imagem)</span>
+                    <span className="text-muted-foreground">{t('pages.payment.usageImage')}</span>
                     <span className="font-medium">
                       {imageUsed} / {imageLimit > 0 ? imageLimit : '\u221e'}
                     </span>
@@ -230,7 +231,7 @@ export default function Pagamento() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Gerações IA (vídeo)</span>
+                    <span className="text-muted-foreground">{t('pages.payment.usageVideo')}</span>
                     <span className="font-medium">
                       {videoUsed} / {videoLimit > 0 ? videoLimit : '\u221e'}
                     </span>
@@ -239,7 +240,7 @@ export default function Pagamento() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Gerações IA (áudio)</span>
+                    <span className="text-muted-foreground">{t('pages.payment.usageAudio')}</span>
                     <span className="font-medium">
                       {audioUsed} / {audioLimit > 0 ? audioLimit : '\u221e'}
                     </span>
@@ -248,7 +249,7 @@ export default function Pagamento() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Publicações de site (deploy)</span>
+                    <span className="text-muted-foreground">{t('pages.payment.usageSite')}</span>
                     <span className="font-medium">
                       {sitePubUsed} / {sitePubLimit > 0 ? sitePubLimit : '\u221e'}
                     </span>
@@ -268,12 +269,12 @@ export default function Pagamento() {
                 ) : (
                   <ExternalLink className="w-4 h-4" />
                 )}
-                Gerenciar assinatura no Stripe
+                {t('pages.payment.manageStripe')}
               </Button>
             </>
           ) : (
             <p className="text-sm text-muted-foreground py-2">
-              Você não tem um plano ativo. Escolha um plano abaixo para começar.
+              {t('pages.payment.noPlanHint')}
             </p>
           )}
         </CardContent>
@@ -322,7 +323,7 @@ export default function Pagamento() {
               {isAtual && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-green-600 text-white shadow-md text-xs font-semibold">
-                    Seu plano
+                    {t('pages.payment.yourPlan')}
                   </Badge>
                 </div>
               )}
@@ -396,10 +397,10 @@ export default function Pagamento() {
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   ) : null}
                   {isAtual
-                    ? 'Plano atual'
+                    ? t('pages.payment.currentPlanBtn')
                     : isActive
-                      ? `Trocar para ${plano.nome}`
-                      : `Assinar ${plano.nome}`}
+                      ? t('pages.payment.changeTo', { name: plano.nome })
+                      : t('pages.payment.subscribe', { name: plano.nome })}
                 </Button>
               </CardContent>
             </Card>
@@ -411,9 +412,9 @@ export default function Pagamento() {
       {isActive && (
         <Card className="rounded-xl">
           <CardHeader>
-            <CardTitle className="text-base">Faturas e Pagamentos</CardTitle>
+            <CardTitle className="text-base">{t('pages.payment.invoicesTitle')}</CardTitle>
             <CardDescription>
-              Acesse o portal Stripe para visualizar faturas, atualizar forma de pagamento ou cancelar.
+              {t('pages.payment.invoicesDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -428,7 +429,7 @@ export default function Pagamento() {
               ) : (
                 <ExternalLink className="w-4 h-4" />
               )}
-              Abrir portal de pagamento
+              {t('pages.payment.openPortal')}
             </Button>
           </CardContent>
         </Card>

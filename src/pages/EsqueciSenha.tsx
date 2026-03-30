@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiForgotPassword, apiVerifyResetCode } from '@/lib/authApi';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type Step = 'email' | 'code';
 
 export default function EsqueciSenha() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -20,7 +22,6 @@ export default function EsqueciSenha() {
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // ── Step 1: send email ────────────────────────────────────────────────────
   const handleEnviarEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
@@ -28,11 +29,11 @@ export default function EsqueciSenha() {
     try {
       await apiForgotPassword(email);
       setStep('code');
-      toast({ title: 'Código enviado!', description: 'Verifique sua caixa de entrada.' });
+      toast({ title: t('pages.forgotPassword.codeSentTitle'), description: t('pages.forgotPassword.codeSentDesc') });
     } catch (err: unknown) {
       toast({
-        title: 'Erro',
-        description: err instanceof Error ? err.message : 'Tente novamente.',
+        title: t('pages.forgotPassword.errorTitle'),
+        description: err instanceof Error ? err.message : t('pages.forgotPassword.errorDesc'),
         variant: 'destructive',
       });
     } finally {
@@ -40,7 +41,6 @@ export default function EsqueciSenha() {
     }
   };
 
-  // ── Step 2: verify code ───────────────────────────────────────────────────
   const codeString = code.join('');
 
   const handleCodeChange = (index: number, value: string) => {
@@ -73,12 +73,11 @@ export default function EsqueciSenha() {
     setCarregando(true);
     try {
       await apiVerifyResetCode(email, codeString);
-      // Navigate to new-password page, passing email + code via router state
       navigate('/redefinir-senha', { state: { email, code: codeString } });
     } catch (err: unknown) {
       toast({
-        title: 'Código inválido',
-        description: err instanceof Error ? err.message : 'Verifique o código e tente novamente.',
+        title: t('pages.forgotPassword.invalidCodeTitle'),
+        description: err instanceof Error ? err.message : t('pages.forgotPassword.invalidCodeDesc'),
         variant: 'destructive',
       });
     } finally {
@@ -91,9 +90,9 @@ export default function EsqueciSenha() {
     try {
       await apiForgotPassword(email);
       setCode(['', '', '', '', '', '']);
-      toast({ title: 'Novo código enviado!', description: 'Verifique sua caixa de entrada.' });
+      toast({ title: t('pages.forgotPassword.resentTitle'), description: t('pages.forgotPassword.codeSentDesc') });
     } catch {
-      toast({ title: 'Erro ao reenviar', variant: 'destructive' });
+      toast({ title: t('pages.forgotPassword.resentError'), variant: 'destructive' });
     } finally {
       setCarregando(false);
     }
@@ -102,29 +101,27 @@ export default function EsqueciSenha() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="flex items-center gap-2 mb-8">
           <img src="/android-chrome-192x192.png" alt="Laurena Studio" className="w-8 h-8 rounded-lg" />
           <span className="font-bagel tracking-wider text-xl">LAURENA</span>
         </div>
 
-        {/* ── Step 1: Email ── */}
         {step === 'email' && (
           <>
-            <h2 className="text-2xl font-bold mb-1">Esqueceu sua senha?</h2>
+            <h2 className="text-2xl font-bold mb-1">{t('pages.forgotPassword.title')}</h2>
             <p className="text-muted-foreground mb-8">
-              Informe seu e-mail e enviaremos um código de 6 dígitos para recuperar sua senha.
+              {t('pages.forgotPassword.subtitle')}
             </p>
 
             <form onSubmit={handleEnviarEmail} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="email">{t('auth.email')}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="seu@email.com"
+                    placeholder={t('pages.login.emailPlaceholder')}
                     className="pl-10 h-11"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -137,30 +134,28 @@ export default function EsqueciSenha() {
                 {carregando ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Enviando...
+                    {t('pages.forgotPassword.sending')}
                   </div>
                 ) : (
-                  'Enviar código de recuperação'
+                  t('pages.forgotPassword.sendCode')
                 )}
               </Button>
             </form>
           </>
         )}
 
-        {/* ── Step 2: 6-digit code ── */}
         {step === 'code' && (
           <>
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
               <KeyRound className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold mb-1 text-center">Verifique seu e-mail</h2>
+            <h2 className="text-2xl font-bold mb-1 text-center">{t('pages.forgotPassword.verifyTitle')}</h2>
             <p className="text-muted-foreground mb-8 text-center">
-              Enviamos um código de 6 dígitos para{' '}
+              {t('pages.forgotPassword.verifySubtitle')}{' '}
               <span className="font-medium text-foreground">{email}</span>.
             </p>
 
             <form onSubmit={handleVerificarCodigo} className="space-y-6">
-              {/* 6-digit inputs */}
               <div className="flex justify-center gap-3" onPaste={handleCodePaste}>
                 {code.map((digit, i) => (
                   <Input
@@ -185,10 +180,10 @@ export default function EsqueciSenha() {
                 {carregando ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Verificando...
+                    {t('pages.forgotPassword.verifying')}
                   </div>
                 ) : (
-                  'Verificar código'
+                  t('pages.forgotPassword.verify')
                 )}
               </Button>
             </form>
@@ -200,7 +195,7 @@ export default function EsqueciSenha() {
                 disabled={carregando}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
-                Não recebeu? Reenviar código
+                {t('pages.forgotPassword.resend')}
               </button>
             </div>
 
@@ -211,7 +206,7 @@ export default function EsqueciSenha() {
                 className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                Alterar e-mail
+                {t('pages.forgotPassword.changeEmail')}
               </button>
             </div>
           </>
@@ -223,7 +218,7 @@ export default function EsqueciSenha() {
             className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Voltar ao login
+            {t('pages.forgotPassword.backLogin')}
           </Link>
         </div>
       </div>

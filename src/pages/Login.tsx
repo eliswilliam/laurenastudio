@@ -13,9 +13,11 @@ import {
   redirectToFacebookLogin,
   resolveAvatarDisplayUrl,
 } from '@/lib/authApi';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Login() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -23,11 +25,20 @@ export default function Login() {
   const { login, fetchBillingStatus } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // Show error if redirected back from Google with an error
+
+  const pillars = useMemo(
+    () => [
+      { icon: Megaphone, title: t('pages.login.pillar1Title'), desc: t('pages.login.pillar1Desc') },
+      { icon: Layers, title: t('pages.login.pillar2Title'), desc: t('pages.login.pillar2Desc') },
+      { icon: Globe, title: t('pages.login.pillar3Title'), desc: t('pages.login.pillar3Desc') },
+    ],
+    [t]
+  );
+
   useEffect(() => {
     const error = searchParams.get('error');
     if (error) {
-      notify.error('Erro no login com Google', decodeURIComponent(error));
+      notify.error(t('pages.login.googleErrorTitle'), decodeURIComponent(error));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -49,14 +60,13 @@ export default function Login() {
         },
         data.tokens.access_token
       );
-      notify.success('Login realizado com sucesso', 'Bem-vindo ao Laurena Studio.');
-      // Check billing status; redirect to plan selection if no active plan
+      notify.success(t('pages.login.successTitle'), t('pages.login.successDesc'));
       const hasActivePlan = await fetchBillingStatus();
       navigate(hasActivePlan ? '/dashboard' : '/escolher-plano');
     } catch (err: unknown) {
       notify.error(
-        'Erro ao entrar',
-        err instanceof Error ? err.message : 'Credenciais inválidas.'
+        t('pages.login.errorTitle'),
+        err instanceof Error ? err.message : t('pages.login.errorDesc')
       );
     } finally {
       setCarregando(false);
@@ -65,7 +75,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Lado esquerdo - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/95 via-primary to-primary/75 relative overflow-hidden items-center justify-center p-10 xl:p-14">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRWMjhIMjR2MmgxinptMC00VjI0SDI0djJoMTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
         <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-white/15 blur-3xl" />
@@ -75,39 +84,22 @@ export default function Login() {
             <img src="/android-chrome-192x192.png" alt="Laurena Studio" className="h-12 w-12 rounded-xl shadow-lg shadow-black/20 ring-2 ring-white/20" />
             <span className="font-bagel text-3xl tracking-[0.2em] text-white drop-shadow-sm">LAURENA</span>
           </div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-white/60">Studio com IA</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-white/60">{t('pages.login.studioAi')}</p>
           <h1 className="text-balance text-4xl font-bold leading-[1.35] tracking-tight xl:text-[2.65rem]">
-            Crie campanhas publicitárias e sites{' '}
+            {t('pages.login.heroTitle')}{' '}
             <span className="relative inline-block">
               <span className="relative z-10 bg-gradient-to-r from-white to-white/85 bg-clip-text text-transparent">
-                com IA
+                {t('pages.login.heroTitleHighlight')}
               </span>
               <span className="absolute -inset-x-1 -bottom-0.5 z-0 h-3 rounded-sm bg-white/25" aria-hidden />
             </span>
           </h1>
           <p className="mt-6 max-w-[34rem] text-base leading-relaxed text-white/82 md:text-lg">
-            Aqui você cria imagens, vídeos e áudio para suas campanhas de anúncio, gera textos e conteúdos visuais e cria sites
-            completos sem programar.{' '}
-            <span className="font-medium text-white">Tudo com inteligência artificial.</span>
+            {t('pages.login.heroSubtitle')}{' '}
+            <span className="font-medium text-white">{t('pages.login.heroHighlight')}</span>
           </p>
           <ul className="mt-10 flex flex-col gap-3 sm:grid sm:grid-cols-3 sm:gap-4">
-            {[
-              {
-                icon: Megaphone,
-                title: 'Campanhas',
-                desc: 'Imagens, vídeos e áudio para anúncios',
-              },
-              {
-                icon: Layers,
-                title: 'Conteúdo',
-                desc: 'Textos, imagens, vídeos e áudio',
-              },
-              {
-                icon: Globe,
-                title: 'Sites',
-                desc: 'Sem programar, com IA',
-              },
-            ].map(({ icon: Icon, title, desc }) => (
+            {pillars.map(({ icon: Icon, title, desc }) => (
               <li
                 key={title}
                 className="group flex gap-3 rounded-2xl border border-white/15 bg-white/[0.08] p-4 shadow-lg shadow-black/5 backdrop-blur-md transition-all duration-300 hover:border-white/25 hover:bg-white/[0.14]"
@@ -125,7 +117,6 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Lado direito - Formulário */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-background">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2 mb-2 lg:hidden">
@@ -133,12 +124,11 @@ export default function Login() {
             <span className="font-bagel tracking-wider text-xl">LAURENA</span>
           </div>
 
-          <h2 className="text-2xl font-bold mb-1">Entrar na sua conta</h2>
+          <h2 className="text-2xl font-bold mb-1">{t('pages.login.formTitle')}</h2>
           <p className="text-muted-foreground mb-8">
-            Bem-vindo de volta! Insira seus dados para continuar.
+            {t('pages.login.formSubtitle')}
           </p>
 
-          {/* OAuth */}
           <Button
             variant="outline"
             className="w-full h-11 gap-2 mb-3"
@@ -162,7 +152,7 @@ export default function Login() {
                 fill="#EA4335"
               />
             </svg>
-            Continuar com Google
+            {t('pages.login.continueGoogle')}
           </Button>
 
           <Button
@@ -173,25 +163,25 @@ export default function Login() {
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
               <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.883v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
             </svg>
-            Continuar com Facebook
+            {t('pages.login.continueFacebook')}
           </Button>
 
           <div className="relative my-6">
             <Separator />
             <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground">
-              ou
+              {t('common.or')}
             </span>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu@email.com"
+                  placeholder={t('pages.login.emailPlaceholder')}
                   className="pl-10 h-11"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -201,12 +191,12 @@ export default function Login() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="senha">Senha</Label>
+                <Label htmlFor="senha">{t('auth.password')}</Label>
                 <Link
                   to="/esqueci-senha"
                   className="text-xs text-primary hover:underline"
                 >
-                  Esqueceu a senha?
+                  {t('pages.login.forgotPassword')}
                 </Link>
               </div>
               <div className="relative">
@@ -233,18 +223,18 @@ export default function Login() {
               {carregando ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Entrando...
+                  {t('pages.login.entering')}
                 </div>
               ) : (
-                'Entrar'
+                t('pages.login.submit')
               )}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Ainda não tem conta?{' '}
+            {t('pages.login.noAccount')}{' '}
             <Link to="/registro" className="text-primary font-medium hover:underline">
-              Criar conta grátis
+              {t('pages.login.createFree')}
             </Link>
           </p>
         </div>

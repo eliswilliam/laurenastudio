@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import api, { getAiVideoJobStatus } from '@/lib/api';
 import AIInferenceAnimation from '@/components/shared/AIInferenceAnimation';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
   FacebookIcon,
   InstagramIcon,
@@ -88,6 +89,7 @@ const shareChannels = [
 ] as const;
 
 export default function MarketingAI() {
+  const { t } = useTranslation();
   const selectedType = useMarketingAIStore((s) => s.selectedType);
   const setSelectedType = useMarketingAIStore((s) => s.setSelectedType);
   const videoMode = useMarketingAIStore((s) => s.videoMode);
@@ -123,11 +125,19 @@ export default function MarketingAI() {
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
-      toast({ title: 'Formato inválido', description: 'Envie uma imagem (PNG, JPG, WebP).', variant: 'destructive' });
+      toast({
+        title: t('pages.marketingAI.toastInvalidFormat'),
+        description: t('pages.marketingAI.toastInvalidFormatDesc'),
+        variant: 'destructive',
+      });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'Arquivo muito grande', description: 'Máximo 10 MB.', variant: 'destructive' });
+      toast({
+        title: t('pages.marketingAI.toastFileTooBig'),
+        description: t('pages.marketingAI.toastFileTooBigDesc'),
+        variant: 'destructive',
+      });
       return;
     }
     setReferenceMime(file.type);
@@ -135,7 +145,7 @@ export default function MarketingAI() {
     const reader = new FileReader();
     reader.onload = () => setReferenceImage((reader.result as string).split(',')[1]);
     reader.readAsDataURL(file);
-  }, [toast]);
+  }, [toast, t]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -170,7 +180,7 @@ export default function MarketingAI() {
           { timeout: 120000 }
         );
         setImageResult(data);
-        toast({ title: 'Imagem gerada!', description: data.message });
+        toast({ title: t('pages.marketingAI.toastImageGenerated'), description: data.message });
       } else {
         const res = await api.post<{ jobId?: string }>(
           '/marketing/generate-video',
@@ -185,7 +195,7 @@ export default function MarketingAI() {
           { timeout: 120000, validateStatus: (s) => s === 202 }
         );
         const jobId = res.data.jobId;
-        if (!jobId) throw new Error('Resposta sem jobId ao enfileirar vídeo.');
+        if (!jobId) throw new Error(t('pages.marketingAI.errorNoJobId'));
 
         const maxWaitMs = 15 * 60 * 1000;
         const started = Date.now();
@@ -198,22 +208,22 @@ export default function MarketingAI() {
               video_url: String(r.video_url ?? ''),
               usage_after: Number(r.usage_after ?? 0),
               limit: Number(r.limit ?? 0),
-              message: String(r.message ?? 'Vídeo publicitário gerado com sucesso.'),
+              message: String(r.message ?? t('pages.marketingAI.defaultVideoSuccess')),
             };
             break;
           }
           if (j.status === 'failed') {
-            throw new Error(j.error || 'Falha na geração do vídeo');
+            throw new Error(j.error || t('pages.marketingAI.errorVideoGen'));
           }
           await new Promise((r) => setTimeout(r, 2500));
         }
-        if (!data) throw new Error('Tempo esgotado ao aguardar o vídeo.');
+        if (!data) throw new Error(t('pages.marketingAI.errorVideoTimeout'));
         setVideoResult(data);
-        toast({ title: 'Vídeo gerado!', description: data.message });
+        toast({ title: t('pages.marketingAI.toastVideoGenerated'), description: data.message });
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro desconhecido';
-      toast({ title: 'Erro na geração', description: message, variant: 'destructive' });
+      const message = err instanceof Error ? err.message : t('pages.marketingAI.unknownError');
+      toast({ title: t('pages.marketingAI.toastGenError'), description: message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -249,8 +259,12 @@ export default function MarketingAI() {
     if (shareUrls[channel]) {
       window.open(shareUrls[channel], '_blank', 'width=600,height=500');
     } else {
+      const label = shareChannels.find((c) => c.key === channel)?.label ?? channel;
       navigator.clipboard.writeText(`${text}\n${url}`);
-      toast({ title: 'Link copiado!', description: `Conteúdo copiado para compartilhar no ${channel}.` });
+      toast({
+        title: t('pages.marketingAI.linkCopied'),
+        description: t('pages.marketingAI.linkCopiedDesc', { channel: label }),
+      });
     }
   };
 
@@ -270,10 +284,8 @@ export default function MarketingAI() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-2">
             <Megaphone className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold">Marketing AI</h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Utilize a Laurena AI para criar imagens, vídeos e áudio publicitários para sua empresa em poucos minutos.
-          </p>
+          <h1 className="text-3xl font-bold">{t('nav.marketingAI')}</h1>
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('pages.marketingAI.heroSubtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -284,14 +296,12 @@ export default function MarketingAI() {
                   <ImageIcon className="w-10 h-10 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold mb-2">Gerar Imagem</h2>
-                  <p className="text-muted-foreground text-sm">
-                    Crie imagens publicitárias profissionais com IA. Envie sua foto ou deixe a IA gerar automaticamente.
-                  </p>
+                  <h2 className="text-xl font-bold mb-2">{t('pages.marketingAI.pickImageTitle')}</h2>
+                  <p className="text-muted-foreground text-sm">{t('pages.marketingAI.pickImageDesc')}</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-primary text-sm font-medium">
                   <BrainCircuit className="w-4 h-4" />
-                  Gemini 2.5
+                  {t('pages.marketingAI.pickImageModel')}
                 </div>
               </CardContent>
             </Card>
@@ -304,14 +314,12 @@ export default function MarketingAI() {
                   <Video className="w-10 h-10 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold mb-2">Gerar Vídeo</h2>
-                  <p className="text-muted-foreground text-sm">
-                    Crie vídeos publicitários dinâmicos com IA. Ideal para stories, reels e anúncios em vídeo.
-                  </p>
+                  <h2 className="text-xl font-bold mb-2">{t('pages.marketingAI.pickVideoTitle')}</h2>
+                  <p className="text-muted-foreground text-sm">{t('pages.marketingAI.pickVideoDesc')}</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-primary text-sm font-medium">
                   <BrainCircuit className="w-4 h-4" />
-                  Minimax
+                  {t('pages.marketingAI.pickVideoModel')}
                 </div>
               </CardContent>
             </Card>
@@ -336,12 +344,10 @@ export default function MarketingAI() {
             ) : (
               <Video className="w-6 h-6 text-primary" />
             )}
-            {selectedType === 'image' ? 'Gerar Imagem Publicitária' : 'Gerar Vídeo Publicitário'}
+            {selectedType === 'image' ? t('pages.marketingAI.formTitleImage') : t('pages.marketingAI.formTitleVideo')}
           </h1>
           <p className="text-muted-foreground">
-            {selectedType === 'image'
-              ? 'Preencha os dados e a IA criará uma imagem profissional para seu anúncio.'
-              : 'Preencha os dados e a IA criará um vídeo dinâmico para seu anúncio.'}
+            {selectedType === 'image' ? t('pages.marketingAI.formSubImage') : t('pages.marketingAI.formSubVideo')}
           </p>
         </div>
       </div>
@@ -354,7 +360,7 @@ export default function MarketingAI() {
               {/* Video mode selector */}
               {selectedType === 'video' && (
                 <div className="space-y-2">
-                  <Label>Modo de Geração</Label>
+                  <Label>{t('pages.marketingAI.videoModeLabel')}</Label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setVideoMode('text_to_video')}
@@ -366,8 +372,8 @@ export default function MarketingAI() {
                     >
                       <FileVideo className="w-5 h-5 text-primary shrink-0" />
                       <div>
-                        <p className="text-sm font-medium">Texto → Vídeo</p>
-                        <p className="text-xs text-muted-foreground">Gerar vídeo a partir de texto</p>
+                        <p className="text-sm font-medium">{t('pages.marketingAI.textToVideoTitle')}</p>
+                        <p className="text-xs text-muted-foreground">{t('pages.marketingAI.textToVideoDesc')}</p>
                       </div>
                     </button>
                     <button
@@ -380,8 +386,8 @@ export default function MarketingAI() {
                     >
                       <FileImage className="w-5 h-5 text-primary shrink-0" />
                       <div>
-                        <p className="text-sm font-medium">Imagem → Vídeo</p>
-                        <p className="text-xs text-muted-foreground">Animar uma imagem em vídeo</p>
+                        <p className="text-sm font-medium">{t('pages.marketingAI.imageToVideoTitle')}</p>
+                        <p className="text-xs text-muted-foreground">{t('pages.marketingAI.imageToVideoDesc')}</p>
                       </div>
                     </button>
                   </div>
@@ -389,10 +395,10 @@ export default function MarketingAI() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="brand">Nome da Marca *</Label>
+                <Label htmlFor="brand">{t('pages.marketingAI.brandLabel')}</Label>
                 <Input
                   id="brand"
-                  placeholder="Ex: Laurena Studio"
+                  placeholder={t('pages.marketingAI.brandPlaceholder')}
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
                   disabled={loading}
@@ -400,10 +406,10 @@ export default function MarketingAI() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="adText">Texto da Publicidade *</Label>
+                <Label htmlFor="adText">{t('pages.marketingAI.adTextLabel')}</Label>
                 <Textarea
                   id="adText"
-                  placeholder="Ex: Transforme sua presença digital com ferramentas de IA"
+                  placeholder={t('pages.marketingAI.adTextPlaceholder')}
                   className="min-h-[100px] resize-none"
                   value={adText}
                   onChange={(e) => setAdText(e.target.value)}
@@ -417,15 +423,19 @@ export default function MarketingAI() {
                 <div className="space-y-2">
                   <Label>
                     {selectedType === 'video' && videoMode === 'image_to_video'
-                      ? 'Imagem de Origem *'
-                      : 'Imagem de Referência'}
+                      ? t('pages.marketingAI.refOrigin')
+                      : t('pages.marketingAI.refReference')}
                     {selectedType === 'image' && (
-                      <span className="text-muted-foreground font-normal ml-1">(opcional)</span>
+                      <span className="text-muted-foreground font-normal ml-1">{t('pages.marketingAI.optional')}</span>
                     )}
                   </Label>
                   {referencePreview ? (
                     <div className="relative inline-block">
-                      <img src={referencePreview} alt="Referência" className="w-40 h-40 object-cover rounded-xl border" />
+                      <img
+                        src={referencePreview}
+                        alt={t('pages.marketingAI.altReference')}
+                        className="w-40 h-40 object-cover rounded-xl border"
+                      />
                       <button
                         onClick={removeImage}
                         className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:scale-110 transition-transform"
@@ -441,8 +451,8 @@ export default function MarketingAI() {
                       className="border-2 border-dashed rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
                     >
                       <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Arraste uma imagem ou clique para upload</p>
-                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WebP até 10MB</p>
+                      <p className="text-sm text-muted-foreground">{t('pages.marketingAI.uploadHint')}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('pages.marketingAI.uploadFormats')}</p>
                     </div>
                   )}
                   <input
@@ -460,15 +470,15 @@ export default function MarketingAI() {
 
               <div className="space-y-2">
                 <Label htmlFor="prompt">
-                  {selectedType === 'image' ? 'Prompt da Imagem' : 'Prompt do Vídeo'}{' '}
-                  <span className="text-muted-foreground font-normal">(opcional)</span>
+                  {selectedType === 'image' ? t('pages.marketingAI.promptImage') : t('pages.marketingAI.promptVideo')}{' '}
+                  <span className="text-muted-foreground font-normal">{t('pages.marketingAI.optional')}</span>
                 </Label>
                 <Textarea
                   id="prompt"
                   placeholder={
                     selectedType === 'image'
-                      ? 'Descreva a imagem que deseja…'
-                      : 'Descreva o vídeo que deseja…'
+                      ? t('pages.marketingAI.promptPlaceholderImage')
+                      : t('pages.marketingAI.promptPlaceholderVideo')
                   }
                   className="min-h-[80px] resize-none"
                   value={prompt}
@@ -483,7 +493,7 @@ export default function MarketingAI() {
                 disabled={loading || !brandName.trim() || !adText.trim()}
               >
                 <BrainCircuit className="w-5 h-5" />
-                {selectedType === 'image' ? 'Gerar Imagem Publicitária' : 'Gerar Vídeo Publicitário'}
+                {selectedType === 'image' ? t('pages.marketingAI.generateImage') : t('pages.marketingAI.generateVideo')}
               </Button>
             </CardContent>
           </Card>
@@ -494,7 +504,7 @@ export default function MarketingAI() {
           <Card className="rounded-xl min-h-[400px] flex flex-col">
             <CardContent className="p-6 flex-1 flex flex-col">
               <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-4">
-                Resultado
+                {t('pages.marketingAI.resultTitle')}
               </h3>
 
               {/* AI inference animation */}
@@ -510,7 +520,7 @@ export default function MarketingAI() {
                       <Video className="w-8 h-8 text-muted-foreground" />
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">O resultado aparecerá aqui após a geração.</p>
+                  <p className="text-sm text-muted-foreground">{t('pages.marketingAI.emptyResult')}</p>
                 </div>
               )}
 
@@ -519,7 +529,7 @@ export default function MarketingAI() {
                 <div className="space-y-4">
                   <img
                     src={`${backendBase}${imageResult.image_url}`}
-                    alt="Anúncio gerado"
+                    alt={t('pages.marketingAI.altAd')}
                     className="w-full rounded-xl border shadow-sm"
                   />
                   {imageResult.ai_text && (
@@ -531,7 +541,7 @@ export default function MarketingAI() {
               {imageResult && !imageResult.image_url && imageResult.ai_text && (
                 <div className="space-y-3">
                   <p className="text-sm">{imageResult.ai_text}</p>
-                  <p className="text-xs text-muted-foreground">A IA retornou texto em vez de imagem. Tente ajustar o prompt.</p>
+                  <p className="text-xs text-muted-foreground">{t('pages.marketingAI.aiTextInstead')}</p>
                 </div>
               )}
 
@@ -553,7 +563,7 @@ export default function MarketingAI() {
                   <a href={getContentUrl()} download target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" className="w-full gap-2">
                       <Download className="w-4 h-4" />
-                      {imageResult ? 'Baixar Imagem' : 'Baixar Vídeo'}
+                      {imageResult ? t('pages.marketingAI.downloadImage') : t('pages.marketingAI.downloadVideo')}
                     </Button>
                   </a>
 
@@ -561,7 +571,7 @@ export default function MarketingAI() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <Share2 className="w-4 h-4" />
-                      Compartilhar
+                      {t('pages.marketingAI.share')}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {shareChannels.map(({ key, Icon, label, btnClass }) => (
@@ -581,15 +591,18 @@ export default function MarketingAI() {
                   {/* Edit */}
                   <Button variant="secondary" className="w-full gap-2" onClick={handleEdit}>
                     <Pencil className="w-4 h-4" />
-                    Editar no Studio
+                    {t('pages.marketingAI.editInStudio')}
                   </Button>
 
                   {/* Usage */}
                   <p className="text-xs text-muted-foreground text-center">
-                    Uso: {imageResult ? imageResult.usage_after : videoResult?.usage_after}/
-                    {(imageResult ? imageResult.limit : videoResult?.limit) === 0
-                      ? '∞'
-                      : imageResult ? imageResult.limit : videoResult?.limit}
+                    {t('pages.marketingAI.usage', {
+                      used: imageResult ? imageResult.usage_after : videoResult?.usage_after ?? 0,
+                      limit:
+                        (imageResult ? imageResult.limit : videoResult?.limit) === 0
+                          ? '∞'
+                          : String(imageResult ? imageResult.limit : videoResult?.limit ?? 0),
+                    })}
                   </p>
                 </div>
               )}

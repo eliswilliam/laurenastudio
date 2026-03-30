@@ -25,6 +25,13 @@
     "confirmPassword": "Confirm password"
   },
   "common": {
+    "unlimited": "Unlimited",
+    "or": "or",
+    "user": "User",
+    "retry": "Try again",
+    "back": "Back",
+    "active": "Active",
+    "inactive": "Inactive",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",

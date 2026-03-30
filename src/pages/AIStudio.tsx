@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAIStudioStore, type StudioChatMessage, type StudioMode } from '@/store/useAIStudioStore';
 import {
   BrainCircuit,
@@ -22,12 +22,14 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import api, { getAiVideoJobStatus } from '@/lib/api';
 import AIInferenceAnimation from '@/components/shared/AIInferenceAnimation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** Rótulos exibidos na UI (os IDs técnicos enviados à API permanecem inalterados). */
 const STUDIO_LABEL_IMAGE_MODEL = 'nano banana2';
 const STUDIO_LABEL_VIDEO_MODEL = 'veo3';
 
 export default function AIStudio() {
+  const { t } = useTranslation();
   const mode = useAIStudioStore((s) => s.mode);
   const setMode = useAIStudioStore((s) => s.setMode);
   const messages = useAIStudioStore((s) => s.messages);
@@ -50,7 +52,11 @@ export default function AIStudio() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-        toast({ title: 'Formato inválido', description: 'Envie uma imagem', variant: 'destructive' });
+        toast({
+          title: t('pages.aiStudio.toastInvalidImage'),
+          description: t('pages.aiStudio.toastInvalidImageDesc'),
+          variant: 'destructive',
+        });
         return;
     }
     setReferenceMime(file.type);
@@ -86,7 +92,11 @@ export default function AIStudio() {
     if (isGenerating || !mode) return;
 
     if (mode === 'video' && !referenceImage) {
-        toast({ title: 'Imagem obrigatória', description: 'Por favor, adicione uma imagem para gerar o vídeo.', variant: 'destructive' });
+        toast({
+          title: t('pages.aiStudio.toastImageRequired'),
+          description: t('pages.aiStudio.toastImageRequiredDesc'),
+          variant: 'destructive',
+        });
         return;
     }
 
@@ -139,21 +149,21 @@ export default function AIStudio() {
             const j = await getAiVideoJobStatus(jobId);
             if (j.status === 'success' && j.result) {
               videoUrl = String((j.result as Record<string, unknown>).content ?? '');
-              if (!videoUrl) throw new Error('Vídeo gerado sem URL.');
+              if (!videoUrl) throw new Error(t('pages.aiStudio.errorVideoNoUrl'));
               break;
             }
             if (j.status === 'failed') {
-              throw new Error(j.error || 'Geração falhou');
+              throw new Error(j.error || t('pages.aiStudio.errorGenFailed'));
             }
             await new Promise((r) => setTimeout(r, 2500));
           }
           if (!videoUrl) {
-            throw new Error('Tempo esgotado ao aguardar o vídeo. Tente novamente.');
+            throw new Error(t('pages.aiStudio.errorVideoTimeout'));
           }
         } else if (res.status === 200 && res.data.content) {
           videoUrl = res.data.content;
         } else {
-          throw new Error('Resposta inesperada do servidor ao gerar vídeo.');  
+          throw new Error(t('pages.aiStudio.errorVideoUnexpected'));
         }
 
         const assistantMsg: StudioChatMessage = {
@@ -173,7 +183,7 @@ export default function AIStudio() {
         );
         const audioPath = data.content?.trim();
         if (!audioPath || !audioPath.startsWith('/uploads/')) {
-          throw new Error('Resposta de áudio inválida do servidor.');
+          throw new Error(t('pages.aiStudio.errorAudioInvalid'));
         }
         const assistantMsg: StudioChatMessage = {
           id: (Date.now() + 1).toString(),
@@ -185,17 +195,20 @@ export default function AIStudio() {
         };
         setMessages((prev) => [...prev, assistantMsg]);
       }
-      toast({ title: 'Conteúdo gerado!', description: 'A IA finalizou a geração.' });
+      toast({
+        title: t('pages.aiStudio.toastGenerated'),
+        description: t('pages.aiStudio.toastGeneratedDesc'),
+      });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro desconhecido'; 
+      const message = err instanceof Error ? err.message : t('pages.marketingAI.unknownError');
       const errorMsg: StudioChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Erro na geração: ${message}`,
+        content: t('pages.aiStudio.generationError', { message }),
         timestamp: ts(),
       };
       setMessages((prev) => [...prev, errorMsg]);
-      toast({ title: 'Erro', description: message, variant: 'destructive' });   
+      toast({ title: t('pages.aiStudio.toastError'), description: message, variant: 'destructive' });   
     } finally {
       setIsGenerating(false);
     }
@@ -210,13 +223,24 @@ export default function AIStudio() {
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: 'Copiado!' });
+    toast({ title: t('pages.aiStudio.copied') });
   };
 
   const resetStudio = () => {
     resetStudioStore();
     setIsGenerating(false);
   };
+
+  const suggestionList = useMemo((): string[] => {
+    if (!mode) return [];
+    if (mode === 'image') {
+      return t('pages.aiStudio.suggestions.image', { returnObjects: true }) as string[];
+    }
+    if (mode === 'video') {
+      return t('pages.aiStudio.suggestions.video', { returnObjects: true }) as string[];
+    }
+    return t('pages.aiStudio.suggestions.audio', { returnObjects: true }) as string[];
+  }, [mode, t]);
 
   // Landing page
   if (!mode) {
@@ -226,10 +250,8 @@ export default function AIStudio() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-2">
             <BrainCircuit className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold">AI Studio</h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Gere conteúdo de alta qualidade com inteligência artificial. Escolha o tipo de conteúdo abaixo.
-          </p>
+          <h1 className="text-3xl font-bold">{t('nav.aiStudio')}</h1>
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('pages.aiStudio.landingSubtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -241,10 +263,8 @@ export default function AIStudio() {
                   <ImageIcon className="w-8 h-8 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold mb-1">Imagem</h2>
-                  <p className="text-muted-foreground text-sm">
-                    Gere imagens a partir do seu texto usando inteligência artificial avançada.
-                  </p>
+                  <h2 className="text-lg font-bold mb-1">{t('pages.aiStudio.cardImageTitle')}</h2>
+                  <p className="text-muted-foreground text-sm">{t('pages.aiStudio.cardImageDesc')}</p>
                 </div>
                 <Badge variant="secondary" className="gap-1">
                   <BrainCircuit className="w-3 h-3" />
@@ -262,10 +282,8 @@ export default function AIStudio() {
                   <Video className="w-8 h-8 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold mb-1">Vídeo</h2>
-                  <p className="text-muted-foreground text-sm">
-                    Gere vídeos cinematográficos e criativos com IA generativa.
-                  </p>
+                  <h2 className="text-lg font-bold mb-1">{t('pages.aiStudio.cardVideoTitle')}</h2>
+                  <p className="text-muted-foreground text-sm">{t('pages.aiStudio.cardVideoDesc')}</p>
                 </div>
                 <Badge variant="secondary" className="gap-1">
                   <BrainCircuit className="w-3 h-3" />
@@ -283,14 +301,12 @@ export default function AIStudio() {
                   <Music className="w-8 h-8 text-violet-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold mb-1">Áudio</h2>
-                  <p className="text-muted-foreground text-sm">
-                    Síntese de voz neural (Azure AI Speech) a partir do seu texto.
-                  </p>
+                  <h2 className="text-lg font-bold mb-1">{t('pages.aiStudio.cardAudioTitle')}</h2>
+                  <p className="text-muted-foreground text-sm">{t('pages.aiStudio.cardAudioDesc')}</p>
                 </div>
                 <Badge variant="secondary" className="gap-1">
                   <Music className="w-3 h-3" />
-                  Azure AI Speech
+                  {t('pages.aiStudio.badgeAzureSpeech')}
                 </Badge>
               </CardContent>
             </Card>
@@ -302,13 +318,17 @@ export default function AIStudio() {
 
   // Chat interface
   const modeLabel =
-    mode === 'image' ? 'Imagem' : mode === 'video' ? 'Vídeo' : 'Áudio';
+    mode === 'image'
+      ? t('pages.aiStudio.cardImageTitle')
+      : mode === 'video'
+        ? t('pages.aiStudio.cardVideoTitle')
+        : t('pages.aiStudio.cardAudioTitle');
   const modeModel =
     mode === 'image'
       ? STUDIO_LABEL_IMAGE_MODEL
       : mode === 'video'
         ? STUDIO_LABEL_VIDEO_MODEL
-        : 'Azure Neural TTS';
+        : t('pages.aiStudio.labelAudioModel');
 
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-8rem)]">
@@ -321,9 +341,9 @@ export default function AIStudio() {
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <BrainCircuit className="w-5 h-5 text-primary" />
-              AI Studio · {modeLabel}
+              {t('pages.aiStudio.headerSuffix', { mode: modeLabel })}
             </h1>
-            <p className="text-sm text-muted-foreground">Modelo: {modeModel}</p>
+            <p className="text-sm text-muted-foreground">{t('pages.aiStudio.modelLine', { model: modeModel })}</p>
           </div>
         </div>
         <Badge variant="secondary" className="gap-1">
@@ -346,35 +366,18 @@ export default function AIStudio() {
               )}
             </div>
             <div>
-              <p className="font-medium">Comece uma conversa</p>
+              <p className="font-medium">{t('pages.aiStudio.emptyChatTitle')}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 {mode === 'image'
-                  ? 'Descreva a imagem que deseja gerar.'
+                  ? t('pages.aiStudio.emptyChatHintImage')
                   : mode === 'video'
-                    ? 'Descreva o vídeo que deseja criar. Pode enviar uma imagem inicial.'
-                    : 'Escreva o texto que deseja ouvir em voz sintética.'}
+                    ? t('pages.aiStudio.emptyChatHintVideo')
+                    : t('pages.aiStudio.emptyChatHintAudio')}
               </p>
             </div>
             {/* Quick suggestions */}
             <div className="flex flex-wrap gap-2 max-w-md justify-center">
-              {(mode === 'image'
-                ? [
-                    'Crie uma imagem para post de Instagram sobre café',
-                    'Gere um banner para promoção de verão',
-                    'Crie uma imagem minimalista de logo tech',
-                  ]
-                : mode === 'video'
-                  ? [
-                      'Crie um vídeo de um pôr do sol na praia',
-                      'Gere um vídeo de transição suave de produto',
-                      'Crie um vídeo cinematográfico urbano',
-                    ]
-                  : [
-                      'Olá! Bem-vindo ao Laurena Studio.',
-                      'Promoção de verão: cinquenta por cento em todos os artigos.',
-                      'Mensagem calma para o seu podcast de hoje.',
-                    ]
-              ).map((suggestion) => (
+              {suggestionList.map((suggestion) => (
                 <button
                   key={suggestion}
                   onClick={() => setInput(suggestion)}
@@ -420,7 +423,7 @@ export default function AIStudio() {
                     <a href={msg.mediaUrl} download target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
                         <Download className="w-3 h-3" />
-                        Baixar
+                        {t('pages.aiStudio.download')}
                       </Button>
                     </a>
                   </div>
@@ -433,7 +436,7 @@ export default function AIStudio() {
                   <a href={msg.mediaUrl} download target="_blank" rel="noopener noreferrer">
                     <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
                       <Download className="w-3 h-3" />
-                      Baixar
+                      {t('pages.aiStudio.download')}
                     </Button>
                   </a>
                 </div>
@@ -450,7 +453,7 @@ export default function AIStudio() {
                   >
                     <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
                       <Download className="w-3 h-3" />
-                      Baixar WAV
+                      {t('pages.aiStudio.downloadWav')}
                     </Button>
                   </a>
                 </div>
@@ -462,7 +465,7 @@ export default function AIStudio() {
                   className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Copy className="w-3 h-3" />
-                  Copiar
+                  {t('pages.aiStudio.copy')}
                 </button>
               )}
             </div>
@@ -516,10 +519,10 @@ export default function AIStudio() {
               ref={textareaRef}
               placeholder={
                 mode === 'image'
-                  ? 'Descreva a imagem que deseja gerar…'
+                  ? t('pages.aiStudio.placeholderImage')
                   : mode === 'video'
-                    ? 'Descreva o vídeo que deseja criar…'
-                    : 'Texto para síntese de voz…'
+                    ? t('pages.aiStudio.placeholderVideo')
+                    : t('pages.aiStudio.placeholderAudio')
               }
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -543,10 +546,10 @@ export default function AIStudio() {
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
           {mode === 'image'
-            ? `${STUDIO_LABEL_IMAGE_MODEL} gera imagens de alta qualidade.`
+            ? t('pages.aiStudio.footerImage', { model: STUDIO_LABEL_IMAGE_MODEL })
             : mode === 'video'
-              ? `${STUDIO_LABEL_VIDEO_MODEL}: a geração de vídeo pode levar alguns minutos.`
-              : 'Azure Speech TTS: converta textos em voz ultrarrealista.'}
+              ? t('pages.aiStudio.footerVideo', { model: STUDIO_LABEL_VIDEO_MODEL })
+              : t('pages.aiStudio.footerAudio')}
         </p>
       </div>
     </div>

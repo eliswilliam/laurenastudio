@@ -4,29 +4,36 @@ import {
   LayoutTemplate,
   Megaphone,
   BrainCircuit,
-  Globe,
   CreditCard,
   Settings,
   MoreHorizontal,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
-
-const mainItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: LayoutTemplate, label: 'Criar site', href: '/criar-site' },
-  { icon: Megaphone, label: 'Marketing AI', href: '/marketing-ai' },
-  { icon: BrainCircuit, label: 'AI Studio', href: '/ai-studio' },
-];
-
-const moreItems = [
-  { icon: CreditCard, label: 'Pagamento', href: '/pagamento' },
-  { icon: Settings, label: 'Configurações', href: '/configuracoes' },
-];
+import { useState, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function MobileBottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const { t } = useTranslation();
+
+  const mainItems = useMemo(
+    () => [
+      { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
+      { icon: LayoutTemplate, label: t('nav.criarSite'), href: '/criar-site' },
+      { icon: Megaphone, label: t('nav.marketingAI'), href: '/marketing-ai' },
+      { icon: BrainCircuit, label: t('nav.aiStudio'), href: '/ai-studio' },
+    ],
+    [t]
+  );
+
+  const moreItems = useMemo(
+    () => [
+      { icon: CreditCard, label: t('nav.pagamento'), href: '/pagamento' },
+      { icon: Settings, label: t('nav.configuracoes'), href: '/configuracoes' },
+    ],
+    [t]
+  );
 
   return (
     <>
@@ -46,7 +53,7 @@ export default function MobileBottomNav() {
         )}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <span className="font-semibold text-sm">Mais opções</span>
+          <span className="font-semibold text-sm">{t('sidebar.moreOptions')}</span>
           <button
             onClick={() => setMoreOpen(false)}
             className="p-1 rounded-full hover:bg-muted transition-colors"
@@ -106,7 +113,7 @@ export default function MobileBottomNav() {
             <div className="flex h-6 w-10 items-center justify-center rounded-full transition-colors">
               <MoreHorizontal className="w-5 h-5" />
             </div>
-            <span>Mais</span>
+            <span>{t('sidebar.more')}</span>
           </button>
         </div>
       </nav>

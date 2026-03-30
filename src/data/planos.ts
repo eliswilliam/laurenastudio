@@ -5,18 +5,6 @@
  */
 import type { Plano } from '@/lib/types';
 
-/** Textos partilhados (oferta / pagamento) — manter uma única fonte de verdade na UI */
-export const PLANOS_TEXTO_ECONOMIA_ANUAL = 'Economize 25% no plano anual';
-export const PLANOS_TEXTO_RECURSOS_TITULO = 'Recursos incluídos';
-export const PLANOS_TEXTO_RESTRICOES_TITULO = 'Restrições';
-export const PLANOS_TEXTO_MAIS_POPULAR = 'Mais popular';
-export const PLANOS_TEXTO_PAGAMENTO_STRIPE =
-  'Pagamento seguro via Stripe. Cancele quando quiser sem multa.';
-export const PLANOS_TEXTO_SUB_ESCOLHER_PLANO =
-  'Para acessar o painel, escolha o plano ideal para você. Cancele a qualquer momento.';
-export const PLANOS_TEXTO_SUB_INDEX =
-  'Planos flexíveis para cada fase da sua jornada. Cancele quando quiser.';
-
 /**
  * Quotas no backend (tabela `plans` + check_and_increment_usage):
  * text_limit, image_limit, video_limit, audio_limit, site_publish_limit.

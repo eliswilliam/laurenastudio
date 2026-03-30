@@ -38,5 +38,201 @@
     "title": "Crie posts, imagens, vídeos e áudio com Inteligência Artificial",
     "subtitle": "Agende em todas as redes sociais e acompanhe seus resultados. Tudo em um só lugar.",
     "cta": "Comece agora"
+  },
+  "sidebar": {
+    "collapse": "Recolher",
+    "moreOptions": "Mais opções",
+    "more": "Mais"
+  },
+  "appLayout": {
+    "checkingSubscription": "Verificando assinatura…"
+  },
+  "language": {
+    "switch": "Alterar idioma"
+  },
+  "landing": {
+    "header": {
+      "features": "Funcionalidades",
+      "howItWorks": "Como funciona",
+      "pricing": "Planos",
+      "login": "Entrar",
+      "startFree": "Começar grátis",
+      "toggleTheme": "Alternar tema",
+      "menu": "Menu"
+    },
+    "hero": {
+      "titleBefore": "Crie campanhas publicitárias e sites com",
+      "titleHighlight": "inteligência artificial",
+      "subtitle": "Aqui você cria imagens, vídeos e áudio para suas campanhas de anúncios, gera textos e conteúdo criativo e cria sites completos sem programar. Tudo com IA.",
+      "ctaPrimary": "Começar gratuitamente",
+      "ctaSecondary": "Entrar na plataforma",
+      "live": "Ao vivo"
+    },
+    "intro": {
+      "titleBefore": "Da ideia ao resultado,",
+      "titleHighlight": "sem atrito",
+      "subtitle": "Crie campanhas completas com imagens, vídeos, áudio e textos gerados por IA, tudo pensado para anúncios que convertem. Faça o deploy do seu site na web em poucos minutos, sem escrever uma linha de código.",
+      "pillars": {
+        "campaigns": { "title": "Campanhas", "subtitle": "Imagens, vídeos e áudio para anúncios" },
+        "content": { "title": "Conteúdo", "subtitle": "Textos, imagens, vídeo e áudio" },
+        "sites": { "title": "Sites", "subtitle": "Sem programar" },
+        "ai": { "title": "IA", "subtitle": "Gemini e Minimax" }
+      }
+    },
+    "featuresSection": {
+      "badge": "Soluções integradas",
+      "titleBefore": "Três formas de criar com",
+      "titleHighlight": "inteligência artificial",
+      "subtitle": "Campanhas publicitárias, conteúdos para redes sociais (imagem, vídeo, áudio e texto) e sites completos sem programar, num fluxo único com modelos de IA de última geração.",
+      "explore": "Explorar na plataforma"
+    },
+    "features": {
+      "ads": {
+        "title": "Campanhas publicitárias",
+        "desc": "Crie imagens, vídeos e áudio para suas campanhas de anúncio. Descreva o que precisa e a IA gera o material pronto para usar em Meta, Google ou qualquer rede.",
+        "accent": "Performance"
+      },
+      "content": {
+        "title": "Textos, imagens, vídeos e áudio",
+        "desc": "Gere conteúdos criativos para redes sociais. Textos, imagens, vídeos ou áudio em segundos. Você escolhe o tom e o estilo.",
+        "accent": "Criatividade"
+      },
+      "site": {
+        "title": "Criar site com IA",
+        "desc": "Crie sites completos sem programar. Descreva seu negócio e a IA monta o site para você. O site criado será protegido automaticamente pela Cloudflare (HTTPS e rede global).",
+        "accent": "Presença digital"
+      }
+    },
+    "howItWorks": {
+      "badge": "Como funciona",
+      "titleBefore": "É simples em",
+      "titleHighlight": "três passos",
+      "subtitle": "Você descreve, a IA cria e você usa. Sem complicação.",
+      "steps": {
+        "1": {
+          "title": "Descreva o que precisa",
+          "desc": "Escreva em poucas palavras o que quer criar: uma imagem para anúncio, um vídeo para Instagram, um áudio ou um texto para post."
+        },
+        "2": {
+          "title": "A IA gera o conteúdo",
+          "desc": "Em segundos você recebe o material pronto. Imagem, vídeo, áudio ou texto, conforme pediu."
+        },
+        "3": {
+          "title": "Use onde quiser",
+          "desc": "Baixe e use em suas campanhas de anúncio, redes sociais ou onde precisar."
+        }
+      }
+    },
+    "models": {
+      "badge": "Modelos de IA",
+      "titleBefore": "Os mais potentes do mercado,",
+      "titleHighlight": "na sua conta",
+      "subtitle": "A Laurena Studio integra modelos de referência para cada tipo de criação: sites, conteúdo multimodal e vídeo, com o Google Gemini 3.1 Pro no núcleo para texto, imagens e áudio de alto desempenho.",
+      "footnote": "A disponibilidade exata de cada modelo pode variar conforme o seu plano e atualizações da plataforma. Sempre priorizamos as versões mais recentes e capazes.",
+      "claude": {
+        "name": "Claude Opus 4.6",
+        "use": "Sites com IA",
+        "desc": "Modelo topo de linha da Anthropic para raciocínio longo, estrutura de páginas e geração de sites completos com qualidade profissional.",
+        "tag": "Anthropic"
+      },
+      "gemini": {
+        "name": "Google Gemini 3.1 Pro",
+        "use": "Texto, imagens e áudio",
+        "desc": "Multimodal da Google para copy, criativos visuais e fluxos rápidos, entre os mais avançados do mercado para conteúdo criativo.",
+        "tag": "Google"
+      },
+      "minimax": {
+        "name": "Minimax",
+        "use": "Vídeo publicitário",
+        "desc": "Geração de vídeo com estética cinematográfica para anúncios, reels e campanhas, referência em desempenho para motion com IA.",
+        "tag": "Google"
+      }
+    },
+    "plans": {
+      "badge": "Planos",
+      "title": "Invista no seu crescimento",
+      "subtitle": "Planos flexíveis para cada fase da sua jornada. Cancele quando quiser.",
+      "monthly": "Mensal",
+      "annual": "Anual",
+      "economyBadge": "Economize 25% no plano anual",
+      "resourcesTitle": "Recursos incluídos",
+      "restrictionsTitle": "Restrições",
+      "mostPopular": "Mais popular",
+      "planLabel": "Plano",
+      "perMonth": " / mês",
+      "billedYear": "Cobrado R$ {{total}} / ano",
+      "ctaSales": "Falar com vendas",
+      "ctaSubscribe": "Assinar {{name}}",
+      "ctaStart": "Começar",
+      "starter": {
+        "recursos": [
+          "100 gerações de texto com IA",
+          "50 gerações de imagem",
+          "Todos os seus projetos num só lugar",
+          "5 gerações de vídeo por mês",
+          "3 publicações de site por mês",
+          "10 gerações de áudio por mês"
+        ]
+      },
+      "pro": {
+        "recursos": [
+          "300 gerações de texto com IA",
+          "100 gerações de imagem",
+          "Colaboração para equipas em crescimento",
+          "20 gerações de vídeo por mês",
+          "6 publicações de site por mês",
+          "20 gerações de áudio por mês",
+          "Suporte básico"
+        ]
+      },
+      "business": {
+        "recursos": [
+          "Geração de texto ilimitada",
+          "Geração de imagem ilimitada",
+          "Gerações de áudio ilimitadas",
+          "Equipas e projetos à escala ilimitada",
+          "100 gerações de vídeo por mês",
+          "30 publicações de site por mês",
+          "Financial AI: requisições ilimitadas",
+          "Suporte premium"
+        ]
+      }
+    },
+    "finalCta": {
+      "quote": "Cada frame importa.",
+      "title": "Quer criar campanhas e conteúdos com IA?",
+      "subtitle": "Crie sua conta e comece agora. Sem cartão de crédito.",
+      "primary": "Criar conta grátis",
+      "secondary": "Já tenho uma conta"
+    },
+    "footer": {
+      "tagline": "Crie campanhas publicitárias e sites com inteligência artificial. Imagens, vídeos, áudio, textos e sites completos sem programar.",
+      "product": "Produto",
+      "platform": "Plataforma",
+      "legal": "Legal",
+      "links": {
+        "features": "Funcionalidades",
+        "pricing": "Planos e Preços",
+        "howItWorks": "Como funciona",
+        "login": "Entrar",
+        "register": "Criar conta",
+        "dashboard": "Dashboard",
+        "privacy": "Privacidade",
+        "terms": "Termos Gerais",
+        "termsAi": "Termos de IA"
+      },
+      "copyright": "© 2026 Laurena Studio. Todos os direitos reservados.",
+      "bottomLine": "Crie campanhas, conteúdo multimídia (áudio, vídeo, imagem) e sites com IA"
+    }
+  },
+  "billing": {
+    "choosePlan": {
+      "badge": "Falta pouco",
+      "title": "Escolha seu plano para começar",
+      "subtitle": "Para acessar o painel, escolha o plano ideal para você. Cancele a qualquer momento."
+    },
+    "stripeFooter": "Pagamento seguro via Stripe. Cancele quando quiser sem multa.",
+    "checkoutErrorTitle": "Erro no checkout",
+    "checkoutErrorDescription": "Não foi possível iniciar o pagamento."
   }
 }

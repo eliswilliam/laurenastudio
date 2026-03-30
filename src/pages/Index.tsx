@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useTranslation } from "@/hooks/useTranslation";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import IntroSection from "@/components/IntroSection";
@@ -20,72 +21,7 @@ import {
   Bot,
   Clapperboard,
 } from "lucide-react";
-import {
-  PLANOS,
-  PLANOS_TEXTO_ECONOMIA_ANUAL,
-  PLANOS_TEXTO_RECURSOS_TITULO,
-  PLANOS_TEXTO_RESTRICOES_TITULO,
-  PLANOS_TEXTO_SUB_INDEX,
-  PLANOS_TEXTO_MAIS_POPULAR,
-} from "@/data/planos";
-
-const funcionalidades = [
-  {
-    icon: Megaphone,
-    titulo: "Campanhas publicitárias",
-    descricao:
-      "Crie imagens, vídeos e áudio para suas campanhas de anúncio. Descreva o que precisa e a IA gera o material pronto para usar em Meta, Google ou qualquer rede.",
-    href: "/login",
-    imagem: "/a4.jpeg",
-    gradient: "from-blue-600/90 to-blue-500/70",
-    ring: "group-hover:ring-blue-500/30",
-    chip: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
-    accentLabel: "Performance",
-  },
-  {
-    icon: BrainCircuit,
-    titulo: "Textos, imagens, vídeos e áudio",
-    descricao:
-      "Gere conteúdos criativos para redes sociais. Textos, imagens, vídeos ou áudio em segundos. Você escolhe o tom e o estilo.",
-    href: "/login",
-    imagem: "/a5.jpeg",
-    gradient: "from-primary to-primary/80",
-    ring: "group-hover:ring-primary/35",
-    chip: "bg-primary/10 text-primary",
-    accentLabel: "Criatividade",
-  },
-  {
-    icon: Globe,
-    titulo: "Criar site com IA",
-    descricao:
-      "Crie sites completos sem programar. Descreva seu negócio e a IA monta o site para você. O site criado será protegido automaticamente pela Cloudflare (HTTPS e rede global).",
-    href: "/login",
-    imagem: "/pexels-mart-production-7679865.jpg",
-    gradient: "from-amber-600/90 to-amber-500/70",
-    ring: "group-hover:ring-amber-500/30",
-    chip: "bg-amber-500/10 text-amber-800 dark:text-amber-300",
-    accentLabel: "Presença digital",
-  },
-];
-
-const passos = [
-  {
-    numero: "01",
-    titulo: "Descreva o que precisa",
-    descricao:
-      "Escreva em poucas palavras o que quer criar: uma imagem para anúncio, um vídeo para Instagram, um áudio ou um texto para post.",
-  },
-  {
-    numero: "02",
-    titulo: "A IA gera o conteúdo",
-    descricao: "Em segundos você recebe o material pronto. Imagem, vídeo, áudio ou texto, conforme pediu.",
-  },
-  {
-    numero: "03",
-    titulo: "Use onde quiser",
-    descricao: "Baixe e use em suas campanhas de anúncio, redes sociais ou onde precisar.",
-  },
-];
+import { PLANOS } from "@/data/planos";
 
 const iconesPlano = {
   starter: Zap,
@@ -93,35 +29,96 @@ const iconesPlano = {
   business: Building2,
 };
 
-const modelosIA = [
-  {
-    nome: "Claude Opus 4.6",
-    uso: "Sites com IA",
-    descricao:
-      "Modelo topo de linha da Anthropic para raciocínio longo, estrutura de páginas e geração de sites completos com qualidade profissional.",
-    icon: Bot,
-    tag: "Anthropic",
-  },
-  {
-    nome: "Google Gemini 3.1 Pro",
-    uso: "Texto, imagens e áudio",
-    descricao:
-      "Multimodal da Google para copy, criativos visuais e fluxos rápidos, entre os mais avançados do mercado para conteúdo criativo.",
-    icon: BrainCircuit,
-    tag: "Google",
-  },
-  {
-    nome: "Minimax",
-    uso: "Vídeo publicitário",
-    descricao:
-      "Geração de vídeo com estética cinematográfica para anúncios, reels e campanhas, referência em desempenho para motion com IA.",
-    icon: Clapperboard,
-    tag: "Google",
-  },
-] as const;
-
 const Index = () => {
   const [anual, setAnual] = useState(true);
+  const { t } = useTranslation();
+
+  const funcionalidades = useMemo(
+    () => [
+      {
+        icon: Megaphone,
+        titulo: t("landing.features.ads.title"),
+        descricao: t("landing.features.ads.desc"),
+        href: "/login",
+        imagem: "/a4.jpeg",
+        gradient: "from-blue-600/90 to-blue-500/70",
+        ring: "group-hover:ring-blue-500/30",
+        chip: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+        accentLabel: t("landing.features.ads.accent"),
+      },
+      {
+        icon: BrainCircuit,
+        titulo: t("landing.features.content.title"),
+        descricao: t("landing.features.content.desc"),
+        href: "/login",
+        imagem: "/a5.jpeg",
+        gradient: "from-primary to-primary/80",
+        ring: "group-hover:ring-primary/35",
+        chip: "bg-primary/10 text-primary",
+        accentLabel: t("landing.features.content.accent"),
+      },
+      {
+        icon: Globe,
+        titulo: t("landing.features.site.title"),
+        descricao: t("landing.features.site.desc"),
+        href: "/login",
+        imagem: "/pexels-mart-production-7679865.jpg",
+        gradient: "from-amber-600/90 to-amber-500/70",
+        ring: "group-hover:ring-amber-500/30",
+        chip: "bg-amber-500/10 text-amber-800 dark:text-amber-300",
+        accentLabel: t("landing.features.site.accent"),
+      },
+    ],
+    [t]
+  );
+
+  const passos = useMemo(
+    () => [
+      {
+        numero: "01",
+        titulo: t("landing.howItWorks.steps.1.title"),
+        descricao: t("landing.howItWorks.steps.1.desc"),
+      },
+      {
+        numero: "02",
+        titulo: t("landing.howItWorks.steps.2.title"),
+        descricao: t("landing.howItWorks.steps.2.desc"),
+      },
+      {
+        numero: "03",
+        titulo: t("landing.howItWorks.steps.3.title"),
+        descricao: t("landing.howItWorks.steps.3.desc"),
+      },
+    ],
+    [t]
+  );
+
+  const modelosIA = useMemo(
+    () => [
+      {
+        nome: t("landing.models.claude.name"),
+        uso: t("landing.models.claude.use"),
+        descricao: t("landing.models.claude.desc"),
+        icon: Bot,
+        tag: t("landing.models.claude.tag"),
+      },
+      {
+        nome: t("landing.models.gemini.name"),
+        uso: t("landing.models.gemini.use"),
+        descricao: t("landing.models.gemini.desc"),
+        icon: BrainCircuit,
+        tag: t("landing.models.gemini.tag"),
+      },
+      {
+        nome: t("landing.models.minimax.name"),
+        uso: t("landing.models.minimax.use"),
+        descricao: t("landing.models.minimax.desc"),
+        icon: Clapperboard,
+        tag: t("landing.models.minimax.tag"),
+      },
+    ],
+    [t]
+  );
 
   return (
     <div className="min-h-screen bg-background animate-fade-in">
@@ -141,14 +138,14 @@ const Index = () => {
               variant="outline"
               className="rounded-full border-primary/25 bg-primary/5 px-4 py-1 font-mono text-[11px] font-normal uppercase tracking-widest text-primary"
             >
-              Soluções integradas
+              {t("landing.featuresSection.badge")}
             </Badge>
             <h2 className="text-3xl font-bold leading-snug tracking-[-0.01em] md:text-4xl lg:text-[2.35rem]">
-              Três formas de criar com{" "}
-              <span className="text-primary">inteligência artificial</span>
+              {t("landing.featuresSection.titleBefore")}{" "}
+              <span className="text-primary">{t("landing.featuresSection.titleHighlight")}</span>
             </h2>
             <p className="text-base font-light leading-[1.6] text-muted-foreground md:text-lg">
-              Campanhas publicitárias, conteúdos para redes sociais (imagem, vídeo, áudio e texto) e sites completos sem programar, num fluxo único com modelos de IA de última geração.
+              {t("landing.featuresSection.subtitle")}
             </p>
           </div>
 
@@ -158,7 +155,7 @@ const Index = () => {
               const reverse = i % 2 === 1;
               return (
                 <Link
-                  key={f.titulo}
+                  key={`feat-${i}`}
                   to={f.href}
                   className={`group relative grid gap-8 rounded-[1.75rem] border border-border/70 bg-card/80 shadow-sm backdrop-blur-sm transition-all duration-500 hover:border-primary/20 hover:shadow-lg md:grid-cols-2 md:items-stretch md:gap-0 md:overflow-hidden lg:rounded-[2rem] ${f.ring} hover:ring-2 animate-slide-up stagger-${Math.min(i + 1, 3)}`}
                 >
@@ -216,8 +213,8 @@ const Index = () => {
                       {f.descricao}
                     </p>
                     <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                      Explorar na plataforma
-                      <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1.5" />
+                      {t("landing.featuresSection.explore")}
+                      <ArrowRight className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-1.5" />
                     </span>
                   </div>
                 </Link>
@@ -244,14 +241,14 @@ const Index = () => {
                 variant="outline"
                 className="rounded-full px-4 py-1 font-mono text-[11px] font-normal uppercase tracking-widest border-primary/25 bg-background/80 text-primary"
               >
-                Como funciona
+                {t("landing.howItWorks.badge")}
               </Badge>
               <h2 className="text-3xl font-bold tracking-[-0.01em] md:text-4xl lg:text-[2.5rem]">
-                É simples em{" "}
-                <span className="text-primary">três passos</span>
+                {t("landing.howItWorks.titleBefore")}{" "}
+                <span className="text-primary">{t("landing.howItWorks.titleHighlight")}</span>
               </h2>
               <p className="text-base font-light leading-[1.6] text-muted-foreground md:text-lg">
-                Você descreve, a IA cria e você usa. Sem complicação.
+                {t("landing.howItWorks.subtitle")}
               </p>
             </div>
 
@@ -292,14 +289,14 @@ const Index = () => {
                 variant="outline"
                 className="rounded-full border-primary/30 bg-primary/5 px-4 py-1 font-mono text-[11px] font-normal uppercase tracking-widest text-primary"
               >
-                Modelos de IA
+                {t("landing.models.badge")}
               </Badge>
               <h2 id="modelos-ia-heading" className="text-3xl font-bold tracking-[-0.01em] md:text-4xl">
-                Os mais potentes do mercado,{" "}
-                <span className="text-primary">na sua conta</span>
+                {t("landing.models.titleBefore")}{" "}
+                <span className="text-primary">{t("landing.models.titleHighlight")}</span>
               </h2>
               <p className="text-base font-light leading-[1.6] text-muted-foreground md:text-lg">
-                A Laurena Studio integra modelos de referência para cada tipo de criação: sites, conteúdo multimodal e vídeo, com o Google Gemini 3.1 Pro no núcleo para texto, imagens e áudio de alto desempenho.
+                {t("landing.models.subtitle")}
               </p>
             </div>
 
@@ -328,7 +325,7 @@ const Index = () => {
             </div>
 
             <p className="relative mt-8 text-center text-xs text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              A disponibilidade exata de cada modelo pode variar conforme o seu plano e atualizações da plataforma. Sempre priorizamos as versões mais recentes e capazes.
+              {t("landing.models.footnote")}
             </p>
           </div>
         </section>
@@ -337,37 +334,46 @@ const Index = () => {
         <section id="planos" className="py-16 md:py-20 scroll-mt-20">
           <div className="text-center mb-8 animate-slide-up">
             <Badge className="mb-4 bg-primary/10 font-mono text-[11px] font-normal uppercase tracking-widest text-primary border-primary/20">
-              Planos
+              {t("landing.plans.badge")}
             </Badge>
             <h2 className="text-3xl font-bold tracking-[-0.01em] md:text-4xl lg:text-[2.5rem]">
-              Invista no seu crescimento
+              {t("landing.plans.title")}
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-lg font-light leading-[1.6] text-muted-foreground">
-              {PLANOS_TEXTO_SUB_INDEX}
+              {t("landing.plans.subtitle")}
             </p>
           </div>
 
           {/* Toggle mensal/anual */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-8 sm:mb-10">
             <span className={`text-sm font-medium ${!anual ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Mensal
+              {t("landing.plans.monthly")}
             </span>
             <Switch checked={anual} onCheckedChange={setAnual} />
             <span className={`text-sm font-medium ${anual ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Anual
+              {t("landing.plans.annual")}
             </span>
             {anual && (
               <Badge variant="secondary" className="text-xs text-green-600 bg-green-500/10 border-green-500/20">
-                {PLANOS_TEXTO_ECONOMIA_ANUAL}
+                {t("landing.plans.economyBadge")}
               </Badge>
             )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            {PLANOS.map((plano, i) => {
+            {PLANOS.map((plano) => {
               const Icon = iconesPlano[plano.id as keyof typeof iconesPlano];
               const preco = anual ? plano.precoAnual : plano.preco;
               const precoAnualTotal = plano.precoAnual * 12;
+              const recursosTraduzidos = t(`landing.plans.${plano.id}.recursos`, {
+                returnObjects: true,
+              }) as string[];
+              const ctaLabel =
+                plano.id === "business"
+                  ? t("landing.plans.ctaSales")
+                  : plano.destaque
+                    ? t("landing.plans.ctaSubscribe", { name: plano.nome })
+                    : t("landing.plans.ctaStart");
               return (
                 <div
                   key={plano.id}
@@ -379,7 +385,7 @@ const Index = () => {
                 >
                   {plano.destaque && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-background text-primary shadow">{PLANOS_TEXTO_MAIS_POPULAR}</Badge>
+                      <Badge className="bg-background text-primary shadow">{t("landing.plans.mostPopular")}</Badge>
                     </div>
                   )}
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 shrink-0 ${
@@ -387,17 +393,19 @@ const Index = () => {
                   }`}>
                     <Icon className={`w-5 h-5 ${plano.destaque ? 'text-white' : 'text-primary'}`} />
                   </div>
-                  <h3 className="font-bold text-xl">Plano {plano.nome}</h3>
+                  <h3 className="font-bold text-xl">
+                    {t("landing.plans.planLabel")} {plano.nome}
+                  </h3>
                   <div className="mt-2 mb-4 space-y-1">
                     <div>
                       <span className="text-3xl font-bold">R$ {preco}</span>
                       <span className={`text-sm ${plano.destaque ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                        {' '}/ mês
+                        {t("landing.plans.perMonth")}
                       </span>
                     </div>
                     {anual && (
                       <p className={`text-xs ${plano.destaque ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                        Cobrado R$ {precoAnualTotal} / ano
+                        {t("landing.plans.billedYear", { total: precoAnualTotal })}
                       </p>
                     )}
                   </div>
@@ -408,11 +416,11 @@ const Index = () => {
                         plano.destaque ? "text-primary-foreground/85" : "text-muted-foreground"
                       )}
                     >
-                      {PLANOS_TEXTO_RECURSOS_TITULO}
+                      {t("landing.plans.resourcesTitle")}
                     </h4>
                     <ul className="space-y-2">
-                      {plano.recursos.map((r) => (
-                        <li key={r} className="flex items-start gap-2 text-sm">
+                      {recursosTraduzidos.map((r, ri) => (
+                        <li key={`${plano.id}-r-${ri}`} className="flex items-start gap-2 text-sm">
                           <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plano.destaque ? 'text-white' : 'text-green-500'}`} />
                           <span>{r}</span>
                         </li>
@@ -426,7 +434,7 @@ const Index = () => {
                             plano.destaque ? "text-primary-foreground/85" : "text-muted-foreground"
                           )}
                         >
-                          {PLANOS_TEXTO_RESTRICOES_TITULO}
+                          {t("landing.plans.restrictionsTitle")}
                         </h4>
                         <ul className="space-y-2">
                           {plano.restricoes.map((r) => (
@@ -444,9 +452,7 @@ const Index = () => {
                     variant={plano.destaque ? 'secondary' : 'default'}
                     className="w-full rounded-full"
                   >
-                    <Link to="/registro">
-                      {plano.id === 'business' ? 'Falar com vendas' : plano.destaque ? `Assinar ${plano.nome}` : 'Começar'}
-                    </Link>
+                    <Link to="/registro">{ctaLabel}</Link>
                   </Button>
                 </div>
               );
@@ -459,23 +465,23 @@ const Index = () => {
           <div className="rounded-[2.5rem] bg-primary p-10 md:p-16 text-center text-primary-foreground animate-scale-in">
             <BrainCircuit className="w-10 h-10 mx-auto mb-4 opacity-80" />
             <p className="font-editorial text-primary-foreground/95 mb-3 max-w-lg mx-auto text-lg italic md:text-xl leading-snug">
-              Cada frame importa.
+              {t("landing.finalCta.quote")}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.01em] md:text-4xl mb-4">
-              Quer criar campanhas e conteúdos com IA?
+              {t("landing.finalCta.title")}
             </h2>
             <p className="text-primary-foreground/80 text-lg font-light leading-[1.6] mb-8 max-w-xl mx-auto">
-              Crie sua conta e comece agora. Sem cartão de crédito.
+              {t("landing.finalCta.subtitle")}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" variant="secondary" className="rounded-full px-10 hover:scale-105 transition-all gap-2">
                 <Link to="/registro">
-                  Criar conta grátis
+                  {t("landing.finalCta.primary")}
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="rounded-full px-10 bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-                <Link to="/login">Já tenho uma conta</Link>
+                <Link to="/login">{t("landing.finalCta.secondary")}</Link>
               </Button>
             </div>
           </div>
@@ -492,37 +498,37 @@ const Index = () => {
                 <span className="font-bagel tracking-wider text-lg">LAURENA</span>
               </Link>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Crie campanhas publicitárias e sites com inteligência artificial. Imagens, vídeos, áudio, textos e sites completos sem programar.
+                {t("landing.footer.tagline")}
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-sm">Produto</h3>
+              <h3 className="font-semibold mb-4 text-sm">{t("landing.footer.product")}</h3>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
-                <li><a href="#funcionalidades" className="hover:text-primary transition-colors">Funcionalidades</a></li>
-                <li><a href="#planos" className="hover:text-primary transition-colors">Planos e Preços</a></li>
-                <li><a href="#como-funciona" className="hover:text-primary transition-colors">Como funciona</a></li>
+                <li><a href="#funcionalidades" className="hover:text-primary transition-colors">{t("landing.footer.links.features")}</a></li>
+                <li><a href="#planos" className="hover:text-primary transition-colors">{t("landing.footer.links.pricing")}</a></li>
+                <li><a href="#como-funciona" className="hover:text-primary transition-colors">{t("landing.footer.links.howItWorks")}</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-sm">Plataforma</h3>
+              <h3 className="font-semibold mb-4 text-sm">{t("landing.footer.platform")}</h3>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
-                <li><Link to="/login" className="hover:text-primary transition-colors">Entrar</Link></li>
-                <li><Link to="/registro" className="hover:text-primary transition-colors">Criar conta</Link></li>
-                <li><Link to="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link></li>
+                <li><Link to="/login" className="hover:text-primary transition-colors">{t("landing.footer.links.login")}</Link></li>
+                <li><Link to="/registro" className="hover:text-primary transition-colors">{t("landing.footer.links.register")}</Link></li>
+                <li><Link to="/dashboard" className="hover:text-primary transition-colors">{t("landing.footer.links.dashboard")}</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-sm">Legal</h3>
+              <h3 className="font-semibold mb-4 text-sm">{t("landing.footer.legal")}</h3>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
-                <li><a href="/privacidade.html" className="hover:text-primary transition-colors">Privacidade</a></li>
-                <li><a href="/termos.html" className="hover:text-primary transition-colors">Termos Gerais</a></li>
-                <li><a href="/termos-ia.html" className="hover:text-primary transition-colors">Termos de IA</a></li>
+                <li><a href="/privacidade.html" className="hover:text-primary transition-colors">{t("landing.footer.links.privacy")}</a></li>
+                <li><a href="/termos.html" className="hover:text-primary transition-colors">{t("landing.footer.links.terms")}</a></li>
+                <li><a href="/termos-ia.html" className="hover:text-primary transition-colors">{t("landing.footer.links.termsAi")}</a></li>
               </ul>
             </div>
           </div>
           <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
-            <p>© 2026 Laurena Studio. Todos os direitos reservados.</p>
-            <p>Crie campanhas, conteúdo multimídia (áudio, vídeo, imagem) e sites com IA</p>
+            <p>{t("landing.footer.copyright")}</p>
+            <p>{t("landing.footer.bottomLine")}</p>
           </div>
         </div>
       </footer>

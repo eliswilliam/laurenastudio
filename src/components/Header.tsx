@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { Menu, X, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useTranslation } from "@/hooks/useTranslation";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const Header = () => {
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
@@ -42,37 +45,38 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2 font-section">
             <a href="#funcionalidades" className="text-sm font-medium hover:bg-muted/60 rounded-full px-4 py-2 transition-all">
-              Funcionalidades
+              {t("landing.header.features")}
             </a>
             <a href="#como-funciona" className="text-sm font-medium hover:bg-muted/60 rounded-full px-4 py-2 transition-all">
-              Como funciona
+              {t("landing.header.howItWorks")}
             </a>
             <a href="#planos" className="text-sm font-medium hover:bg-muted/60 rounded-full px-4 py-2 transition-all">
-              Planos
+              {t("landing.header.pricing")}
             </a>
             <Link to="/login" className="text-sm font-medium hover:bg-muted/60 rounded-full px-4 py-2 transition-all">
-              Entrar
+              {t("landing.header.login")}
             </Link>
           </nav>
 
           {/* Actions */}
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            <LanguageSwitcher />
             <button
               onClick={toggleTheme}
               className="p-1.5 sm:p-2 rounded-full hover:bg-muted/60 transition-all"
-              aria-label="Alternar tema"
+              aria-label={t("landing.header.toggleTheme")}
             >
               {isDark ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
             </button>
 
             <Button asChild className="hidden md:flex bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-8 py-2 hover:scale-105 transition-all">
-              <Link to="/registro">Começar grátis</Link>
+              <Link to="/registro">{t("landing.header.startFree")}</Link>
             </Button>
 
             <button
               className="md:hidden p-1.5 sm:p-2"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Menu"
+              aria-label={t("landing.header.menu")}
             >
               {isMenuOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
             </button>
@@ -84,19 +88,19 @@ const Header = () => {
           <div className="md:hidden py-4 border-t border-border animate-fade-in">
             <nav className="flex flex-col gap-3 font-section">
               <a href="#funcionalidades" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-primary transition-colors">
-                Funcionalidades
+                {t("landing.header.features")}
               </a>
               <a href="#como-funciona" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-primary transition-colors">
-                Como funciona
+                {t("landing.header.howItWorks")}
               </a>
               <a href="#planos" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-primary transition-colors">
-                Planos
+                {t("landing.header.pricing")}
               </a>
               <Link to="/login" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-primary transition-colors">
-                Entrar
+                {t("landing.header.login")}
               </Link>
               <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full w-full mt-1">
-                <Link to="/registro">Começar grátis</Link>
+                <Link to="/registro">{t("landing.header.startFree")}</Link>
               </Button>
             </nav>
           </div>

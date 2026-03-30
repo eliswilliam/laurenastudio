@@ -4,7 +4,6 @@ import {
   LayoutTemplate,
   Megaphone,
   BrainCircuit,
-  Globe,
   CreditCard,
   Settings,
   ChevronLeft,
@@ -14,18 +13,24 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebarStore } from '@/store/useSidebarStore';
-
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: LayoutTemplate, label: 'Criar site', href: '/criar-site' },
-  { icon: Megaphone, label: 'Marketing AI', href: '/marketing-ai' },
-  { icon: BrainCircuit, label: 'AI Studio', href: '/ai-studio' },
-  { icon: CreditCard, label: 'Pagamento', href: '/pagamento' },
-  { icon: Settings, label: 'Configurações', href: '/configuracoes' },
-];
+import { useTranslation } from '@/hooks/useTranslation';
+import { useMemo } from 'react';
 
 export default function AppSidebar() {
   const { collapsed, toggle } = useSidebarStore();
+  const { t } = useTranslation();
+
+  const menuItems = useMemo(
+    () => [
+      { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
+      { icon: LayoutTemplate, label: t('nav.criarSite'), href: '/criar-site' },
+      { icon: Megaphone, label: t('nav.marketingAI'), href: '/marketing-ai' },
+      { icon: BrainCircuit, label: t('nav.aiStudio'), href: '/ai-studio' },
+      { icon: CreditCard, label: t('nav.pagamento'), href: '/pagamento' },
+      { icon: Settings, label: t('nav.configuracoes'), href: '/configuracoes' },
+    ],
+    [t]
+  );
 
   return (
     <aside
@@ -92,7 +97,7 @@ export default function AppSidebar() {
           ) : (
             <>
               <ChevronLeft className="w-4 h-4 mr-2" />
-              <span>Recolher</span>
+              <span>{t('sidebar.collapse')}</span>
             </>
           )}
         </Button>

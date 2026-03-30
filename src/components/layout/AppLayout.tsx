@@ -6,8 +6,10 @@ import MobileBottomNav from './MobileBottomNav';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function AppLayout() {
+  const { t } = useTranslation();
   const { isAutenticado, temPlanoAtivo, billingChecked, fetchBillingStatus } = useAuthStore();
   const collapsed = useSidebarStore((s) => s.collapsed);
   const navigate = useNavigate();
@@ -42,7 +44,7 @@ export default function AppLayout() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground text-sm">Verificando assinatura…</p>
+          <p className="text-muted-foreground text-sm">{t('appLayout.checkingSubscription')}</p>
         </div>
       </div>
     );

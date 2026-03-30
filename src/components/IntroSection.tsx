@@ -1,33 +1,40 @@
 import { Megaphone, Layers, Globe2, BrainCircuit } from "lucide-react";
-
-const pillars = [
-  {
-    icon: Megaphone,
-    title: "Campanhas",
-    subtitle: "Imagens, vídeos e áudio para anúncios",
-    iconBg: "bg-blue-500/12 text-blue-600 dark:text-blue-400",
-  },
-  {
-    icon: Layers,
-    title: "Conteúdo",
-    subtitle: "Textos, imagens, vídeo e áudio",
-    iconBg: "bg-primary/12 text-primary",
-  },
-  {
-    icon: Globe2,
-    title: "Sites",
-    subtitle: "Sem programar",
-    iconBg: "bg-amber-500/12 text-amber-700 dark:text-amber-400",
-  },
-  {
-    icon: BrainCircuit,
-    title: "IA",
-    subtitle: "Gemini e Minimax",
-    iconBg: "bg-violet-500/12 text-violet-600 dark:text-violet-400",
-  },
-];
+import { useTranslation } from "@/hooks/useTranslation";
+import { useMemo } from "react";
 
 const IntroSection = () => {
+  const { t } = useTranslation();
+
+  const pillars = useMemo(
+    () => [
+      {
+        icon: Megaphone,
+        title: t("landing.intro.pillars.campaigns.title"),
+        subtitle: t("landing.intro.pillars.campaigns.subtitle"),
+        iconBg: "bg-blue-500/12 text-blue-600 dark:text-blue-400",
+      },
+      {
+        icon: Layers,
+        title: t("landing.intro.pillars.content.title"),
+        subtitle: t("landing.intro.pillars.content.subtitle"),
+        iconBg: "bg-primary/12 text-primary",
+      },
+      {
+        icon: Globe2,
+        title: t("landing.intro.pillars.sites.title"),
+        subtitle: t("landing.intro.pillars.sites.subtitle"),
+        iconBg: "bg-amber-500/12 text-amber-700 dark:text-amber-400",
+      },
+      {
+        icon: BrainCircuit,
+        title: t("landing.intro.pillars.ai.title"),
+        subtitle: t("landing.intro.pillars.ai.subtitle"),
+        iconBg: "bg-violet-500/12 text-violet-600 dark:text-violet-400",
+      },
+    ],
+    [t]
+  );
+
   return (
     <section className="relative py-10 md:py-16 lg:py-20 animate-fade-in">
       <div
@@ -36,21 +43,19 @@ const IntroSection = () => {
       />
 
       <div className="relative overflow-hidden rounded-[1.75rem] border border-border/70 bg-card shadow-sm md:rounded-[2.25rem]">
-        {/* bande décorative */}
         <div
           className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/40 via-primary to-amber-500/60 opacity-90"
           aria-hidden
         />
 
         <div className="relative grid gap-10 p-6 sm:p-8 md:gap-12 md:p-10 lg:grid-cols-[1fr_minmax(0,1fr)] lg:items-center lg:gap-14 lg:p-12">
-          {/* Coluna texto + pilares */}
           <div className="relative z-[1] flex flex-col">
             <h2 className="text-2xl font-bold leading-snug tracking-[-0.01em] text-foreground sm:text-3xl md:text-4xl lg:text-[2.35rem]">
-              Da ideia ao resultado,{" "}
-              <span className="text-primary">sem atrito</span>
+              {t("landing.intro.titleBefore")}{" "}
+              <span className="text-primary">{t("landing.intro.titleHighlight")}</span>
             </h2>
             <p className="mt-4 max-w-xl text-sm font-light leading-[1.6] text-muted-foreground sm:text-base md:text-lg">
-              Crie campanhas completas com imagens, vídeos, áudio e textos gerados por IA, tudo pensado para anúncios que convertem. Faça o deploy do seu site na web em poucos minutos, sem escrever uma linha de código.
+              {t("landing.intro.subtitle")}
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:mt-10">
@@ -78,7 +83,6 @@ const IntroSection = () => {
             </div>
           </div>
 
-          {/* Coluna imagem (apenas a1) */}
           <div className="relative mx-auto w-full max-w-md lg:mx-0 lg:flex lg:max-w-none lg:justify-end">
             <div className="relative w-full overflow-hidden rounded-2xl border border-border/60 shadow-xl shadow-black/10 ring-1 ring-black/5 lg:max-w-md xl:max-w-lg">
               <img

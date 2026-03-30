@@ -28,14 +28,8 @@ import {
   apiBillingStatus,
   type BillingStatusResponse,
 } from '@/lib/billingApi';
-import {
-  PLANOS,
-  PLAN_DISPLAY_NAMES,
-  PLANOS_TEXTO_ECONOMIA_ANUAL,
-  PLANOS_TEXTO_RECURSOS_TITULO,
-  PLANOS_TEXTO_RESTRICOES_TITULO,
-  PLANOS_TEXTO_MAIS_POPULAR,
-} from '@/data/planos';
+import { PLANOS, PLAN_DISPLAY_NAMES } from '@/data/planos';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const iconesPlano: Record<string, React.ReactNode> = {
   starter: <Zap className="w-5 h-5" />,
@@ -58,6 +52,7 @@ function pct(used: number, limit: number): number {
 }
 
 export default function Pagamento() {
+  const { t } = useTranslation();
   const [anual, setAnual] = useState(true);
   const [carregando, setCarregando] = useState<string | null>(null);
   const [portalCarregando, setPortalCarregando] = useState(false);
@@ -287,15 +282,15 @@ export default function Pagamento() {
       {/* Toggle mensal/anual */}
       <div className="flex flex-wrap items-center justify-center gap-3">
         <span className={`text-sm font-medium ${!anual ? 'text-foreground' : 'text-muted-foreground'}`}>
-          Mensal
+          {t('landing.plans.monthly')}
         </span>
         <Switch checked={anual} onCheckedChange={setAnual} />
         <span className={`text-sm font-medium ${anual ? 'text-foreground' : 'text-muted-foreground'}`}>
-          Anual
+          {t('landing.plans.annual')}
         </span>
         {anual && (
           <Badge variant="secondary" className="text-xs text-green-600 bg-green-500/10 border-green-500/20">
-            Economize 25% no plano anual
+            {t('landing.plans.economyBadge')}
           </Badge>
         )}
       </div>
@@ -306,6 +301,9 @@ export default function Pagamento() {
           const isAtual = plano.id === planName;
           const preco = anual ? plano.precoAnual : plano.preco;
           const precoAnualTotal = plano.precoAnual * 12;
+          const recursosTraduzidos = t(`landing.plans.${plano.id}.recursos`, {
+            returnObjects: true,
+          }) as string[];
 
           return (
             <Card
@@ -317,7 +315,7 @@ export default function Pagamento() {
               {plano.destaque && !isAtual && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-primary text-primary-foreground shadow-md text-xs font-semibold">
-                    {PLANOS_TEXTO_MAIS_POPULAR}
+                    {t('landing.plans.mostPopular')}
                   </Badge>
                 </div>
               )}
@@ -342,16 +340,16 @@ export default function Pagamento() {
                   {iconesPlano[plano.id]}
                 </div>
                 <CardTitle className="text-xl font-bold">
-                  Plano {plano.nome}
+                  {t('landing.plans.planLabel')} {plano.nome}
                 </CardTitle>
                 <div className="mt-2 space-y-1">
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-3xl font-bold">R$ {preco}</span>
-                    <span className="text-muted-foreground text-sm">/ mês</span>
+                    <span className="text-muted-foreground text-sm">{t('landing.plans.perMonth')}</span>
                   </div>
                   {anual && (
                     <p className="text-xs text-muted-foreground">
-                      Cobrado R$ {precoAnualTotal} / ano
+                      {t('landing.plans.billedYear', { total: precoAnualTotal })}
                     </p>
                   )}
                 </div>
@@ -360,11 +358,11 @@ export default function Pagamento() {
               <CardContent className="flex-1 flex flex-col px-4 sm:px-6 pb-6 space-y-4">
                 <div>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    {PLANOS_TEXTO_RECURSOS_TITULO}
+                    {t('landing.plans.resourcesTitle')}
                   </h3>
                   <ul className="space-y-2">
-                    {plano.recursos.map((recurso) => (
-                      <li key={recurso} className="flex items-start gap-2 text-sm">
+                    {recursosTraduzidos.map((recurso, ri) => (
+                      <li key={`${plano.id}-r-${ri}`} className="flex items-start gap-2 text-sm">
                         <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                         <span>{recurso}</span>
                       </li>
@@ -375,7 +373,7 @@ export default function Pagamento() {
                 {plano.restricoes && plano.restricoes.length > 0 && (
                   <div>
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      {PLANOS_TEXTO_RESTRICOES_TITULO}
+                      {t('landing.plans.restrictionsTitle')}
                     </h3>
                     <ul className="space-y-2">
                       {plano.restricoes.map((r) => (

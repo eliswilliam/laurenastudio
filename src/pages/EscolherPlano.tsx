@@ -21,15 +21,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/useAuthStore';
 import { apiCreateCheckout } from '@/lib/billingApi';
-import {
-  PLANOS,
-  PLANOS_TEXTO_ECONOMIA_ANUAL,
-  PLANOS_TEXTO_PAGAMENTO_STRIPE,
-  PLANOS_TEXTO_RECURSOS_TITULO,
-  PLANOS_TEXTO_RESTRICOES_TITULO,
-  PLANOS_TEXTO_SUB_ESCOLHER_PLANO,
-  PLANOS_TEXTO_MAIS_POPULAR,
-} from '@/data/planos';
+import { PLANOS } from '@/data/planos';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const iconesPlano: Record<string, React.ReactNode> = {
   starter: <Zap className="w-6 h-6" />,
@@ -43,6 +36,7 @@ export default function EscolherPlano() {
   const { usuario, isAutenticado, fetchBillingStatus, temPlanoAtivo, logout } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isAutenticado) {
@@ -68,8 +62,8 @@ export default function EscolherPlano() {
     } catch (err: unknown) {
       setCarregando(null);
       toast({
-        title: 'Erro no checkout',
-        description: err instanceof Error ? err.message : 'Não foi possível iniciar o pagamento.',
+        title: t('billing.checkoutErrorTitle'),
+        description: err instanceof Error ? err.message : t('billing.checkoutErrorDescription'),
         variant: 'destructive',
       });
     }
@@ -96,7 +90,7 @@ export default function EscolherPlano() {
               </span>
             )}
             <Button variant="ghost" size="sm" onClick={handleLogout}>
-              Sair
+              {t('auth.logout')}
             </Button>
           </div>
         </div>
@@ -108,28 +102,28 @@ export default function EscolherPlano() {
         <div className="text-center mb-8 sm:mb-10 space-y-3">
           <Badge className="inline-flex gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium">
             <BrainCircuit className="w-4 h-4" />
-            Falta pouco
+            {t('billing.choosePlan.badge')}
           </Badge>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">
-            Escolha seu plano para começar
+            {t('billing.choosePlan.title')}
           </h1>
           <p className="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">
-            {PLANOS_TEXTO_SUB_ESCOLHER_PLANO}
+            {t('billing.choosePlan.subtitle')}
           </p>
         </div>
 
         {/* Toggle mensal/anual */}
         <div className="flex flex-wrap items-center justify-center gap-3 mb-8 sm:mb-10">
           <span className={`text-sm font-medium ${!anual ? 'text-foreground' : 'text-muted-foreground'}`}>
-            Mensal
+            {t('landing.plans.monthly')}
           </span>
           <Switch checked={anual} onCheckedChange={setAnual} />
           <span className={`text-sm font-medium ${anual ? 'text-foreground' : 'text-muted-foreground'}`}>
-            Anual
+            {t('landing.plans.annual')}
           </span>
           {anual && (
             <Badge variant="secondary" className="text-xs text-green-600 bg-green-500/10 border-green-500/20">
-              {PLANOS_TEXTO_ECONOMIA_ANUAL}
+              {t('landing.plans.economyBadge')}
             </Badge>
           )}
         </div>
@@ -139,6 +133,9 @@ export default function EscolherPlano() {
           {PLANOS.map((plano) => {
             const preco = anual ? plano.precoAnual : plano.preco;
             const precoAnualTotal = plano.precoAnual * 12;
+            const recursosTraduzidos = t(`landing.plans.${plano.id}.recursos`, {
+              returnObjects: true,
+            }) as string[];
 
             return (
               <Card
@@ -152,7 +149,7 @@ export default function EscolherPlano() {
                 {plano.destaque && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground shadow-md px-4 py-1 text-xs font-semibold">
-                      {PLANOS_TEXTO_MAIS_POPULAR}
+                      {t('landing.plans.mostPopular')}
                     </Badge>
                   </div>
                 )}
@@ -166,18 +163,18 @@ export default function EscolherPlano() {
                     {iconesPlano[plano.id]}
                   </div>
                   <CardTitle className="text-xl font-bold">
-                    Plano {plano.nome}
+                    {t('landing.plans.planLabel')} {plano.nome}
                   </CardTitle>
 
                   {/* Preço */}
                   <div className="mt-4 space-y-1">
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-3xl sm:text-4xl font-bold">R$ {preco}</span>
-                      <span className="text-muted-foreground text-sm">/ mês</span>
+                      <span className="text-muted-foreground text-sm">{t('landing.plans.perMonth')}</span>
                     </div>
                     {anual && (
                       <p className="text-xs text-muted-foreground">
-                        Cobrado R$ {precoAnualTotal} / ano
+                        {t('landing.plans.billedYear', { total: precoAnualTotal })}
                       </p>
                     )}
                   </div>
@@ -187,11 +184,11 @@ export default function EscolherPlano() {
                   {/* Recursos */}
                   <div>
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      {PLANOS_TEXTO_RECURSOS_TITULO}
+                      {t('landing.plans.resourcesTitle')}
                     </h3>
                     <ul className="space-y-2">
-                      {plano.recursos.map((recurso) => (
-                        <li key={recurso} className="flex items-start gap-2 text-sm">
+                      {recursosTraduzidos.map((recurso, ri) => (
+                        <li key={`${plano.id}-r-${ri}`} className="flex items-start gap-2 text-sm">
                           <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                           <span>{recurso}</span>
                         </li>
@@ -203,7 +200,7 @@ export default function EscolherPlano() {
                   {plano.restricoes && plano.restricoes.length > 0 && (
                     <div>
                       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                        Restrições
+                        {t('landing.plans.restrictionsTitle')}
                       </h3>
                       <ul className="space-y-2">
                         {plano.restricoes.map((r) => (
@@ -226,7 +223,7 @@ export default function EscolherPlano() {
                     {carregando === plano.id ? (
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     ) : null}
-                    Assinar {plano.nome}
+                    {t('landing.plans.ctaSubscribe', { name: plano.nome })}
                   </Button>
                 </CardContent>
               </Card>
@@ -235,7 +232,7 @@ export default function EscolherPlano() {
         </div>
 
         <p className="text-center text-xs sm:text-sm text-muted-foreground mt-8">
-          {PLANOS_TEXTO_PAGAMENTO_STRIPE}
+          {t('billing.stripeFooter')}
         </p>
       </main>
     </div>

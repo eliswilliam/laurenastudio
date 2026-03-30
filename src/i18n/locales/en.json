@@ -38,5 +38,201 @@
     "title": "Create posts, images, videos and audio with Artificial Intelligence",
     "subtitle": "Schedule on all social media and track your results. All in one place.",
     "cta": "Get started"
+  },
+  "sidebar": {
+    "collapse": "Collapse",
+    "moreOptions": "More options",
+    "more": "More"
+  },
+  "appLayout": {
+    "checkingSubscription": "Checking subscription…"
+  },
+  "language": {
+    "switch": "Change language"
+  },
+  "landing": {
+    "header": {
+      "features": "Features",
+      "howItWorks": "How it works",
+      "pricing": "Pricing",
+      "login": "Log in",
+      "startFree": "Start for free",
+      "toggleTheme": "Toggle theme",
+      "menu": "Menu"
+    },
+    "hero": {
+      "titleBefore": "Create ad campaigns and sites with",
+      "titleHighlight": "artificial intelligence",
+      "subtitle": "Here you create images, videos and audio for your ad campaigns, generate creative copy and content, and build full websites without coding. All with AI.",
+      "ctaPrimary": "Start for free",
+      "ctaSecondary": "Log in to the platform",
+      "live": "Live"
+    },
+    "intro": {
+      "titleBefore": "From idea to result,",
+      "titleHighlight": "without friction",
+      "subtitle": "Create complete campaigns with AI-generated images, videos, audio and copy, built for ads that convert. Deploy your site to the web in minutes—without writing a line of code.",
+      "pillars": {
+        "campaigns": { "title": "Campaigns", "subtitle": "Images, video and audio for ads" },
+        "content": { "title": "Content", "subtitle": "Copy, images, video and audio" },
+        "sites": { "title": "Websites", "subtitle": "No coding required" },
+        "ai": { "title": "AI", "subtitle": "Gemini and Minimax" }
+      }
+    },
+    "featuresSection": {
+      "badge": "Integrated solutions",
+      "titleBefore": "Three ways to create with",
+      "titleHighlight": "artificial intelligence",
+      "subtitle": "Ad campaigns, social content (image, video, audio and copy) and full websites without coding—in one flow with state-of-the-art AI models.",
+      "explore": "Explore on the platform"
+    },
+    "features": {
+      "ads": {
+        "title": "Ad campaigns",
+        "desc": "Create images, videos and audio for your ad campaigns. Describe what you need and the AI generates assets ready for Meta, Google or any network.",
+        "accent": "Performance"
+      },
+      "content": {
+        "title": "Copy, images, video and audio",
+        "desc": "Generate creative content for social media. Copy, images, videos or audio in seconds. You choose the tone and style.",
+        "accent": "Creativity"
+      },
+      "site": {
+        "title": "Build a site with AI",
+        "desc": "Create full websites without coding. Describe your business and the AI builds the site for you. Your site is automatically protected by Cloudflare (HTTPS and global network).",
+        "accent": "Digital presence"
+      }
+    },
+    "howItWorks": {
+      "badge": "How it works",
+      "titleBefore": "Simple in",
+      "titleHighlight": "three steps",
+      "subtitle": "You describe, the AI creates, you use. No fuss.",
+      "steps": {
+        "1": {
+          "title": "Describe what you need",
+          "desc": "Write in a few words what you want to create: an ad image, an Instagram video, audio or a post caption."
+        },
+        "2": {
+          "title": "The AI generates the content",
+          "desc": "In seconds you get ready-to-use assets—image, video, audio or copy, as you asked."
+        },
+        "3": {
+          "title": "Use it anywhere",
+          "desc": "Download and use in your ad campaigns, social networks or wherever you need."
+        }
+      }
+    },
+    "models": {
+      "badge": "AI models",
+      "titleBefore": "The most powerful on the market,",
+      "titleHighlight": "in your account",
+      "subtitle": "Laurena Studio integrates reference models for each type of creation: websites, multimodal content and video—with Google Gemini 3.1 Pro at the core for high-performance text, images and audio.",
+      "footnote": "Exact availability per model may vary by plan and platform updates. We always prioritize the latest and most capable versions.",
+      "claude": {
+        "name": "Claude Opus 4.6",
+        "use": "AI-powered sites",
+        "desc": "Anthropic’s top model for long reasoning, page structure and generating full professional-quality websites.",
+        "tag": "Anthropic"
+      },
+      "gemini": {
+        "name": "Google Gemini 3.1 Pro",
+        "use": "Text, images and audio",
+        "desc": "Google’s multimodal model for copy, visuals and fast flows—among the most advanced for creative content.",
+        "tag": "Google"
+      },
+      "minimax": {
+        "name": "Minimax",
+        "use": "Ad video",
+        "desc": "Video generation with a cinematic look for ads, reels and campaigns—a strong performer for AI motion.",
+        "tag": "Google"
+      }
+    },
+    "plans": {
+      "badge": "Plans",
+      "title": "Invest in your growth",
+      "subtitle": "Flexible plans for every stage of your journey. Cancel anytime.",
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "economyBadge": "Save 25% on the annual plan",
+      "resourcesTitle": "Included features",
+      "restrictionsTitle": "Restrictions",
+      "mostPopular": "Most popular",
+      "planLabel": "Plan",
+      "perMonth": " / month",
+      "billedYear": "Billed R$ {{total}} / year",
+      "ctaSales": "Talk to sales",
+      "ctaSubscribe": "Subscribe {{name}}",
+      "ctaStart": "Get started",
+      "starter": {
+        "recursos": [
+          "100 AI text generations",
+          "50 image generations",
+          "All your projects in one place",
+          "5 video generations per month",
+          "3 site publishes per month",
+          "10 audio generations per month"
+        ]
+      },
+      "pro": {
+        "recursos": [
+          "300 AI text generations",
+          "100 image generations",
+          "Collaboration for growing teams",
+          "20 video generations per month",
+          "6 site publishes per month",
+          "20 audio generations per month",
+          "Basic support"
+        ]
+      },
+      "business": {
+        "recursos": [
+          "Unlimited text generation",
+          "Unlimited image generation",
+          "Unlimited audio generations",
+          "Unlimited teams and projects at scale",
+          "100 video generations per month",
+          "30 site publishes per month",
+          "Financial AI: unlimited requests",
+          "Premium support"
+        ]
+      }
+    },
+    "finalCta": {
+      "quote": "Every frame matters.",
+      "title": "Want to create campaigns and content with AI?",
+      "subtitle": "Create your account and start now. No credit card required.",
+      "primary": "Create free account",
+      "secondary": "I already have an account"
+    },
+    "footer": {
+      "tagline": "Create ad campaigns and websites with artificial intelligence. Images, videos, audio, copy and full websites without coding.",
+      "product": "Product",
+      "platform": "Platform",
+      "legal": "Legal",
+      "links": {
+        "features": "Features",
+        "pricing": "Plans & pricing",
+        "howItWorks": "How it works",
+        "login": "Log in",
+        "register": "Create account",
+        "dashboard": "Dashboard",
+        "privacy": "Privacy",
+        "terms": "General terms",
+        "termsAi": "AI terms"
+      },
+      "copyright": "© 2026 Laurena Studio. All rights reserved.",
+      "bottomLine": "Create campaigns, multimedia content (audio, video, image) and sites with AI"
+    }
+  },
+  "billing": {
+    "choosePlan": {
+      "badge": "Almost there",
+      "title": "Choose your plan to get started",
+      "subtitle": "To access the dashboard, pick the plan that fits you. Cancel anytime."
+    },
+    "stripeFooter": "Secure payment via Stripe. Cancel anytime with no penalty.",
+    "checkoutErrorTitle": "Checkout error",
+    "checkoutErrorDescription": "Could not start payment."
   }
 }

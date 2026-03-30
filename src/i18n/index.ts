@@ -23,8 +23,12 @@ i18n
       'fr-FR': { translation: fr },
     },
     fallbackLng: 'pt-BR',
+    supportedLngs: ['pt-BR', 'pt', 'en', 'en-US', 'en-GB', 'es', 'es-ES', 'es-419', 'fr', 'fr-FR'],
+    nonExplicitSupportedLngs: true,
+    load: 'currentOnly',
     detection: {
-      order: ['navigator', 'htmlTag', 'localStorage', 'cookie'],
+      // localStorage d'abord si l'utilisateur a déjà choisi une langue ; sinon la langue du navigateur
+      order: ['localStorage', 'navigator', 'htmlTag', 'cookie'],
       caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng',
     },
@@ -32,5 +36,14 @@ i18n
       escapeValue: false,
     },
   })
+
+function syncDocumentLang(lng: string) {
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = lng
+  }
+}
+
+syncDocumentLang(i18n.language)
+i18n.on('languageChanged', syncDocumentLang)
 
 export default i18n

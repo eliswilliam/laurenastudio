@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "Laurena Studio",
+    "description": "Plataforma de IA para criadores de conteúdo"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "criarSite": "Criar Site",
+    "marketingAI": "Marketing IA",
+    "aiStudio": "IA Studio",
+    "analytics": "Análises",
+    "adsAnalytics": "Análises de Anúncios",
+    "midia": "Biblioteca de Mídia",
+    "pagamento": "Pagamento",
+    "configuracoes": "Configurações"
+  },
+  "auth": {
+    "login": "Entrar",
+    "register": "Registrar",
+    "logout": "Sair",
+    "forgotPassword": "Esqueci minha senha",
+    "resetPassword": "Redefinir senha",
+    "email": "E-mail",
+    "password": "Senha",
+    "confirmPassword": "Confirmar senha"
+  },
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso"
+  },
+  "hero": {
+    "title": "Crie posts, imagens, vídeos e áudio com Inteligência Artificial",
+    "subtitle": "Agende em todas as redes sociais e acompanhe seus resultados. Tudo em um só lugar.",
+    "cta": "Comece agora"
+  }
+}

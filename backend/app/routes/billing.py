@@ -252,9 +252,10 @@ async def verify_session(
             detail="Could not verify session with Stripe.",
         )
 
-    payment_status = session.get("payment_status")
-    session_status = session.get("status")  # "complete", "expired", "open"
-    metadata = session.get("metadata", {})
+    sd = stripe_service.stripe_object_to_dict(session)
+    payment_status = sd.get("payment_status")
+    session_status = sd.get("status")  # "complete", "expired", "open"
+    metadata = sd.get("metadata") or {}
     plan_name = metadata.get("plan_name")
     session_workspace = metadata.get("workspace_id")
 
@@ -279,8 +280,8 @@ async def verify_session(
 
     if payment_status == "paid":
         # Activate the subscription (idempotent — safe to call multiple times)
-        customer_id = session.get("customer")
-        stripe_subscription_id = session.get("subscription")
+        customer_id = sd.get("customer")
+        stripe_subscription_id = sd.get("subscription")
         await billing_service.activate_plan(
             db,
             workspace_id=workspace_id,

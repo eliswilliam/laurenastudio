@@ -16,6 +16,26 @@ logger = logging.getLogger(__name__)
 # ── Initialize Stripe SDK ────────────────────────────────────────────────────
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+
+def stripe_object_to_dict(obj: object) -> dict:
+    """
+    Convert Stripe SDK objects (StripeObject) to plain dicts.
+
+    StripeObject does not provide dict-like .get(); using session.get("x") raises
+    AttributeError because the SDK resolves .get as a Stripe field name.
+    """
+    if isinstance(obj, dict):
+        return obj
+    to_dict = getattr(obj, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    try:
+        return dict(obj)
+    except Exception:
+        logger.warning("Could not convert Stripe object to dict: %r", type(obj))
+        return {}
+
+
 # ── Plan name → Stripe Price ID mapping ──────────────────────────────────────
 PLAN_PRICE_MAP: dict[str, str] = {
     "starter": settings.STRIPE_PRICE_ID_STARTER,

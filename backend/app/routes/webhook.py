@@ -55,25 +55,27 @@ async def stripe_webhook(
             detail="Invalid webhook signature.",
         )
 
-    event_type = event["type"]
-    logger.info("Stripe webhook received: %s (id=%s)", event_type, event.get("id"))
+    # StripeObject is not dict-like (.get raises) — normalize to plain dicts.
+    ed = stripe_service.stripe_object_to_dict(event)
+    event_type = ed["type"]
+    logger.info("Stripe webhook received: %s (id=%s)", event_type, ed.get("id"))
 
     # 3. Dispatch by event type
     try:
         if event_type == "checkout.session.completed":
-            await _handle_checkout_completed(event, db)
+            await _handle_checkout_completed(ed, db)
 
         elif event_type == "checkout.session.expired":
-            _handle_checkout_expired(event)
+            _handle_checkout_expired(ed)
 
         elif event_type == "checkout.session.async_payment_succeeded":
-            await _handle_async_payment_succeeded(event, db)
+            await _handle_async_payment_succeeded(ed, db)
 
         elif event_type == "checkout.session.async_payment_failed":
-            _handle_async_payment_failed(event)
+            _handle_async_payment_failed(ed)
 
         elif event_type == "customer.subscription.deleted":
-            await _handle_subscription_deleted(event, db)
+            await _handle_subscription_deleted(ed, db)
 
         else:
             logger.debug("Unhandled Stripe event type: %s", event_type)

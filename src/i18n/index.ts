@@ -10,9 +10,13 @@ import fr from './locales/fr.json';
 
 const resources = {
   'pt-BR': { translation: ptBR },
-  en: { translation: en },
-  es: { translation: es },
-  fr: { translation: fr },
+  'pt': { translation: ptBR }, // Alias pour pt → pt-BR
+  'en': { translation: en },
+  'en-US': { translation: en }, // Alias pour en-US → en
+  'es': { translation: es },
+  'es-ES': { translation: es }, // Alias pour es-ES → es
+  'fr': { translation: fr },
+  'fr-FR': { translation: fr }, // Alias pour fr-FR → fr
 };
 
 i18n
@@ -21,12 +25,12 @@ i18n
   .init({
     resources,
     fallbackLng: 'pt-BR', // Langue par défaut
-    debug: false, // Mettre à true pour déboguer
+    debug: true, // Active le debug pour voir ce qui se passe
 
     // Configuration du détecteur de langue
     detection: {
-      // Ordre de détection: navigateur -> balise HTML -> localStorage -> cookie
-      order: ['navigator', 'htmlTag', 'localStorage', 'cookie'],
+      // Ordre de détection: navigateur d'abord, puis localStorage
+      order: ['navigator', 'localStorage', 'htmlTag', 'cookie'],
 
       // Cache dans le localStorage
       caches: ['localStorage'],
@@ -36,19 +40,46 @@ i18n
 
       // Clé utilisée pour stocker la langue dans les cookies
       lookupCookie: 'i18nextLng',
+
+      // Convertit les codes de langue (ex: en-US → en)
+      convertDetectedLanguage: (lng: string) => {
+        // Convertit les codes longs vers les codes courts
+        const languageMap: Record<string, string> = {
+          'pt-BR': 'pt-BR',
+          'pt': 'pt-BR',
+          'en-US': 'en',
+          'en-GB': 'en',
+          'en': 'en',
+          'es-ES': 'es',
+          'es-MX': 'es',
+          'es': 'es',
+          'fr-FR': 'fr',
+          'fr-CA': 'fr',
+          'fr': 'fr',
+        };
+
+        // Essaie d'abord le code complet, puis le code court
+        if (languageMap[lng]) {
+          return languageMap[lng];
+        }
+
+        // Si pas trouvé, essaie juste le code de langue (avant le -)
+        const shortLang = lng.split('-')[0];
+        return languageMap[shortLang] || 'pt-BR';
+      },
     },
 
     interpolation: {
       escapeValue: false, // React échappe déjà les valeurs
     },
 
-    // Support des langues avec code pays (pt-BR) et sans (pt)
-    load: 'languageOnly', // Charge 'pt' pour 'pt-BR', 'en' pour 'en-US', etc.
+    // Charge toutes les variantes (pt-BR, en-US, etc.)
+    load: 'all',
 
-    // Map des langues alternatives
-    supportedLngs: ['pt-BR', 'pt', 'en', 'es', 'fr'],
+    // Langues supportées
+    supportedLngs: ['pt-BR', 'pt', 'en', 'en-US', 'es', 'es-ES', 'fr', 'fr-FR'],
 
-    // Règles de correspondance des langues
+    // Permet les correspondances non explicites
     nonExplicitSupportedLngs: true,
   });
 

@@ -10,12 +10,13 @@ export type GrapesTemplateEditorProps = {
   initialStyle?: string;
   canvasStyles?: string[];
   assetBaseUrl?: string;
+  locale?: string;
   whenReady?: (editor: Editor) => void;
 };
 
 export const GrapesTemplateEditor = forwardRef<Editor | null, GrapesTemplateEditorProps>(
   function GrapesTemplateEditor(
-    { className, initialComponents, initialStyle, canvasStyles, assetBaseUrl, whenReady },
+    { className, initialComponents, initialStyle, canvasStyles, assetBaseUrl, locale, whenReady },
     ref
   ) {
     const rootRef = useRef<HTMLDivElement>(null);
@@ -31,6 +32,7 @@ export const GrapesTemplateEditor = forwardRef<Editor | null, GrapesTemplateEdit
         ...createGrapesEditorConfig({
           canvasStyles,
           assetBaseUrl,
+          locale,
         }),
         container: el,
         components: initialComponents,
@@ -43,7 +45,7 @@ export const GrapesTemplateEditor = forwardRef<Editor | null, GrapesTemplateEdit
         ed.destroy();
         setEditor(null);
       };
-    }, []);
+    }, [assetBaseUrl, canvasStyles, initialComponents, initialStyle, locale, whenReady]);
 
     return (
       <div

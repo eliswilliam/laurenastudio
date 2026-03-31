@@ -524,3 +524,205 @@ section {
   }
 }
 `;
+
+type TemplateLocale = 'en' | 'es' | 'fr' | 'pt';
+
+type TemplateDictionary = {
+  htmlLang: string;
+  replacements: Array<[from: string, to: string]>;
+};
+
+const templateDictionary: Record<TemplateLocale, TemplateDictionary> = {
+  en: {
+    htmlLang: 'en',
+    replacements: [
+      ['Construisez vos templates sans coder', 'Build your templates without coding'],
+      ['Web Builder sans code', 'No-code Web Builder'],
+      ['Navigation principale', 'Main navigation'],
+      ['Hover pour plus d\'informations', 'Hover for more information'],
+      ['Insert your text content here', 'Insert your text content here'],
+      ['Envoyer le formulaire', 'Send form'],
+      ['Application mobile demonstration', 'Mobile app demo'],
+      ['Manage your images with Asset Manager', 'Manage your images with Asset Manager'],
+      ['Image uploading is not allowed in this demo', 'Image uploading is not allowed in this demo'],
+      ['About us', 'About us'],
+      ['Services', 'Services'],
+      ['Subscribe', 'Subscribe'],
+      ['Subscribe to our newsletter to receive exclusive offers and the latest news', 'Subscribe to our newsletter to receive exclusive offers and the latest news'],
+      ['Newsletter subscription', 'Newsletter subscription'],
+      ['Votre nom', 'Your name'],
+      ['made with <strong>GrapesJS</strong>', 'Made with <strong>GrapesJS</strong>'],
+      ['mail', 'email'],
+    ],
+  },
+  es: {
+    htmlLang: 'es',
+    replacements: [
+      ['Construisez vos templates sans coder', 'Crea tus plantillas sin programar'],
+      ['Web Builder sans code', 'Constructor web sin codigo'],
+      ['Navigation principale', 'Navegacion principal'],
+      ['Build your templates without coding', 'Crea tus plantillas sin programar'],
+      ['All text blocks could be edited easily with double clicking on it.', 'Todos los bloques de texto se pueden editar facilmente con doble clic.'],
+      ['You can create new text blocks with the command from the left panel', 'Puedes crear nuevos bloques de texto desde el panel izquierdo.'],
+      ['Hover pour plus d\'informations', 'Pasa el cursor para mas informacion'],
+      ['Hover me', 'Pasa el cursor'],
+      ['Insert your text content here', 'Inserta aqui tu contenido de texto'],
+      ['Send', 'Enviar'],
+      ['Flex is the new black', 'Flex es la nueva referencia'],
+      ['With flexbox system you\'re able to build complex layouts easily and with free responsivity', 'Con flexbox puedes crear disenos complejos de forma sencilla y responsive.'],
+      ['Title one', 'Titulo uno'],
+      ['Subtitle one', 'Subtitulo uno'],
+      ['Title two', 'Titulo dos'],
+      ['Subtitle two', 'Subtitulo dos'],
+      ['Title three', 'Titulo tres'],
+      ['Subtitle three', 'Subtitulo tres'],
+      ['ASSET MANAGER', 'GESTOR DE RECURSOS'],
+      ['Manage your images with Asset Manager', 'Gestiona tus imagenes con el gestor de recursos'],
+      ['You can create image blocks with the command from the left panel and edit them with double click', 'Puedes crear bloques de imagen desde el panel izquierdo y editarlos con doble clic.'],
+      ['Image uploading is not allowed in this demo', 'La carga de imagenes no esta disponible en esta demo'],
+      ['Blocks', 'Bloques'],
+      ['Each element in HTML page could be seen as a block. On the left panel you could find different kind of blocks that you can create, move and style', 'Cada elemento HTML puede verse como un bloque. En el panel izquierdo puedes crear, mover y estilizar bloques.'],
+      ['Some random list', 'Lista de ejemplo'],
+      ['Choose Plan', 'Elegir plan'],
+      ['Popular', 'Popular'],
+      ['About us', 'Sobre nosotros'],
+      ['Contact', 'Contacto'],
+      ['Events', 'Eventos'],
+      ['Company', 'Empresa'],
+      ['Jobs', 'Empleos'],
+      ['Services', 'Servicios'],
+      ['Education', 'Educacion'],
+      ['Partner', 'Socios'],
+      ['Community', 'Comunidad'],
+      ['Forum', 'Foro'],
+      ['Download', 'Descargar'],
+      ['Upgrade', 'Mejorar'],
+      ['Subscribe', 'Suscribete'],
+      ['Subscribe to our newsletter to receive exclusive offers and the latest news', 'Suscribete al boletin para recibir ofertas exclusivas y novedades.'],
+      ['Newsletter subscription', 'Suscripcion al boletin'],
+      ['Name', 'Nombre'],
+      ['Your name', 'Tu nombre'],
+      ['Your email', 'Tu correo'],
+      ['Submit', 'Enviar'],
+      ['made with <strong>GrapesJS</strong>', 'Hecho con <strong>GrapesJS</strong>'],
+      ['facebook', 'facebook'],
+      ['twitter', 'twitter'],
+      ['linkedin', 'linkedin'],
+      ['mail', 'correo'],
+    ],
+  },
+  fr: {
+    htmlLang: 'fr',
+    replacements: [
+      ['Construisez vos templates sans coder', 'Construisez vos templates sans coder'],
+      ['Web Builder sans code', 'Web Builder sans code'],
+      ['Build your templates without coding', 'Construisez vos templates sans coder'],
+      ['All text blocks could be edited easily with double clicking on it.', 'Tous les blocs de texte sont modifiables facilement avec un double-clic.'],
+      ['You can create new text blocks with the command from the left panel', 'Vous pouvez creer de nouveaux blocs de texte depuis le panneau de gauche.'],
+      ['Hover me', 'Survolez-moi'],
+      ['Insert your text content here', 'Inserez votre contenu texte ici'],
+      ['Send', 'Envoyer'],
+      ['Flex is the new black', 'Flex est la nouvelle reference'],
+      ['With flexbox system you\'re able to build complex layouts easily and with free responsivity', 'Avec flexbox, vous pouvez creer facilement des mises en page complexes et responsives.'],
+      ['Title one', 'Titre un'],
+      ['Subtitle one', 'Sous-titre un'],
+      ['Title two', 'Titre deux'],
+      ['Subtitle two', 'Sous-titre deux'],
+      ['Title three', 'Titre trois'],
+      ['Subtitle three', 'Sous-titre trois'],
+      ['ASSET MANAGER', 'GESTIONNAIRE DE RESSOURCES'],
+      ['Manage your images with Asset Manager', 'Gerez vos images avec le gestionnaire de ressources'],
+      ['You can create image blocks with the command from the left panel and edit them with double click', 'Vous pouvez creer des blocs image depuis le panneau de gauche et les modifier en double-cliquant.'],
+      ['Blocks', 'Blocs'],
+      ['Some random list', 'Liste exemple'],
+      ['Choose Plan', 'Choisir le plan'],
+      ['About us', 'A propos'],
+      ['Services', 'Services'],
+      ['Subscribe', 'S\'abonner'],
+      ['Name', 'Nom'],
+      ['Submit', 'Envoyer'],
+      ['made with <strong>GrapesJS</strong>', 'Cree avec <strong>GrapesJS</strong>'],
+      ['mail', 'email'],
+    ],
+  },
+  pt: {
+    htmlLang: 'pt-BR',
+    replacements: [
+      ['Construisez vos templates sans coder', 'Crie seus templates sem programar'],
+      ['Web Builder sans code', 'Construtor web sem codigo'],
+      ['Navigation principale', 'Navegacao principal'],
+      ['Build your templates without coding', 'Crie seus templates sem programar'],
+      ['All text blocks could be edited easily with double clicking on it.', 'Todos os blocos de texto podem ser editados com duplo clique.'],
+      ['You can create new text blocks with the command from the left panel', 'Voce pode criar novos blocos de texto pelo painel esquerdo.'],
+      ['Hover pour plus d\'informations', 'Passe o mouse para mais informacoes'],
+      ['Hover me', 'Passe o mouse'],
+      ['Insert your text content here', 'Insira aqui seu conteudo de texto'],
+      ['Envoyer le formulaire', 'Enviar formulario'],
+      ['Send', 'Enviar'],
+      ['Flex is the new black', 'Flex e o novo padrao'],
+      ['With flexbox system you\'re able to build complex layouts easily and with free responsivity', 'Com flexbox voce cria layouts complexos com facilidade e responsividade.'],
+      ['Title one', 'Titulo um'],
+      ['Subtitle one', 'Subtitulo um'],
+      ['Title two', 'Titulo dois'],
+      ['Subtitle two', 'Subtitulo dois'],
+      ['Title three', 'Titulo tres'],
+      ['Subtitle three', 'Subtitulo tres'],
+      ['Application mobile demonstration', 'Demonstracao de app mobile'],
+      ['ASSET MANAGER', 'GERENCIADOR DE ASSETS'],
+      ['Manage your images with Asset Manager', 'Gerencie suas imagens com o gerenciador de assets'],
+      ['You can create image blocks with the command from the left panel and edit them with double click', 'Voce pode criar blocos de imagem pelo painel esquerdo e editar com duplo clique.'],
+      ['Image uploading is not allowed in this demo', 'Upload de imagens nao esta disponivel nesta demo'],
+      ['Blocks', 'Blocos'],
+      ['Each element in HTML page could be seen as a block. On the left panel you could find different kind of blocks that you can create, move and style', 'Cada elemento da pagina HTML pode ser um bloco. No painel esquerdo voce cria, move e estiliza blocos.'],
+      ['Some random list', 'Lista de exemplo'],
+      ['Choose Plan', 'Escolher plano'],
+      ['Popular', 'Popular'],
+      ['About us', 'Sobre nos'],
+      ['Contact', 'Contato'],
+      ['Events', 'Eventos'],
+      ['Company', 'Empresa'],
+      ['Jobs', 'Vagas'],
+      ['Services', 'Servicos'],
+      ['Education', 'Educacao'],
+      ['Partner', 'Parceiros'],
+      ['Community', 'Comunidade'],
+      ['Forum', 'Forum'],
+      ['Download', 'Download'],
+      ['Upgrade', 'Upgrade'],
+      ['Subscribe', 'Inscreva-se'],
+      ['Subscribe to our newsletter to receive exclusive offers and the latest news', 'Assine nossa newsletter para receber ofertas exclusivas e novidades.'],
+      ['Newsletter subscription', 'Assinatura da newsletter'],
+      ['Name', 'Nome'],
+      ['Your name', 'Seu nome'],
+      ['Your email', 'Seu e-mail'],
+      ['Submit', 'Enviar'],
+      ['made with <strong>GrapesJS</strong>', 'feito com <strong>GrapesJS</strong>'],
+      ['mail', 'email'],
+    ],
+  },
+};
+
+function normalizeTemplateLocale(locale?: string): TemplateLocale {
+  const lower = String(locale ?? '').toLowerCase();
+  if (lower.startsWith('fr')) return 'fr';
+  if (lower.startsWith('es')) return 'es';
+  if (lower.startsWith('pt')) return 'pt';
+  return 'en';
+}
+
+function replaceAllExact(content: string, from: string, to: string): string {
+  return content.split(from).join(to);
+}
+
+export function getDefaultTemplateHtml(locale?: string): string {
+  const normalized = normalizeTemplateLocale(locale);
+  const dictionary = templateDictionary[normalized];
+  let html = DEFAULT_TEMPLATE_HTML;
+
+  html = replaceAllExact(html, '<html lang="fr">', `<html lang="${dictionary.htmlLang}">`);
+  for (const [from, to] of dictionary.replacements) {
+    html = replaceAllExact(html, from, to);
+  }
+
+  return html;
+}

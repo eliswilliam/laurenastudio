@@ -27,6 +27,17 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const resolveLoginErrorMessage = (err: unknown): string => {
+    if (!(err instanceof Error) || !err.message.trim()) {
+      return t('pages.login.errorDesc');
+    }
+    const raw = err.message.trim();
+    if (/^Erro HTTP 401|^HTTP 401/i.test(raw)) {
+      return t('pages.login.errorDesc');
+    }
+    return raw;
+  };
+
   const pillars = useMemo(
     () => [
       { icon: Megaphone, title: t('pages.login.pillar1Title'), desc: t('pages.login.pillar1Desc') },
@@ -38,11 +49,17 @@ export default function Login() {
 
   useEffect(() => {
     const error = searchParams.get('error');
-    if (error) {
-      notify.error(t('pages.login.googleErrorTitle'), decodeURIComponent(error), LOGIN_ERROR_TOAST_MS);
+    if (!error) return;
+
+    let decodedMessage = error;
+    try {
+      decodedMessage = decodeURIComponent(error);
+    } catch {
+      decodedMessage = error;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    notify.error(t('pages.login.googleErrorTitle'), decodedMessage, LOGIN_ERROR_TOAST_MS);
+  }, [searchParams, t]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +84,7 @@ export default function Login() {
     } catch (err: unknown) {
       notify.error(
         t('pages.login.errorTitle'),
-        err instanceof Error ? err.message : t('pages.login.errorDesc'),
+        resolveLoginErrorMessage(err),
         LOGIN_ERROR_TOAST_MS
       );
     } finally {

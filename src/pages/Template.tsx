@@ -2,12 +2,13 @@ import { useRef } from 'react';
 import type { Editor } from 'grapesjs';
 import { Button } from '@/components/ui/button';
 import { GrapesTemplateEditor } from '@/components/grapes/GrapesTemplateEditor';
-import { DEFAULT_TEMPLATE_CSS, DEFAULT_TEMPLATE_HTML } from '@/components/grapes/defaultTemplate';
+import { DEFAULT_TEMPLATE_CSS, getDefaultTemplateHtml } from '@/components/grapes/defaultTemplate';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Template() {
   const editorRef = useRef<Editor | null>(null);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const activeLocale = i18n.resolvedLanguage ?? i18n.language;
 
   return (
     <div className="h-[calc(100vh-2rem)] min-h-[700px]">
@@ -33,7 +34,8 @@ export default function Template() {
       <div className="h-[calc(100%-4.25rem)] overflow-hidden rounded-lg border bg-background">
         <GrapesTemplateEditor
           ref={editorRef}
-          initialComponents={DEFAULT_TEMPLATE_HTML}
+          locale={activeLocale}
+          initialComponents={getDefaultTemplateHtml(activeLocale)}
           initialStyle={DEFAULT_TEMPLATE_CSS}
         />
       </div>

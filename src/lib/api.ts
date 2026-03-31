@@ -70,6 +70,28 @@ export function isLocalDevHost(): boolean {
   return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
 }
 
+const AUTH_PUBLIC_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/verify-reset-code',
+  '/auth/reset-password',
+  '/auth/google',
+  '/auth/facebook',
+];
+
+function shouldRedirectOnUnauthorized(error: AxiosError): boolean {
+  if (error.response?.status !== 401) return false;
+
+  const reqUrl = String(error.config?.url ?? '');
+  const isPublicAuthFlow = AUTH_PUBLIC_PATHS.some((path) => reqUrl.includes(path));
+  if (isPublicAuthFlow) return false;
+
+  if (typeof window === 'undefined') return true;
+  const authPages = new Set(['/login', '/registro', '/esqueci-senha', '/redefinir-senha', '/auth/callback']);
+  return !authPages.has(window.location.pathname);
+}
+
 // Interceptor de token
 api.interceptors.request.use(
   (config) => {
@@ -86,7 +108,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (axios.isAxiosError(error) && shouldRedirectOnUnauthorized(error)) {
       localStorage.removeItem('auth_token');
       window.location.href = '/login';
     }

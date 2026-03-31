@@ -24,6 +24,7 @@ export default function AppSidebar() {
     () => [
       { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
       { icon: LayoutTemplate, label: t('nav.criarSite'), href: '/criar-site' },
+      { icon: LayoutTemplate, label: t('nav.template'), href: '/template' },
       { icon: Megaphone, label: t('nav.marketingAI'), href: '/marketing-ai' },
       { icon: BrainCircuit, label: t('nav.aiStudio'), href: '/ai-studio' },
       { icon: CreditCard, label: t('nav.pagamento'), href: '/pagamento' },

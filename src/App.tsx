@@ -26,6 +26,7 @@ import Configuracoes from "./pages/Configuracoes";
 import PreviewPost from "./pages/PreviewPost";
 import Editor from "./pages/Editor";
 import CriarSite from "./pages/CriarSite";
+import Template from "./pages/Template";
 import NotFound from "./pages/NotFound";
 
 // Legacy blog template pages
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/preview-post" element={<PreviewPost />} />
             <Route path="/editor" element={<Editor />} />
+            <Route path="/template" element={<Template />} />
           </Route>
 
           {/* Home & Legacy blog template pages */}

@@ -43,7 +43,7 @@ async def send_password_reset_code(to_email: str, code: str) -> None:
 
     base_url = settings.FRONTEND_URL.rstrip('/')
     if "localhost" in base_url or "127.0.0.1" in base_url:
-        base_url = "https://studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net"
+      base_url = "https://laurenastudio.pro"
         
     html_body = f"""
 <!DOCTYPE html>
@@ -135,7 +135,7 @@ async def send_welcome_email(
 
     base_url = settings.FRONTEND_URL.rstrip('/')
     if "localhost" in base_url or "127.0.0.1" in base_url:
-        base_url = "https://studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net"
+      base_url = "https://laurenastudio.pro"
 
     logo_url = f"{base_url}/android-chrome-192x192.png"
     plans_url = f"{base_url}/escolher-plano"

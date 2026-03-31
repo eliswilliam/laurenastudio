@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import api, { getJobStatus } from '@/lib/api';
-import { type JobStatus, type Mensagem, MENSAGEM_ABERTURA_TEXTO } from '@/lib/criarSiteChat';
+import { type JobStatus, type Mensagem } from '@/lib/criarSiteChat';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCriarSiteJobStore } from '@/store/useCriarSiteJobStore';
 import { getPublishConfig, getPublishJobStatus, postPublish } from '@/lib/publishApi';
@@ -33,49 +33,11 @@ import {
   fetchSiteProjectStatus,
   type SiteProjectSummary,
 } from '@/lib/siteProjectsApi';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const ID = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-const ABERTURA: Mensagem = {
-  id: '0',
-  papel: 'bot',
-  texto: MENSAGEM_ABERTURA_TEXTO,
-};
-
-export const SUGESTOES_CRIAR_SITE = [
-  {
-    titulo: 'Landing SaaS',
-    prompt:
-      'Landing para produto digital: hero com mockup, seção de benefícios, preços em 2 planos e FAQ.',
-  },
-  {
-    titulo: 'Restaurante',
-    prompt:
-      'Site para restaurante: cardápio por categorias, reservas online, localização e horários.',
-  },
-  {
-    titulo: 'Portfólio',
-    prompt:
-      'Portfólio de designer: galeria em grid, página sobre o autor e formulário de contato minimalista.',
-  },
-] as const;
-
-const PLACEHOLDER_PROMPT =
-  'Descreva o site que imagina: setor, páginas, público, estética, referências…';
-const LABEL_SUGESTOES = 'Ideias para começar';
-const TITULO_PAGINA = 'Crie seu site';
-const BOTAO_GERAR = 'Gerar site';
-const BOTAO_PUBLICAR = 'Publicar';
-const DICA_TECLADO = 'Enter envia · Shift+Enter nova linha';
-const LOADING_TEXTO = 'Laurena está pensando…';
 const POLL_MS = 2500;
-
-const FLOW_STEPS = [
-  { n: 1, short: 'Briefing', Icon: BrainCircuit },
-  { n: 2, short: 'Gerar', Icon: Wand2 },
-  { n: 3, short: 'Prévia', Icon: LayoutTemplate },
-  { n: 4, short: 'Online', Icon: Globe },
-] as const;
 
 /** Não listar no histórico (conta): título técnico da prévia, não nome de projeto. */
 const EXCLUDE_FROM_PROJECT_HISTORY_NAME = 'Prévia (HTML + CSS como no navegador)';
@@ -139,6 +101,7 @@ function useIsWideLg() {
 }
 
 export default function CriarSite() {
+  const { t } = useTranslation();
   const usuario = useAuthStore((s) => s.usuario);
   const generateJobId = useCriarSiteJobStore((s) => s.generateJobId);
   const publishJobId = useCriarSiteJobStore((s) => s.publishJobId);
@@ -181,6 +144,43 @@ export default function CriarSite() {
   const [lastGenTime, setLastGenTime] = useState(Date.now());
   const isWideLg = useIsWideLg();
 
+  const aberturaTexto = t('pages.criarSite.openingMessage');
+  const placeholderPrompt = t('pages.criarSite.placeholderPrompt');
+  const labelSugestoes = t('pages.criarSite.suggestionsLabel');
+  const tituloPagina = t('pages.criarSite.title');
+  const botaoGerar = t('pages.criarSite.generateButton');
+  const botaoPublicar = t('pages.criarSite.publishButton');
+  const dicaTeclado = t('pages.criarSite.keyboardHint');
+  const loadingTexto = t('pages.criarSite.thinking');
+
+  const flowSteps = useMemo(
+    () => [
+      { n: 1, short: t('pages.criarSite.steps.briefing'), Icon: BrainCircuit },
+      { n: 2, short: t('pages.criarSite.steps.generate'), Icon: Wand2 },
+      { n: 3, short: t('pages.criarSite.steps.preview'), Icon: LayoutTemplate },
+      { n: 4, short: t('pages.criarSite.steps.online'), Icon: Globe },
+    ],
+    [t]
+  );
+
+  const sugestoesCriarSite = useMemo(
+    () => [
+      {
+        titulo: t('pages.criarSite.suggestions.saas.title'),
+        prompt: t('pages.criarSite.suggestions.saas.prompt'),
+      },
+      {
+        titulo: t('pages.criarSite.suggestions.restaurant.title'),
+        prompt: t('pages.criarSite.suggestions.restaurant.prompt'),
+      },
+      {
+        titulo: t('pages.criarSite.suggestions.portfolio.title'),
+        prompt: t('pages.criarSite.suggestions.portfolio.prompt'),
+      },
+    ],
+    [t]
+  );
+
   const refreshProjects = useCallback(async () => {
     setProjectsLoading(true);
     try {
@@ -205,7 +205,7 @@ export default function CriarSite() {
         clearGenerateJob();
         clearPublishJob();
         const s = await fetchSiteProjectStatus(pid);
-        const msgs: Mensagem[] = [ABERTURA];
+        const msgs: Mensagem[] = [{ id: '0', papel: 'bot', texto: aberturaTexto }];
         for (const p of s.prompts) {
           if (p.role !== 'user' && p.role !== 'assistant') continue;
           msgs.push({
@@ -235,7 +235,7 @@ export default function CriarSite() {
         }
         setConversationReadOnly(true);
       } catch (e: unknown) {
-        setErro(e instanceof Error ? e.message : 'Erro ao carregar o projeto.');
+        setErro(e instanceof Error ? e.message : t('pages.criarSite.errors.loadProject'));
       } finally {
         setSessionLoading(false);
       }
@@ -243,6 +243,8 @@ export default function CriarSite() {
     [
       clearGenerateJob,
       clearPublishJob,
+      aberturaTexto,
+      t,
       setLista,
       setProjectId,
       setSiteResult,
@@ -277,11 +279,11 @@ export default function CriarSite() {
           void refreshProjects();
         } else if (s.status === 'error') {
           finish();
-          const err = s.error_message || 'Erro na geração.';
+          const err = s.error_message || t('pages.criarSite.errors.generation');
           setErro(err);
           setLista((prev) => [
             ...prev,
-            { id: ID(), papel: 'bot', texto: `Erro na geração: ${err}` },
+            { id: ID(), papel: 'bot', texto: t('pages.criarSite.errors.generationWithReason', { reason: err }) },
           ]);
           setPollProjectId(null);
           setAGerar(false);
@@ -301,7 +303,7 @@ export default function CriarSite() {
       cancelled = true;
       finish();
     };
-  }, [pollProjectId, setLista, setSiteResult, setPublicSiteUrl, setPublishSlug, refreshProjects]);
+  }, [pollProjectId, setLista, setSiteResult, setPublicSiteUrl, setPublishSlug, refreshProjects, t]);
 
   const iniciarNovoSite = () => {
     setPollProjectId(null);
@@ -378,6 +380,12 @@ export default function CriarSite() {
   }, [publicSiteUrl, siteResult, aGerar, pollProjectId, generateJobId]);
 
   useEffect(() => {
+    setLista((prev) =>
+      prev.map((msg) => (msg.id === '0' && msg.papel === 'bot' ? { ...msg, texto: aberturaTexto } : msg))
+    );
+  }, [aberturaTexto, setLista]);
+
+  useEffect(() => {
     if (publicSiteUrl) setMobilePublishOpen(false);
   }, [publicSiteUrl]);
 
@@ -426,7 +434,7 @@ export default function CriarSite() {
             papel: 'bot',
             texto: String(
               r.message ??
-                'Site gerado com sucesso! Use os botões abaixo para ver a pré-visualização.'
+                t('pages.criarSite.generatedSuccess')
             ),
           };
           setLista((p) => [...p, pronto]);
@@ -434,12 +442,12 @@ export default function CriarSite() {
           clearGenerateJob();
         } else if (j.status === 'failed') {
           finish();
-          const msg = j.error || 'Erro ao gerar o site.';
+          const msg = j.error || t('pages.criarSite.errors.generateSite');
           setErro(msg);
           const errMsg: Mensagem = {
             id: ID(),
             papel: 'bot',
-            texto: `Erro na geração: ${msg}`,
+            texto: t('pages.criarSite.errors.generationWithReason', { reason: msg }),
           };
           setLista((p) => [...p, errMsg]);
           setAGerar(false);
@@ -448,7 +456,7 @@ export default function CriarSite() {
       } catch (err: unknown) {
         if (cancelled) return;
         finish();
-        const msg = err instanceof Error ? err.message : 'Erro ao consultar o estado da geração.';
+        const msg = err instanceof Error ? err.message : t('pages.criarSite.errors.generationStatus');
         setErro(msg);
         setAGerar(false);
         clearGenerateJob();
@@ -461,7 +469,7 @@ export default function CriarSite() {
       cancelled = true;
       finish();
     };
-  }, [generateJobId, clearGenerateJob]);
+  }, [generateJobId, clearGenerateJob, t]);
 
   useEffect(() => {
     if (!publishJobId) {
@@ -490,26 +498,16 @@ export default function CriarSite() {
           const vis = userFacingSiteUrl(slug || null, site);
           setPublicSiteUrl(vis);
 
-          let textoSucesso = '';
-          if (deployOk && vis) {
-            textoSucesso =
-              `Publicação concluída! Seu site público: ${vis}\n\n` +
-              'Pode levar até 45 minutos para o endereço ficar totalmente disponível. ' +
-              'Enquanto isso, use a pré-visualização acima.';
-          } else if (deployOk) {
-            textoSucesso =
-              'Publicação concluída! Seu site foi publicado. ' +
-              'Pode levar até 45 minutos para o endereço personalizado ficar disponível — use a pré-visualização enquanto isso.';
-          } else {
+          if (!deployOk) {
             // Em vez de enviar para o chat, setamos um alerta se houver erro
-            setErro('A publicação terminou com avisos. O URL público pode demorar alguns minutos.');
+            setErro(t('pages.criarSite.publishWarnings'));
           }
 
           setAPublicar(false);
           clearPublishJob();
         } else if (j.status === 'failed') {
           finish();
-          const msg = j.error || 'Erro ao publicar.';
+          const msg = j.error || t('pages.criarSite.errors.publish');
           setErro(msg);
           setAPublicar(false);
           clearPublishJob();
@@ -517,7 +515,7 @@ export default function CriarSite() {
       } catch (err: unknown) {
         if (cancelled) return;
         finish();
-        const msg = err instanceof Error ? err.message : 'Erro ao consultar a publicação.';
+        const msg = err instanceof Error ? err.message : t('pages.criarSite.errors.publishStatus');
         setErro(msg);
         setAPublicar(false);
         clearPublishJob();
@@ -530,7 +528,7 @@ export default function CriarSite() {
       cancelled = true;
       finish();
     };
-  }, [publishJobId, clearPublishJob, publishSlug, setPublicSiteUrl]);
+  }, [publishJobId, clearPublishJob, publishSlug, setPublicSiteUrl, t]);
 
   async function enviar() {
     if (conversationReadOnly) return;
@@ -567,7 +565,7 @@ export default function CriarSite() {
         setAGerar(true);
       }
     } catch (err: any) {
-      const msg = err?.message || 'Erro ao comunicar com a IA.';
+      const msg = err?.message || t('pages.criarSite.errors.chat');
       setErro(msg);
       // Removed errMsg to avoid polluting chat history with system errors
     } finally {
@@ -590,7 +588,7 @@ export default function CriarSite() {
       );
       setGenerateJobId(data.jobId);
     } catch (err: any) {
-      const msg = err?.message || 'Erro ao gerar o site.';
+      const msg = err?.message || t('pages.criarSite.errors.generateSite');
       setErro(msg);
       setAGerar(false);
     }
@@ -604,12 +602,12 @@ export default function CriarSite() {
 
     const slug = publishSlug.trim().toLowerCase();
     if (requirePublishSlug && !slug) {
-      setErro('Informe um subdomínio (slug) para publicar com seu domínio personalizado.');
+      setErro(t('pages.criarSite.errors.slugRequired'));
       setAPublicar(false);
       return;
     }
     if (slug && !slugValid(slug)) {
-      setErro('Use apenas letras minúsculas, números e hífens (1 a 63 caracteres).');
+      setErro(t('pages.criarSite.errors.slugInvalid'));
       setAPublicar(false);
       return;
     }
@@ -623,7 +621,7 @@ export default function CriarSite() {
       });
       setPublishJobId(data.jobId);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao publicar.';
+      const msg = err instanceof Error ? err.message : t('pages.criarSite.errors.publish');
       setErro(msg);
       setAPublicar(false);
     }
@@ -642,9 +640,9 @@ export default function CriarSite() {
         >
           <div className="flex items-start justify-between gap-2 py-1.5 sm:py-2 md:gap-3">
             <div className="min-w-0 space-y-0">
-              <h1 className="text-base sm:text-lg font-semibold tracking-tight leading-tight">{TITULO_PAGINA}</h1>
+              <h1 className="text-base sm:text-lg font-semibold tracking-tight leading-tight">{tituloPagina}</h1>
               <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug max-w-md hidden sm:block mt-0.5">
-                Um fluxo único: conversar com a Laurena, gerar o site, ver o resultado e publicar.
+                {t('pages.criarSite.subtitle')}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -661,24 +659,24 @@ export default function CriarSite() {
                   ) : (
                     <Wand2 className="w-3.5 h-3.5 mr-1.5" />
                   )}
-                  {BOTAO_GERAR}
+                  {botaoGerar}
                 </Button>
               )}
               <SheetTrigger asChild>
                 <Button type="button" variant="outline" size="sm" className="gap-1.5 h-9">
                   <History className="w-4 h-4" />
-                  <span className="hidden min-[400px]:inline">Histórico</span>
+                  <span className="hidden min-[400px]:inline">{t('pages.criarSite.history')}</span>
                 </Button>
               </SheetTrigger>
               <Button type="button" variant="secondary" size="sm" className="h-9" onClick={iniciarNovoSite}>
-                Novo site
+                {t('pages.criarSite.newSite')}
               </Button>
             </div>
           </div>
 
-          <nav className="pb-1.5 sm:pb-2 pt-0.5" aria-label="Progresso no criador de sites">
+          <nav className="pb-1.5 sm:pb-2 pt-0.5" aria-label={t('pages.criarSite.progressAria')}>
             <div className="flex items-center w-full max-w-3xl" role="list">
-              {FLOW_STEPS.map(({ n, short, Icon }, idx) => {
+              {flowSteps.map(({ n, short, Icon }, idx) => {
                 const done = flowStepActive > n;
                 const active = flowStepActive === n;
                 return (
@@ -686,7 +684,7 @@ export default function CriarSite() {
                     <div
                       className={cn(
                         'flex items-center gap-1.5 min-w-0 flex-1 justify-center sm:justify-start',
-                        idx === FLOW_STEPS.length - 1 && 'sm:flex-none'
+                        idx === flowSteps.length - 1 && 'sm:flex-none'
                       )}
                     >
                       <span
@@ -714,7 +712,7 @@ export default function CriarSite() {
                         {short}
                       </span>
                     </div>
-                    {idx < FLOW_STEPS.length - 1 && (
+                    {idx < flowSteps.length - 1 && (
                       <div
                         className="hidden sm:block h-0.5 w-6 lg:w-10 shrink-0 rounded-full bg-border mx-0.5"
                         aria-hidden
@@ -729,8 +727,8 @@ export default function CriarSite() {
 
         <SheetContent side="left" className="w-[min(100vw,420px)] flex flex-col gap-3">
           <SheetHeader>
-            <SheetTitle>Histórico de projetos</SheetTitle>
-            <SheetDescription>Abra um projeto salvo na sua conta.</SheetDescription>
+            <SheetTitle>{t('pages.criarSite.historyTitle')}</SheetTitle>
+            <SheetDescription>{t('pages.criarSite.historyDescription')}</SheetDescription>
           </SheetHeader>
           <Button
             type="button"
@@ -741,17 +739,17 @@ export default function CriarSite() {
               setHistoryOpen(false);
             }}
           >
-            + Novo site
+            + {t('pages.criarSite.newSite')}
           </Button>
           <div className="flex-1 min-h-0 overflow-y-auto space-y-1 pr-1">
             {projectsLoading ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Carregando…
+                {t('pages.criarSite.loading')}
               </div>
             ) : filteredProjects.length === 0 ? (
               <p className="text-[11px] text-muted-foreground leading-snug">
-                Os projetos aparecem aqui após a primeira mensagem.
+                {t('pages.criarSite.historyEmpty')}
               </p>
             ) : (
               filteredProjects.map((p) => (
@@ -800,7 +798,7 @@ export default function CriarSite() {
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700/90 dark:text-emerald-400/90">
-                Site no ar
+                {t('pages.criarSite.siteLive')}
               </p>
               <a
                 href={publicSiteUrl}
@@ -825,7 +823,7 @@ export default function CriarSite() {
         {((generateJob?.logs?.length ?? 0) > 0 || (publishJob?.logs?.length ?? 0) > 0) && emConversa && (
           <details className="mb-3 shrink-0 rounded-lg border border-border/50 bg-muted/15 text-[11px] font-mono text-muted-foreground">
             <summary className="cursor-pointer select-none px-3 py-2 text-xs font-sans text-foreground">
-              Detalhes do processo (técnico)
+              {t('pages.criarSite.techDetails')}
             </summary>
             <div className="px-3 pb-2 max-h-28 overflow-y-auto space-y-0.5 border-t border-border/30 pt-2">
               {(generateJob?.logs ?? []).map((l, i) => (
@@ -842,7 +840,7 @@ export default function CriarSite() {
           <div className="flex flex-col items-center justify-center px-3 sm:px-6 py-6 md:py-10">
             <div className="w-full max-w-xl text-center space-y-4 md:space-y-5 mb-8 md:mb-10">
               <p className="text-muted-foreground text-[15px] sm:text-base md:text-lg leading-relaxed text-balance">
-                {MENSAGEM_ABERTURA_TEXTO}
+                {aberturaTexto}
               </p>
             </div>
           </div>
@@ -858,10 +856,10 @@ export default function CriarSite() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
                 {aPublicar
-                  ? 'Publicando em segundo plano. Você pode fechar esta página — o progresso continua.'
+                  ? t('pages.criarSite.backgroundPublishing')
                   : aGerar
-                    ? 'Gerando o site em segundo plano. Você pode fechar esta página — o progresso continua.'
-                    : LOADING_TEXTO}
+                    ? t('pages.criarSite.backgroundGenerating')
+                    : loadingTexto}
               </div>
             )}
             <div ref={fim} className="h-px" />
@@ -874,10 +872,10 @@ export default function CriarSite() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin shrink-0 opacity-70" />
                   {aPublicar
-                    ? 'Publicando em segundo plano. Você pode fechar esta página — o progresso continua.'
+                    ? t('pages.criarSite.backgroundPublishing')
                     : aGerar
-                      ? 'Gerando o site em segundo plano. Você pode fechar esta página — o progresso continua.'
-                      : LOADING_TEXTO}
+                      ? t('pages.criarSite.backgroundGenerating')
+                      : loadingTexto}
                 </div>
               )}
               <div ref={fimMobile} className="h-px" />
@@ -887,10 +885,10 @@ export default function CriarSite() {
                 {siteResult && previewAbsUrl ? (
                   <div className="flex flex-col flex-1 min-h-0 rounded-xl border border-border/70 bg-muted/20 overflow-hidden shadow-sm">
                     <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/90 shrink-0">
-                      Pré-visualização no painel
+                      {t('pages.criarSite.previewInPanel')}
                     </p>
                     <iframe
-                      title="Pré-visualização do site gerado"
+                      title={t('pages.criarSite.previewIframeTitle')}
                       src={previewAbsUrl}
                       className="w-full flex-1 min-h-[260px] bg-white"
                       sandbox="allow-scripts allow-same-origin allow-forms"
@@ -898,7 +896,7 @@ export default function CriarSite() {
                   </div>
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center text-sm text-muted-foreground min-h-[180px]">
-                    Gere o site para ver a pré-visualização aqui.
+                    {t('pages.criarSite.generateToSeePreview')}
                   </div>
                 )}
               </div>
@@ -925,9 +923,9 @@ export default function CriarSite() {
         >
             {!conversationReadOnly && !emConversa && (
               <div className="mb-3 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">{LABEL_SUGESTOES}</p>
+                <p className="text-xs font-medium text-muted-foreground">{labelSugestoes}</p>
                 <div className="flex flex-wrap gap-2">
-                  {SUGESTOES_CRIAR_SITE.map((s) => (
+                  {sugestoesCriarSite.map((s) => (
                     <Button
                       key={s.titulo}
                       type="button"
@@ -964,12 +962,12 @@ export default function CriarSite() {
                 }}
                 placeholder={
                   conversationReadOnly
-                    ? 'Conversa bloqueada — abra "Novo site" para enviar mensagens à IA.'
-                    : PLACEHOLDER_PROMPT
+                    ? t('pages.criarSite.conversationLocked')
+                    : placeholderPrompt
                 }
                 rows={1}
                 disabled={conversationReadOnly || aEnviar || aGerar || aPublicar}
-                aria-label="Prompt para descrever o site"
+                aria-label={t('pages.criarSite.promptAria')}
                 className={cn(
                   'min-h-[44px] max-h-[200px] resize-none flex-1 border-0 bg-transparent p-1.5 md:p-2',
                   'text-[15px] leading-relaxed shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
@@ -983,7 +981,7 @@ export default function CriarSite() {
                 conversationReadOnly || aEnviar || aGerar || aPublicar || !rascunho.trim()
               }
               onClick={enviar}
-              aria-label="Enviar mensagem"
+              aria-label={t('pages.criarSite.sendMessageAria')}
                 className={cn(
                   'shrink-0 h-9 w-9 rounded-full mb-0.5',
                   'bg-primary text-primary-foreground hover:bg-primary/90',
@@ -995,7 +993,7 @@ export default function CriarSite() {
             </div>
             {!conversationReadOnly && (
               <p className="text-center text-[11px] text-muted-foreground/80 mt-2.5 px-2">
-                {DICA_TECLADO}
+                {dicaTeclado}
               </p>
             )}
           </div>
@@ -1005,9 +1003,9 @@ export default function CriarSite() {
         <div className="flex flex-col min-h-0 min-w-0 lg:col-span-1 rounded-xl border border-border/80 bg-card/30 shadow-sm overflow-hidden">
           <div className="flex flex-col gap-3 p-3 border-b border-border/60 bg-muted/25 sm:flex-row sm:items-center sm:justify-between shrink-0">
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold tracking-tight">Pré-visualização</h2>
+              <h2 className="text-sm font-semibold tracking-tight">{t('pages.criarSite.preview')}</h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                HTML e CSS como no navegador
+                {t('pages.criarSite.previewSubtitle')}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 justify-end">
@@ -1015,7 +1013,7 @@ export default function CriarSite() {
                 <Button variant="secondary" size="sm" className="h-9 rounded-full text-xs gap-1.5" asChild>
                   <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-3.5 h-3.5" />
-                    Abrir em nova aba
+                    {t('pages.criarSite.openInNewTab')}
                   </a>
                 </Button>
               )}
@@ -1023,7 +1021,7 @@ export default function CriarSite() {
           </div>
           {siteResult && previewAbsUrl ? (
             <iframe
-              title="Pré-visualização do site gerado"
+              title={t('pages.criarSite.previewIframeTitle')}
               src={previewAbsUrl}
               className="w-full flex-1 min-h-[min(55vh,560px)] bg-white"
               sandbox="allow-scripts allow-same-origin allow-forms"
@@ -1031,9 +1029,9 @@ export default function CriarSite() {
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-sm text-muted-foreground min-h-[240px] border border-dashed border-border/40 m-3 rounded-lg">
               <LayoutTemplate className="w-10 h-10 opacity-30 mb-3" />
-              <p className="font-medium text-foreground">Ainda sem site gerado</p>
+              <p className="font-medium text-foreground">{t('pages.criarSite.noGeneratedSiteTitle')}</p>
               <p className="mt-1 max-w-xs">
-                Quando o briefing estiver claro, use “Gerar site” para ver o resultado aqui.
+                {t('pages.criarSite.noGeneratedSiteDescription')}
               </p>
             </div>
           )}
@@ -1041,19 +1039,19 @@ export default function CriarSite() {
             <div className="border-t border-border/60 p-3 space-y-2 bg-background/95 shrink-0">
               <p className="text-xs font-medium flex items-center gap-1.5 text-foreground">
                 <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                Publicar na internet
+                {t('pages.criarSite.publishOnInternet')}
               </p>
               <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
                 <div className="flex-1 min-w-0 space-y-1">
                   <label htmlFor="publish-slug-desktop" className="sr-only">
-                    Subdomínio
+                    {t('pages.criarSite.subdomain')}
                   </label>
                   <Input
                     id="publish-slug-desktop"
                     type="text"
                     inputMode="text"
                     autoComplete="off"
-                    placeholder="meu-site"
+                    placeholder={t('pages.criarSite.slugPlaceholder')}
                     value={publishSlug}
                     onChange={(e) =>
                       setPublishSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
@@ -1073,7 +1071,7 @@ export default function CriarSite() {
                   disabled={aPublicar || !usuario?.id}
                 >
                   {aPublicar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
-                  {BOTAO_PUBLICAR}
+                  {botaoPublicar}
                 </Button>
               </div>
             </div>
@@ -1103,12 +1101,12 @@ export default function CriarSite() {
                 ) : (
                   <Wand2 className="w-4 h-4" />
                 )}
-                <span className="ml-1.5 hidden min-[360px]:inline">{BOTAO_GERAR}</span>
-                <span className="ml-1.5 inline min-[360px]:hidden">Gerar</span>
+                <span className="ml-1.5 hidden min-[360px]:inline">{botaoGerar}</span>
+                <span className="ml-1.5 inline min-[360px]:hidden">{t('pages.criarSite.generateShort')}</span>
               </Button>
               {!conversationReadOnly && previewAbsUrl && (
                 <Button variant="secondary" size="sm" className="rounded-xl h-10 px-3 shrink-0" asChild>
-                  <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer" title="Abrir pré-visualização">
+                  <a href={previewAbsUrl} target="_blank" rel="noopener noreferrer" title={t('pages.criarSite.openPreview')}>
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 </Button>
@@ -1122,7 +1120,7 @@ export default function CriarSite() {
                   disabled={aPublicar}
                 >
                   <Rocket className="w-4 h-4" />
-                  <span className="ml-1.5">{BOTAO_PUBLICAR}</span>
+                  <span className="ml-1.5">{botaoPublicar}</span>
                 </Button>
               )}
             </div>
@@ -1133,22 +1131,22 @@ export default function CriarSite() {
               className="rounded-b-2xl max-h-[90dvh] flex flex-col pt-[max(1.5rem,env(safe-area-inset-top))]"
             >
               <SheetHeader className="text-left border-b border-border/50 pb-3">
-                <SheetTitle>Publicar o site</SheetTitle>
+                <SheetTitle>{t('pages.criarSite.publishSite')}</SheetTitle>
                 <SheetDescription>
-                  Confirme o subdomínio e inicie a publicação. Pode acompanhar o progresso no feed acima.
+                  {t('pages.criarSite.publishSiteDescription')}
                 </SheetDescription>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto py-4 space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="publish-slug-mobile" className="text-xs font-medium">
-                    Subdomínio {requirePublishSlug ? '(obrigatório)' : '(opcional)'}
+                    {t('pages.criarSite.subdomain')} {requirePublishSlug ? t('pages.criarSite.required') : t('pages.criarSite.optional')}
                   </label>
                   <Input
                     id="publish-slug-mobile"
                     type="text"
                     inputMode="text"
                     autoComplete="off"
-                    placeholder="meu-site"
+                    placeholder={t('pages.criarSite.slugPlaceholder')}
                     value={publishSlug}
                     onChange={(e) =>
                       setPublishSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
@@ -1170,7 +1168,7 @@ export default function CriarSite() {
                   disabled={aPublicar || !usuario?.id}
                 >
                   {aPublicar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
-                  {BOTAO_PUBLICAR}
+                  {botaoPublicar}
                 </Button>
               </div>
             </SheetContent>

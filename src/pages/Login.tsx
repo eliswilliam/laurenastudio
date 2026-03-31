@@ -17,6 +17,7 @@ import { useEffect, useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Login() {
+  const LOGIN_ERROR_TOAST_MS = 5000;
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -38,7 +39,7 @@ export default function Login() {
   useEffect(() => {
     const error = searchParams.get('error');
     if (error) {
-      notify.error(t('pages.login.googleErrorTitle'), decodeURIComponent(error));
+      notify.error(t('pages.login.googleErrorTitle'), decodeURIComponent(error), LOGIN_ERROR_TOAST_MS);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -66,7 +67,8 @@ export default function Login() {
     } catch (err: unknown) {
       notify.error(
         t('pages.login.errorTitle'),
-        err instanceof Error ? err.message : t('pages.login.errorDesc')
+        err instanceof Error ? err.message : t('pages.login.errorDesc'),
+        LOGIN_ERROR_TOAST_MS
       );
     } finally {
       setCarregando(false);

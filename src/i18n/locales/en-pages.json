@@ -374,6 +374,87 @@
       "altAd": "Generated ad",
       "altReference": "Reference"
     },
+    "templateBuilder": {
+      "title": "Template",
+      "subtitle": "No-code website builder powered by GrapesJS.",
+      "copyHtmlCss": "Copy HTML + CSS"
+    },
+    "criarSite": {
+      "title": "Create your site",
+      "subtitle": "One flow: chat with Laurena, generate your site, review the result, and publish.",
+      "openingMessage": "Hi! I'm Laurena. Describe your website (business, pages, style). When you're ready, click Generate site: the app creates a real static site (responsive HTML with integrated CSS) that you can preview here. Send multiple messages to refine the brief.",
+      "placeholderPrompt": "Describe the site you have in mind: niche, pages, audience, aesthetics, references…",
+      "suggestionsLabel": "Ideas to start",
+      "generateButton": "Generate site",
+      "generateShort": "Generate",
+      "publishButton": "Publish",
+      "keyboardHint": "Enter sends · Shift+Enter new line",
+      "thinking": "Laurena is thinking…",
+      "steps": {
+        "briefing": "Brief",
+        "generate": "Generate",
+        "preview": "Preview",
+        "online": "Online"
+      },
+      "history": "History",
+      "newSite": "New site",
+      "progressAria": "Website builder progress",
+      "historyTitle": "Project history",
+      "historyDescription": "Open a project saved in your account.",
+      "historyEmpty": "Projects appear here after your first message.",
+      "loading": "Loading…",
+      "siteLive": "Site online",
+      "techDetails": "Process details (technical)",
+      "backgroundPublishing": "Publishing in the background. You can close this page: progress will continue.",
+      "backgroundGenerating": "Generating the site in the background. You can close this page: progress will continue.",
+      "previewInPanel": "Preview in panel",
+      "previewIframeTitle": "Generated site preview",
+      "generateToSeePreview": "Generate the site to see the preview here.",
+      "conversationLocked": "Conversation locked: open New site to send messages to AI.",
+      "promptAria": "Prompt to describe the website",
+      "sendMessageAria": "Send message",
+      "preview": "Preview",
+      "previewSubtitle": "HTML and CSS as rendered in the browser",
+      "openInNewTab": "Open in new tab",
+      "noGeneratedSiteTitle": "No generated site yet",
+      "noGeneratedSiteDescription": "When the brief is clear, use Generate site to see the result here.",
+      "publishOnInternet": "Publish on the internet",
+      "subdomain": "Subdomain",
+      "required": "(required)",
+      "optional": "(optional)",
+      "slugPlaceholder": "my-site",
+      "openPreview": "Open preview",
+      "publishSite": "Publish site",
+      "publishSiteDescription": "Confirm the subdomain and start publishing. You can track progress in the feed above.",
+      "generatedSuccess": "Site generated successfully! Use the buttons below to view the preview.",
+      "publishWarnings": "Publishing finished with warnings. The public URL may take a few minutes.",
+      "errors": {
+        "loadProject": "Error loading the project.",
+        "generation": "Generation error.",
+        "generationWithReason": "Generation error: {{reason}}",
+        "generationStatus": "Error checking generation status.",
+        "generateSite": "Error generating the site.",
+        "publish": "Error publishing.",
+        "publishStatus": "Error checking publish status.",
+        "chat": "Error communicating with AI.",
+        "slugRequired": "Provide a subdomain (slug) to publish with your custom domain.",
+        "slugInvalid": "Use lowercase letters, numbers, and hyphens only (1 to 63 characters)."
+      },
+      "suggestions": {
+        "saas": {
+          "title": "SaaS Landing",
+          "prompt": "Landing page for a digital product: hero with mockup, benefits section, 2 pricing plans, and FAQ."
+        },
+        "restaurant": {
+          "title": "Restaurant",
+          "prompt": "Website for a restaurant: menu by categories, online reservations, location and opening hours."
+        },
+        "portfolio": {
+          "title": "Portfolio",
+          "prompt": "Designer portfolio: grid gallery, about page, and a minimalist contact form."
+        }
+      }
+    },
     "aiStudio": {
       "landingSubtitle": "Generate high-quality content with AI. Choose a content type below.",
       "cardImageTitle": "Image",

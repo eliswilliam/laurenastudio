@@ -374,6 +374,87 @@
       "altAd": "Annonce générée",
       "altReference": "Référence"
     },
+    "templateBuilder": {
+      "title": "Template",
+      "subtitle": "Constructeur de site no-code propulsé par GrapesJS.",
+      "copyHtmlCss": "Copier HTML + CSS"
+    },
+    "criarSite": {
+      "title": "Créez votre site",
+      "subtitle": "Un seul flux : discuter avec Laurena, générer le site, voir le résultat et publier.",
+      "openingMessage": "Bonjour ! Je suis Laurena. Décrivez votre site (activité, pages, style). Quand vous êtes prêt, cliquez sur Générer le site : l'application crée un vrai site statique (HTML responsive avec CSS intégré) que vous pouvez prévisualiser ici. Envoyez plusieurs messages pour affiner le brief.",
+      "placeholderPrompt": "Décrivez le site imaginé : secteur, pages, public, esthétique, références…",
+      "suggestionsLabel": "Idées pour commencer",
+      "generateButton": "Générer le site",
+      "generateShort": "Générer",
+      "publishButton": "Publier",
+      "keyboardHint": "Entrée envoie · Maj+Entrée nouvelle ligne",
+      "thinking": "Laurena réfléchit…",
+      "steps": {
+        "briefing": "Brief",
+        "generate": "Générer",
+        "preview": "Aperçu",
+        "online": "En ligne"
+      },
+      "history": "Historique",
+      "newSite": "Nouveau site",
+      "progressAria": "Progression du créateur de site",
+      "historyTitle": "Historique des projets",
+      "historyDescription": "Ouvrez un projet enregistré dans votre compte.",
+      "historyEmpty": "Les projets apparaissent ici après votre premier message.",
+      "loading": "Chargement…",
+      "siteLive": "Site en ligne",
+      "techDetails": "Détails du processus (technique)",
+      "backgroundPublishing": "Publication en arrière-plan. Vous pouvez fermer cette page : la progression continue.",
+      "backgroundGenerating": "Génération du site en arrière-plan. Vous pouvez fermer cette page : la progression continue.",
+      "previewInPanel": "Aperçu dans le panneau",
+      "previewIframeTitle": "Aperçu du site généré",
+      "generateToSeePreview": "Générez le site pour voir l'aperçu ici.",
+      "conversationLocked": "Conversation verrouillée : ouvrez Nouveau site pour envoyer des messages à l'IA.",
+      "promptAria": "Prompt pour décrire le site",
+      "sendMessageAria": "Envoyer le message",
+      "preview": "Aperçu",
+      "previewSubtitle": "HTML et CSS comme dans le navigateur",
+      "openInNewTab": "Ouvrir dans un nouvel onglet",
+      "noGeneratedSiteTitle": "Aucun site généré pour le moment",
+      "noGeneratedSiteDescription": "Quand le brief est prêt, utilisez Générer le site pour voir le résultat ici.",
+      "publishOnInternet": "Publier sur internet",
+      "subdomain": "Sous-domaine",
+      "required": "(obligatoire)",
+      "optional": "(optionnel)",
+      "slugPlaceholder": "mon-site",
+      "openPreview": "Ouvrir l'aperçu",
+      "publishSite": "Publier le site",
+      "publishSiteDescription": "Confirmez le sous-domaine et lancez la publication. Vous pouvez suivre la progression dans le flux ci-dessus.",
+      "generatedSuccess": "Site généré avec succès ! Utilisez les boutons ci-dessous pour voir l'aperçu.",
+      "publishWarnings": "La publication s'est terminée avec des avertissements. L'URL publique peut prendre quelques minutes.",
+      "errors": {
+        "loadProject": "Erreur lors du chargement du projet.",
+        "generation": "Erreur de génération.",
+        "generationWithReason": "Erreur de génération : {{reason}}",
+        "generationStatus": "Erreur lors de la vérification de l'état de génération.",
+        "generateSite": "Erreur lors de la génération du site.",
+        "publish": "Erreur lors de la publication.",
+        "publishStatus": "Erreur lors de la vérification de la publication.",
+        "chat": "Erreur de communication avec l'IA.",
+        "slugRequired": "Indiquez un sous-domaine (slug) pour publier avec votre domaine personnalisé.",
+        "slugInvalid": "Utilisez uniquement des lettres minuscules, chiffres et tirets (1 à 63 caractères)."
+      },
+      "suggestions": {
+        "saas": {
+          "title": "Landing SaaS",
+          "prompt": "Landing pour produit digital : hero avec mockup, section bénéfices, 2 plans tarifaires et FAQ."
+        },
+        "restaurant": {
+          "title": "Restaurant",
+          "prompt": "Site pour restaurant : menu par catégories, réservation en ligne, localisation et horaires."
+        },
+        "portfolio": {
+          "title": "Portfolio",
+          "prompt": "Portfolio de designer : galerie en grille, page à propos et formulaire de contact minimaliste."
+        }
+      }
+    },
     "aiStudio": {
       "landingSubtitle": "Générez du contenu de qualité avec l'IA. Choisissez un type ci-dessous.",
       "cardImageTitle": "Image",

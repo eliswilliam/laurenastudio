@@ -374,6 +374,87 @@
       "altAd": "Anúncio gerado",
       "altReference": "Referência"
     },
+    "templateBuilder": {
+      "title": "Template",
+      "subtitle": "Construtor de sites no-code com GrapesJS.",
+      "copyHtmlCss": "Copiar HTML + CSS"
+    },
+    "criarSite": {
+      "title": "Crie seu site",
+      "subtitle": "Um fluxo único: conversar com a Laurena, gerar o site, ver o resultado e publicar.",
+      "openingMessage": "Olá! Sou a Laurena. Descreva o site (negócio, páginas, estilo). Quando estiver pronto, clique em Gerar site: a aplicação cria um site estático real (HTML com CSS integrado, responsivo), que você pode visualizar aqui. Envie várias mensagens para afinar o briefing.",
+      "placeholderPrompt": "Descreva o site que imagina: setor, páginas, público, estética, referências…",
+      "suggestionsLabel": "Ideias para começar",
+      "generateButton": "Gerar site",
+      "generateShort": "Gerar",
+      "publishButton": "Publicar",
+      "keyboardHint": "Enter envia · Shift+Enter nova linha",
+      "thinking": "Laurena está pensando…",
+      "steps": {
+        "briefing": "Briefing",
+        "generate": "Gerar",
+        "preview": "Prévia",
+        "online": "Online"
+      },
+      "history": "Histórico",
+      "newSite": "Novo site",
+      "progressAria": "Progresso no criador de sites",
+      "historyTitle": "Histórico de projetos",
+      "historyDescription": "Abra um projeto salvo na sua conta.",
+      "historyEmpty": "Os projetos aparecem aqui após a primeira mensagem.",
+      "loading": "Carregando…",
+      "siteLive": "Site no ar",
+      "techDetails": "Detalhes do processo (técnico)",
+      "backgroundPublishing": "Publicando em segundo plano. Você pode fechar esta página: o progresso continua.",
+      "backgroundGenerating": "Gerando o site em segundo plano. Você pode fechar esta página: o progresso continua.",
+      "previewInPanel": "Pré-visualização no painel",
+      "previewIframeTitle": "Pré-visualização do site gerado",
+      "generateToSeePreview": "Gere o site para ver a pré-visualização aqui.",
+      "conversationLocked": "Conversa bloqueada: abra Novo site para enviar mensagens à IA.",
+      "promptAria": "Prompt para descrever o site",
+      "sendMessageAria": "Enviar mensagem",
+      "preview": "Pré-visualização",
+      "previewSubtitle": "HTML e CSS como no navegador",
+      "openInNewTab": "Abrir em nova aba",
+      "noGeneratedSiteTitle": "Ainda sem site gerado",
+      "noGeneratedSiteDescription": "Quando o briefing estiver claro, use Gerar site para ver o resultado aqui.",
+      "publishOnInternet": "Publicar na internet",
+      "subdomain": "Subdomínio",
+      "required": "(obrigatório)",
+      "optional": "(opcional)",
+      "slugPlaceholder": "meu-site",
+      "openPreview": "Abrir pré-visualização",
+      "publishSite": "Publicar o site",
+      "publishSiteDescription": "Confirme o subdomínio e inicie a publicação. Você pode acompanhar o progresso no feed acima.",
+      "generatedSuccess": "Site gerado com sucesso! Use os botões abaixo para ver a pré-visualização.",
+      "publishWarnings": "A publicação terminou com avisos. O URL público pode demorar alguns minutos.",
+      "errors": {
+        "loadProject": "Erro ao carregar o projeto.",
+        "generation": "Erro na geração.",
+        "generationWithReason": "Erro na geração: {{reason}}",
+        "generationStatus": "Erro ao consultar o estado da geração.",
+        "generateSite": "Erro ao gerar o site.",
+        "publish": "Erro ao publicar.",
+        "publishStatus": "Erro ao consultar a publicação.",
+        "chat": "Erro ao comunicar com a IA.",
+        "slugRequired": "Informe um subdomínio (slug) para publicar com seu domínio personalizado.",
+        "slugInvalid": "Use apenas letras minúsculas, números e hífens (1 a 63 caracteres)."
+      },
+      "suggestions": {
+        "saas": {
+          "title": "Landing SaaS",
+          "prompt": "Landing para produto digital: hero com mockup, seção de benefícios, preços em 2 planos e FAQ."
+        },
+        "restaurant": {
+          "title": "Restaurante",
+          "prompt": "Site para restaurante: cardápio por categorias, reservas online, localização e horários."
+        },
+        "portfolio": {
+          "title": "Portfólio",
+          "prompt": "Portfólio de designer: galeria em grid, página sobre o autor e formulário de contato minimalista."
+        }
+      }
+    },
     "aiStudio": {
       "landingSubtitle": "Gere conteúdo de alta qualidade com inteligência artificial. Escolha o tipo de conteúdo abaixo.",
       "cardImageTitle": "Imagem",

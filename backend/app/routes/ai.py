@@ -133,22 +133,23 @@ async def generate(
     # ── Audio: Azure Speech only (never Gemini / Google API key) ─────────────
     if payload.resource_type == "audio":
         try:
+            voice_to_use = payload.model if payload.model and payload.model.lower() != "azure" else None
             generated_content = await asyncio.to_thread(
                 save_speech_wav_to_uploads,
                 payload.prompt,
-                payload.model,
+                voice_to_use,
             )
         except RuntimeError as exc:
             logger.exception("Azure speech generation failed: %s", exc)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=str(exc),
+                detail="Falha na síntese de voz. Tente novamente em instantes.",
             ) from exc
         except Exception as exc:
             logger.exception("Azure speech generation failed: %s", exc)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Falha na síntese de voz: {exc}",
+                detail="Falha na síntese de voz. Tente novamente em instantes.",
             ) from exc
 
         record = AIGeneration(
@@ -188,11 +189,11 @@ async def generate(
         logger.exception("AI generation failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Falha na geração com IA: {exc}",
+            detail="Falha na geração com IA. Tente novamente em instantes.",
         )
 
     model_logged = (
-        (settings.REPLICATE_IMAGE_MODEL or "black-forest-labs/flux-dev")
+        "gemini-2.5-flash-image"
         if payload.resource_type == "image"
         else payload.model
     )

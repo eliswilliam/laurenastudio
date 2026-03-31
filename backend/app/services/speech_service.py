@@ -47,8 +47,8 @@ def synthesize_speech_wav(text: str, voice_name: str | None = None) -> bytes:
         )
 
     voice = (voice_name or settings.AZURE_SPEECH_VOICE or "").strip()
-    if not voice:
-        voice = "en-US-Ava:DragonHDLatestNeural"
+    if not voice or voice.lower() in ("azure", "default"):
+        voice = "fr-FR-DeniseNeural"
 
     speech_config = speechsdk.SpeechConfig(subscription=key, endpoint=endpoint)
     speech_config.speech_synthesis_voice_name = voice

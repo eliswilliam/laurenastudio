@@ -137,7 +137,7 @@ async def generate_image(
     model: str | None = None,
     style: str | None = None,
 ) -> str:
-    """Gera imagem via Replicate (FLUX). Devolve URL relativa do ficheiro em /uploads/generated/."""
+    """Gera imagem via Google Gemini. Devolve URL relativa do ficheiro em /uploads/generated/."""
     loop = asyncio.get_running_loop()
     full_prompt = f"{prompt.strip()}. Estilo: {style}" if style else prompt.strip()
 
@@ -148,7 +148,7 @@ async def generate_image(
     filename = f"{uuid.uuid4().hex}.webp"
     filepath = GENERATED_DIR / filename
     filepath.write_bytes(image_data)
-    logger.info("Saved generated image (Replicate): %s (%d bytes)", filename, len(image_data))
+    logger.info("Saved generated image (Gemini): %s (%d bytes)", filename, len(image_data))
     return f"/uploads/generated/{filename}"
 
 

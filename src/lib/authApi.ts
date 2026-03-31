@@ -125,7 +125,9 @@ export async function apiUpdateProfile(data: UserUpdateRequest): Promise<UserRea
 export async function apiUploadAvatar(file: File): Promise<UserRead> {
   const form = new FormData();
   form.append('file', file);
-  const res = await api.post<UserRead>('/auth/me/avatar', form);
+  const res = await api.post<UserRead>('/auth/me/avatar', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return res.data;
 }
 

@@ -1,76 +1,55 @@
 """
-Replicate HTTP API — text-to-image (ex.: black-forest-labs/flux-dev).
-Uses the Replicate Python client library.
+Google Gemini image generation using API key (Generative Language API).
 """
 from __future__ import annotations
 
-import base64
 import logging
 import os
-from typing import Any, Optional
+from typing import Optional
 
 import httpx
-import replicate
+import base64
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-_ALLOWED_IMAGE_MIMES = frozenset({"image/png", "image/jpeg", "image/webp", "image/gif"})
 
+def _fallback_pexels_image_bytes(prompt: str) -> Optional[bytes]:
+    """Return image bytes from Pexels when Gemini image is unavailable."""
+    pexels_key = (settings.PEXELS_API_KEY or "").strip()
+    if not pexels_key:
+        return None
 
-def _download_image_bytes(url: str) -> bytes:
-    with httpx.Client(timeout=120.0) as client:
-        r = client.get(url, follow_redirects=True)
-        r.raise_for_status()
-        return r.content
+    query = (prompt or "business professional photo").strip()[:140]
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            search = client.get(
+                "https://api.pexels.com/v1/search",
+                params={"query": query, "per_page": 1, "page": 1},
+                headers={"Authorization": pexels_key},
+            )
+            if search.status_code != 200:
+                logger.warning("Pexels fallback search failed: status=%s", search.status_code)
+                return None
 
+            payload = search.json()
+            photos = payload.get("photos") or []
+            if not photos:
+                return None
 
-def _coerce_replicate_image_bytes(output: Any) -> bytes:
-    """Normalize Replicate model output to raw image bytes."""
-    if output is None:
-        raise RuntimeError("Replicate não devolveu output.")
+            src = photos[0].get("src") or {}
+            img_url = src.get("large2x") or src.get("large") or src.get("original")
+            if not img_url:
+                return None
 
-    if isinstance(output, (bytes, bytearray)):
-        data = bytes(output)
-        if not data:
-            raise RuntimeError("Replicate devolveu bytes vazios.")
-        return data
-
-    if isinstance(output, str):
-        if output.startswith("http://") or output.startswith("https://"):
-            return _download_image_bytes(output)
-        raise RuntimeError(f"Replicate devolveu string inesperada: {output[:80]!r}…")
-
-    if isinstance(output, (list, tuple)):
-        items: list[Any] = list(output)
-    elif type(output).__name__ == "generator":
-        items = list(output)
-    else:
-        items = [output]
-
-    if not items:
-        raise RuntimeError("Resultado do Replicate está vazio.")
-
-    first_item = items[0]
-
-    if isinstance(first_item, str):
-        if first_item.startswith("http://") or first_item.startswith("https://"):
-            return _download_image_bytes(first_item)
-        raise RuntimeError("Primeiro item da lista não é uma URL.")
-
-    if hasattr(first_item, "read") and callable(first_item.read):
-        result_bytes = first_item.read()
-        if not result_bytes:
-            raise RuntimeError("Replicate devolveu ficheiro vazio (0 bytes).")
-        return result_bytes if isinstance(result_bytes, bytes) else bytes(result_bytes)
-
-    url = getattr(first_item, "url", None)
-    if url:
-        return _download_image_bytes(str(url))
-
-    return _download_image_bytes(str(first_item))
-
+            img = client.get(img_url)
+            if img.status_code != 200 or not img.content:
+                return None
+            return img.content
+    except Exception:
+        logger.exception("Pexels fallback failed")
+        return None
 
 def run_replicate_image(
     prompt: str,
@@ -79,47 +58,79 @@ def run_replicate_image(
     image_bytes: Optional[bytes] = None,
     reference_mime: str = "image/png",
 ) -> bytes:
-    token = (settings.REPLICATE_API_TOKEN or "").strip()
-    if not token:
-        raise RuntimeError(
-            "REPLICATE_API_TOKEN não está definido. Adicione no .env para gerar imagens."
-        )
+    """
+    Generate image using Gemini image model via Generative Language API.
+    This endpoint supports API key authentication.
+    """
+    api_key = os.environ.get("GOOGLE_CLOUD_API_KEY") or (settings.GOOGLE_CLOUD_API_KEY or settings.GOOGLE_API_KEY or "").strip()
+    if not api_key:
+        raise RuntimeError("GOOGLE_CLOUD_API_KEY is missing. Configure a chave da API do Google.")
 
-    os.environ["REPLICATE_API_TOKEN"] = token
+    model = "gemini-2.5-flash-image"
+    
+    # Build the request payload
+    parts = []
+    if image_bytes:
+        mime = reference_mime or "image/png"
+        data_b64 = base64.b64encode(image_bytes).decode("utf-8")
+        parts.append({
+            "inlineData": {
+                "mimeType": mime,
+                "data": data_b64
+            }
+        })
+    
+    parts.append({
+        "text": prompt.strip() or "Uma imagem generica."
+    })
 
-    model_slug = (settings.REPLICATE_IMAGE_MODEL or "black-forest-labs/flux-dev").strip()
-    p = prompt.strip()
-
-    # Parâmetros alinhados aos exemplos oficiais do FLUX.1 [dev] no Replicate (llms.txt).
-    input_data: dict[str, Any] = {
-        "prompt": p,
-        "aspect_ratio": aspect_ratio,
-        "output_format": "webp",
-        "num_outputs": 1,
-        "go_fast": True,
-        "guidance": 3.5,
-        "num_inference_steps": 28,
-        "output_quality": 85,
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": parts
+            }
+        ],
+        "generationConfig": {
+            "responseModalities": ["TEXT", "IMAGE"]
+        }
     }
 
-    if image_bytes:
-        mime = (reference_mime or "image/png").strip().lower()
-        if mime not in _ALLOWED_IMAGE_MIMES:
-            mime = "image/png"
-        data_b64 = base64.b64encode(image_bytes).decode("utf-8")
-        input_data["image"] = f"data:{mime};base64,{data_b64}"
-        input_data["prompt_strength"] = 0.82
+    # API-key compatible endpoint
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
-    logger.info("Running Replicate model: %s (img2img=%s)", model_slug, bool(image_bytes))
+    logger.info("Calling Gemini image model: %s (img2img=%s)", model, bool(image_bytes))
+
+    image_data = None
     try:
-        output = replicate.run(model_slug, input=input_data)
+        with httpx.Client(timeout=120.0) as client:
+            response = client.post(url, json=payload)
+            response.raise_for_status()
+            
+            result = response.json()
+            if "candidates" in result and result["candidates"]:
+                for part in result["candidates"][0].get("content", {}).get("parts", []):
+                    if "inlineData" in part:
+                        image_data = base64.b64decode(part["inlineData"]["data"])
+                        break
+
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code if e.response is not None else None
+        logger.error("Falha ao chamar Gemini Image API: status=%s", status)
+        if status in (401, 403, 429):
+            fallback = _fallback_pexels_image_bytes(prompt)
+            if fallback:
+                logger.info("Using Pexels fallback image after Gemini failure status=%s", status)
+                return fallback
+        if status == 429:
+            raise RuntimeError("Serviço de imagem temporariamente indisponível (limite atingido).") from e
+        raise RuntimeError("Falha na geração de imagem com IA.") from e
     except Exception as e:
-        logger.error("Falha ao chamar Replicate: %s", e)
-        raise RuntimeError(f"Replicate error: {e}") from e
+        logger.error("Falha ao chamar Gemini Image API: %s", e)
+        raise RuntimeError("Falha na geração de imagem com IA.") from e
 
-    result_bytes = _coerce_replicate_image_bytes(output)
-    if not result_bytes:
-        raise RuntimeError("Replicate devolveu ficheiro vazio (0 bytes).")
+    if not image_data:
+        raise RuntimeError("Gemini nao devolveu nenhuma imagem.")
 
-    logger.info("Replicate: %d bytes (modelo=%s)", len(result_bytes), model_slug)
-    return result_bytes
+    logger.info("Gemini Image gerada com sucesso: %d bytes", len(image_data))
+    return image_data

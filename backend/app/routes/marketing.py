@@ -62,7 +62,7 @@ async def marketing_image(
         logger.exception("Marketing image generation failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Falha na geração da imagem: {exc}",
+            detail="Falha na geração da imagem. Tente novamente em instantes.",
         )
 
     prompt_log = f"[MKT-IMG] {payload.brand_name} | {payload.ad_text[:80]}"
@@ -71,7 +71,7 @@ async def marketing_image(
         resource_type="image",
         prompt=prompt_log,
         content=result.get("image_url") or result.get("ai_text") or "",
-        model_used=(settings.REPLICATE_IMAGE_MODEL or "black-forest-labs/flux-dev"),
+        model_used="gemini-2.5-flash-image",
         style="marketing",
     )
     db.add(record)

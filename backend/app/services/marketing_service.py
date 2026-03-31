@@ -1,8 +1,7 @@
 """
 services/marketing_service.py
-Marketing AI â€” imagens via Replicate (FLUX); vÃ­deos via Replicate (Minimax).
-
-Prompts e briefings mantÃªm-se; a geraÃ§Ã£o de imagem deixa de usar Gemini.
+Marketing AI — imagens via Gemini image API (com fallback Pexels);
+vídeos via Replicate (Minimax).
 """
 import asyncio
 import base64
@@ -96,7 +95,7 @@ def _sync_marketing_image(
     reference_image_bytes: bytes | None = None,
     reference_mime: str = "image/png",
 ) -> tuple[str, bytes | None, str]:
-    """Imagem publicitÃ¡ria via Replicate FLUX (text-to-image)."""
+    """Imagem publicitária via Gemini image model (text-to-image / image-to-image)."""
     image_data = run_replicate_image(
         prompt,
         aspect_ratio="1:1",

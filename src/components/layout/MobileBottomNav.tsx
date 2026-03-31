@@ -29,6 +29,7 @@ export default function MobileBottomNav() {
 
   const moreItems = useMemo(
     () => [
+      { icon: LayoutTemplate, label: t('nav.template'), href: '/template' },
       { icon: CreditCard, label: t('nav.pagamento'), href: '/pagamento' },
       { icon: Settings, label: t('nav.configuracoes'), href: '/configuracoes' },
     ],

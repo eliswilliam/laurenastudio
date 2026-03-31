@@ -881,7 +881,7 @@ export default function CriarSite() {
               <div ref={fimMobile} className="h-px" />
             </div>
             {!conversationReadOnly && (
-              <div className="shrink-0 flex flex-col min-h-[min(50dvh,420px)] pb-2">
+              <div className="shrink-0 flex flex-col min-h-[280px] sm:min-h-[340px] pb-2">
                 {siteResult && previewAbsUrl ? (
                   <div className="flex flex-col flex-1 min-h-0 rounded-xl border border-border/70 bg-muted/20 overflow-hidden shadow-sm">
                     <p className="text-xs font-medium text-muted-foreground px-3 py-2 border-b bg-background/90 shrink-0">
@@ -914,7 +914,8 @@ export default function CriarSite() {
         <div
           className={cn(
             'shrink-0 z-30',
-            'sticky bottom-0',
+            'lg:sticky lg:bottom-0',
+            'mt-2 lg:mt-0',
             'pt-2 md:pt-3 pb-1',
             'border-t border-border/40 lg:border-t-0',
             'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/88',
@@ -1185,7 +1186,7 @@ export default function CriarSite() {
         'animate-fade-in w-full max-w-7xl mx-auto flex flex-col flex-1 min-h-0 px-3 sm:px-4',
         '-mt-2 pt-0 sm:-mt-1 md:mt-0 md:pt-0',
         'min-h-[calc(100dvh-8.5rem)] md:min-h-[calc(100dvh-7rem)]',
-        emConversa && !isWideLg && 'max-md:pb-[10rem] md:pb-[5.75rem]',
+        emConversa && !isWideLg && 'max-md:pb-[12.5rem] md:pb-[5.75rem]',
         emConversa && !isWideLg && 'max-lg:-mx-0.5 max-lg:overflow-hidden'
       )}
     >

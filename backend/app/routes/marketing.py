@@ -30,6 +30,7 @@ from app.services.arq_enqueue import enqueue_ai_video_job
 from app.services.job_service import create_job
 from app.core.config import settings
 from app.services.marketing_service import generate_marketing_image
+from app.services.replicate_image_service import GEMINI_IMAGE_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ async def marketing_image(
         resource_type="image",
         prompt=prompt_log,
         content=result.get("image_url") or result.get("ai_text") or "",
-        model_used="gemini-2.5-flash-image",
+        model_used=GEMINI_IMAGE_MODEL,
         style="marketing",
     )
     db.add(record)

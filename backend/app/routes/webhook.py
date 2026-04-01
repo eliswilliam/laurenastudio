@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.models.plan import Plan
 from app.models.subscription import Subscription
 from app.services import billing_service, stripe_service
 
@@ -371,6 +372,8 @@ async def _handle_subscription_updated(event: dict, db: AsyncSession) -> None:
                 e,
             )
 
+    snapshot = stripe_service.extract_subscription_snapshot(subscription)
+
     updated = False
     if isinstance(current_period_end_ts, int):
         local_sub.current_period_end = datetime.fromtimestamp(
@@ -379,10 +382,41 @@ async def _handle_subscription_updated(event: dict, db: AsyncSession) -> None:
         )
         updated = True
 
-    cancel_at_period_end = bool(subscription.get("cancel_at_period_end"))
+    snapshot_cycle = snapshot.get("billing_cycle")
+    if snapshot_cycle in {"monthly", "annual"} and snapshot_cycle != local_sub.billing_cycle:
+        local_sub.billing_cycle = snapshot_cycle
+        updated = True
+
+    snapshot_cancel = bool(snapshot.get("cancel_at_period_end"))
+    if snapshot_cancel != bool(local_sub.cancel_at_period_end):
+        local_sub.cancel_at_period_end = snapshot_cancel
+        updated = True
+
+    snapshot_price = snapshot.get("unit_amount_brl")
+    if snapshot_price is not None:
+        snapshot_price = float(snapshot_price)
+    if snapshot_price != local_sub.current_price_brl:
+        local_sub.current_price_brl = snapshot_price
+        updated = True
+
+    snapshot_currency = snapshot.get("currency")
+    if snapshot_currency and snapshot_currency != local_sub.currency:
+        local_sub.currency = snapshot_currency
+        updated = True
+
+    snapshot_plan_name = snapshot.get("plan_name")
+    if snapshot_plan_name:
+        plan_result = await db.execute(select(Plan).where(Plan.name == snapshot_plan_name))
+        stripe_plan = plan_result.scalars().first()
+        if stripe_plan and stripe_plan.id != local_sub.plan_id:
+            local_sub.plan_id = stripe_plan.id
+            local_sub.next_plan_id = None
+            local_sub.next_billing_cycle = None
+            updated = True
+
     if updated:
         await db.commit()
-    if not cancel_at_period_end:
+    if not snapshot_cancel:
         return
 
     logger.info(

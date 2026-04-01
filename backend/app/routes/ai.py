@@ -33,6 +33,7 @@ from app.services import notification_service
 from app.services.ai_service import generate_image, generate_text
 from app.services.arq_enqueue import enqueue_ai_video_job
 from app.services.job_service import create_job, get_job
+from app.services.replicate_image_service import GEMINI_IMAGE_MODEL
 from app.services.speech_service import save_speech_wav_to_uploads
 
 logger = logging.getLogger(__name__)
@@ -193,7 +194,7 @@ async def generate(
         )
 
     model_logged = (
-        "gemini-2.5-flash-image"
+        GEMINI_IMAGE_MODEL
         if payload.resource_type == "image"
         else payload.model
     )

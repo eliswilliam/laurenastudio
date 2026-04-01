@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import grapesjs from 'grapesjs';
 import type { Editor } from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
+import './laurenaEditorTheme.css';
 import { createGrapesEditorConfig } from './createGrapesEditorConfig';
 
 export type GrapesTemplateEditorProps = {
@@ -49,7 +50,7 @@ export const GrapesTemplateEditor = forwardRef<Editor | null, GrapesTemplateEdit
 
     return (
       <div
-        className={className}
+        className={['laurena-template-editor', className].filter(Boolean).join(' ')}
         ref={rootRef}
         style={{ height: '100%', minHeight: '70vh', width: '100%' }}
       />

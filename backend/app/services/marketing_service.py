@@ -16,7 +16,7 @@ from app.services.ai_service import (
     GENERATED_DIR,
     VIDEOS_DIR,
 )
-from app.services.replicate_image_service import run_replicate_image
+from app.services.replicate_image_service import GEMINI_IMAGE_MODEL, run_replicate_image
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +126,7 @@ def _sync_marketing_image(
         aspect_ratio="1:1",
         image_bytes=reference_image_bytes,
         reference_mime=reference_mime,
+        model=GEMINI_IMAGE_MODEL,
     )
     return "", image_data, "image/webp"
 

@@ -91,10 +91,18 @@ def _subscription_read(
     sub: Subscription,
     *,
     billing_cycle: Literal["monthly", "annual"] | None = None,
-    cancel_at_period_end: bool = False,
+    cancel_at_period_end: bool | None = None,
     current_price_brl: float | None = None,
     currency: str | None = None,
 ) -> SubscriptionRead:
+    effective_cycle = billing_cycle
+    if effective_cycle not in {"monthly", "annual"}:
+        effective_cycle = sub.billing_cycle if sub.billing_cycle in {"monthly", "annual"} else None
+
+    effective_cancel = sub.cancel_at_period_end if cancel_at_period_end is None else cancel_at_period_end
+    effective_price = sub.current_price_brl if current_price_brl is None else current_price_brl
+    effective_currency = sub.currency if currency is None else currency
+
     return SubscriptionRead(
         id=sub.id,
         workspace_id=sub.workspace_id,
@@ -104,10 +112,10 @@ def _subscription_read(
         current_period_end=sub.current_period_end,
         stripe_customer_id=sub.stripe_customer_id,
         stripe_subscription_id=sub.stripe_subscription_id,
-        billing_cycle=billing_cycle,
-        cancel_at_period_end=cancel_at_period_end,
-        current_price_brl=current_price_brl,
-        currency=currency,
+        billing_cycle=effective_cycle,
+        cancel_at_period_end=effective_cancel,
+        current_price_brl=effective_price,
+        currency=effective_currency,
         next_plan_name=sub.next_plan.name if sub.next_plan else None,
         next_plan_display_name=sub.next_plan.display_name if sub.next_plan else None,
         next_billing_cycle=(
@@ -145,6 +153,7 @@ async def _expire_subscription_if_needed(db: AsyncSession, sub: Subscription) ->
             )
 
     sub.status = "canceled"
+    sub.cancel_at_period_end = False
     sub.next_plan_id = None
     sub.next_billing_cycle = None
     await db.commit()
@@ -193,6 +202,9 @@ async def activate_plan(
 
     now = datetime.now(timezone.utc)
     period_end = now + timedelta(days=365 if cycle == "annual" else 30)
+    cancel_at_period_end = False
+    current_price_brl = float(plan.price_brl)
+    currency = "BRL"
 
     if stripe_subscription_id:
         try:
@@ -208,6 +220,11 @@ async def activate_plan(
             snapshot_cycle = snapshot.get("billing_cycle")
             if snapshot_cycle in {"monthly", "annual"}:
                 cycle = snapshot_cycle
+            cancel_at_period_end = bool(snapshot.get("cancel_at_period_end"))
+            snapshot_price = snapshot.get("unit_amount_brl")
+            if snapshot_price is not None:
+                current_price_brl = float(snapshot_price)
+            currency = snapshot.get("currency") or currency
         except Exception as e:
             logger.warning("Could not fetch Stripe period_end: %s", e)
 
@@ -218,6 +235,10 @@ async def activate_plan(
         sub.status = "active"
         sub.start_date = now
         sub.current_period_end = period_end
+        sub.billing_cycle = cycle
+        sub.cancel_at_period_end = cancel_at_period_end
+        sub.current_price_brl = current_price_brl
+        sub.currency = currency
         sub.next_plan_id = None
         sub.next_billing_cycle = None
         if stripe_customer_id:
@@ -234,6 +255,10 @@ async def activate_plan(
             current_period_end=period_end,
             stripe_customer_id=stripe_customer_id,
             stripe_subscription_id=stripe_subscription_id,
+            billing_cycle=cycle,
+            cancel_at_period_end=cancel_at_period_end,
+            current_price_brl=current_price_brl,
+            currency=currency,
         )
         db.add(sub)
 
@@ -289,7 +314,13 @@ async def activate_plan(
 
     return ActivatePlanResponse(
         message=f"Plan '{plan.display_name}' activated successfully.",
-        subscription=_subscription_read(sub, billing_cycle=cycle),
+        subscription=_subscription_read(
+            sub,
+            billing_cycle=cycle,
+            cancel_at_period_end=cancel_at_period_end,
+            current_price_brl=current_price_brl,
+            currency=currency,
+        ),
         usage=UsageRead.model_validate(usage),
     )
 
@@ -323,6 +354,7 @@ async def cancel_subscription(
 
             stripe_sub = schedule_cancel_stripe_subscription(sub.stripe_subscription_id)
             sub.current_period_end = parse_period_end(stripe_sub)
+            sub.cancel_at_period_end = True
             logger.info(
                 "Stripe subscription %s set to cancel_at_period_end for workspace %s",
                 sub.stripe_subscription_id,
@@ -372,6 +404,7 @@ async def finalize_subscription_cancellation(
         return
 
     sub.status = "canceled"
+    sub.cancel_at_period_end = False
     sub.next_plan_id = None
     sub.next_billing_cycle = None
     await db.commit()
@@ -415,21 +448,7 @@ async def change_plan(
     target_plan = await _get_plan_by_name(db, plan_name)
     target_cycle = _coerce_cycle(billing_cycle)
 
-    current_cycle: Literal["monthly", "annual"] = "monthly"
-    if sub.stripe_subscription_id:
-        try:
-            from app.services.stripe_service import (
-                extract_subscription_snapshot,
-                retrieve_stripe_subscription,
-            )
-
-            stripe_sub = retrieve_stripe_subscription(sub.stripe_subscription_id)
-            snapshot = extract_subscription_snapshot(stripe_sub)
-            snapshot_cycle = snapshot.get("billing_cycle")
-            if snapshot_cycle in {"monthly", "annual"}:
-                current_cycle = snapshot_cycle
-        except Exception as e:
-            logger.warning("Could not resolve current billing cycle from Stripe: %s", e)
+    current_cycle: Literal["monthly", "annual"] = _coerce_cycle(sub.billing_cycle)
 
     current_plan = sub.plan
     if current_plan.name == target_plan.name and current_cycle == target_cycle:
@@ -622,27 +641,12 @@ async def get_billing_status(db: AsyncSession, workspace_id: str) -> BillingStat
                 detail="Subscription plan not found.",
             )
 
-    billing_cycle: Literal["monthly", "annual"] | None = None
-    cancel_at_period_end = False
-    current_price_brl = None
-    currency = None
-    if sub.stripe_subscription_id:
-        try:
-            from app.services.stripe_service import (
-                extract_subscription_snapshot,
-                retrieve_stripe_subscription,
-            )
-
-            stripe_sub = retrieve_stripe_subscription(sub.stripe_subscription_id)
-            snapshot = extract_subscription_snapshot(stripe_sub)
-            snapshot_cycle = snapshot.get("billing_cycle")
-            if snapshot_cycle in {"monthly", "annual"}:
-                billing_cycle = snapshot_cycle
-            cancel_at_period_end = bool(snapshot.get("cancel_at_period_end"))
-            current_price_brl = snapshot.get("unit_amount_brl")
-            currency = snapshot.get("currency")
-        except Exception as e:
-            logger.warning("Could not fetch Stripe snapshot for billing status: %s", e)
+    billing_cycle: Literal["monthly", "annual"] | None = (
+        sub.billing_cycle if sub.billing_cycle in {"monthly", "annual"} else None
+    )
+    cancel_at_period_end = bool(sub.cancel_at_period_end)
+    current_price_brl = sub.current_price_brl
+    currency = sub.currency
 
     sub_read = SubscriptionWithPlan(
         **_subscription_read(
@@ -753,28 +757,12 @@ async def get_current_subscription(
     usage = await _get_usage(db, workspace_id)
     usage_read = UsageRead.model_validate(usage) if usage else None
 
-    billing_cycle: Literal["monthly", "annual"] | None = None
-    cancel_at_period_end = False
-    current_price_brl = float(plan.price_brl)
-    currency = "BRL"
-    if sub.stripe_subscription_id:
-        try:
-            from app.services.stripe_service import (
-                extract_subscription_snapshot,
-                retrieve_stripe_subscription,
-            )
-
-            stripe_sub = retrieve_stripe_subscription(sub.stripe_subscription_id)
-            snapshot = extract_subscription_snapshot(stripe_sub)
-            snapshot_cycle = snapshot.get("billing_cycle")
-            if snapshot_cycle in {"monthly", "annual"}:
-                billing_cycle = snapshot_cycle
-            cancel_at_period_end = bool(snapshot.get("cancel_at_period_end"))
-            if snapshot.get("unit_amount_brl") is not None:
-                current_price_brl = float(snapshot["unit_amount_brl"])
-            currency = snapshot.get("currency") or currency
-        except Exception as e:
-            logger.warning("Could not fetch Stripe snapshot for current subscription: %s", e)
+    billing_cycle: Literal["monthly", "annual"] | None = (
+        sub.billing_cycle if sub.billing_cycle in {"monthly", "annual"} else None
+    )
+    cancel_at_period_end = bool(sub.cancel_at_period_end)
+    current_price_brl = float(sub.current_price_brl) if sub.current_price_brl is not None else float(plan.price_brl)
+    currency = sub.currency or "BRL"
 
     return CurrentSubscriptionResponse(
         plan_name=plan.name,

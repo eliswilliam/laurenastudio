@@ -1,9 +1,9 @@
 """
 services/ai_service.py
-Google Gemini (text) + Replicate FLUX (image) + Replicate Minimax (video).
-  - Text: Gemini (gemini-2.5-flash-image stream devolve texto; modelo de texto configurável)
-  - Image: Replicate REPLICATE_IMAGE_MODEL (padrão black-forest-labs/flux-dev)
-  - Video: Replicate Minimax (hailuo-2.3-fast)
+Google Gemini (text) + Google Gemini image + Replicate Minimax (video).
+    - Text: Gemini
+    - Image: Gemini model gemini-2.5-flash-image
+    - Video: Replicate Minimax (hailuo-2.3-fast)
 """
 import asyncio
 import logging
@@ -19,7 +19,7 @@ from google.genai import types
 
 from app.core.config import settings
 from app.core.google_credentials import decode_google_service_account_json
-from app.services.replicate_image_service import run_replicate_image
+from app.services.replicate_image_service import GEMINI_IMAGE_MODEL, run_replicate_image
 
 logger = logging.getLogger(__name__)
 
@@ -137,12 +137,16 @@ async def generate_image(
     model: str | None = None,
     style: str | None = None,
 ) -> str:
-    """Gera imagem via Google Gemini. Devolve URL relativa do ficheiro em /uploads/generated/."""
+    """Generate image via Google Gemini (full context config + streaming)."""
     loop = asyncio.get_running_loop()
-    full_prompt = f"{prompt.strip()}. Estilo: {style}" if style else prompt.strip()
 
     def _run() -> bytes:
-        return run_replicate_image(full_prompt, aspect_ratio="1:1")
+        return run_replicate_image(
+            prompt.strip(),
+            aspect_ratio="1:1",
+            style=style,
+            model=model or GEMINI_IMAGE_MODEL,
+        )
 
     image_data = await loop.run_in_executor(None, _run)
     filename = f"{uuid.uuid4().hex}.webp"

@@ -6,7 +6,7 @@ Includes Stripe identifiers for real payment integration.
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -50,6 +50,14 @@ class Subscription(Base):
     stripe_subscription_id: Mapped[str | None] = mapped_column(
         String(255), nullable=True, unique=True, index=True
     )
+    billing_cycle: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    cancel_at_period_end: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+    current_price_brl: Mapped[float | None] = mapped_column(Float, nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
 
     # ── Scheduled plan change (downgrade at period end) ─────────────────────
     next_plan_id: Mapped[str | None] = mapped_column(

@@ -1,0 +1,65 @@
+.laurena-template-editor .gjs-one-bg {
+  background: #25140f;
+}
+
+.laurena-template-editor .gjs-two-color {
+  color: #f9eee5;
+}
+
+.laurena-template-editor .gjs-three-bg {
+  background: #d87345;
+}
+
+.laurena-template-editor .gjs-three-color {
+  color: #d87345;
+}
+
+.laurena-template-editor .gjs-four-color,
+.laurena-template-editor .gjs-four-color-h:hover {
+  color: #f49a63;
+}
+
+.laurena-template-editor .gjs-four-bg {
+  background: #f49a63;
+}
+
+.laurena-template-editor .gjs-pn-btn.gjs-pn-active {
+  background: linear-gradient(135deg, #cf6537 0%, #f08f58 100%);
+  color: #fffaf4;
+}
+
+.laurena-template-editor .gjs-sm-sector-title,
+.laurena-template-editor .gjs-clm-tags .gjs-sm-title,
+.laurena-template-editor .gjs-sm-title {
+  color: #f6dac7;
+}
+
+.laurena-template-editor .gjs-block {
+  border: 1px solid rgba(244, 154, 99, 0.4);
+  border-radius: 12px;
+  background: rgba(216, 115, 69, 0.08);
+}
+
+.laurena-template-editor .gjs-block:hover {
+  border-color: #f49a63;
+  box-shadow: 0 8px 24px rgba(244, 154, 99, 0.28);
+}
+
+.laurena-template-editor .gjs-mdl-dialog {
+  border-radius: 14px;
+  border: 1px solid rgba(244, 154, 99, 0.45);
+}
+
+.laurena-template-editor .gjs-btn-prim {
+  background: linear-gradient(135deg, #cf6537 0%, #ee8855 100%);
+  border: 0;
+  color: #fff9f5;
+}
+
+.laurena-template-editor .gjs-field,
+.laurena-template-editor .gjs-input,
+.laurena-template-editor input,
+.laurena-template-editor select,
+.laurena-template-editor textarea {
+  border-color: rgba(244, 154, 99, 0.35);
+}

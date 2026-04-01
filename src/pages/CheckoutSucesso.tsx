@@ -4,9 +4,8 @@
  *
  * Stripe redirects here with ?session_id=cs_xxx after a successful checkout.
  * The page:
- *  1. Calls POST /billing/verify-session with the session_id
- *     (this checks the Stripe API directly and activates the plan if paid)
- *  2. Falls back to polling /billing/status if no session_id
+ *  1. Polls GET /billing/status (webhook-driven local state)
+ *  2. Never performs automatic direct Stripe verification on reload
  *  3. Shows a success animation + plan info once active
  *  4. Offers a button to go to the Dashboard
  *  5. If something went wrong, shows an error state with retry
@@ -29,7 +28,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/useAuthStore';
-import { apiVerifySession } from '@/lib/billingApi';
 import { PLAN_DISPLAY_NAMES } from '@/data/planos';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -80,50 +78,7 @@ export default function CheckoutSucesso() {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
 
-    const verifyWithSessionId = async (sid: string, currentAttempt: number) => {
-      if (cancelled) return;
-      try {
-        const result = await apiVerifySession(sid);
-        if (cancelled) return;
-
-        if (result.status === 'active') {
-          // Refresh the store so dashboard has fresh data
-          await fetchBillingStatus();
-          setState('success');
-          return;
-        }
-
-        if (result.status === 'pending') {
-          // Boleto: show pending state
-          setMessage(result.message);
-          setState('pending');
-          return;
-        }
-
-        if (result.status === 'expired') {
-          setMessage(result.message);
-          setState('error');
-          return;
-        }
-
-        // Unexpected: retry a few times
-        if (currentAttempt < maxAttempts) {
-          setAttempt(currentAttempt + 1);
-          timer = setTimeout(() => verifyWithSessionId(sid, currentAttempt + 1), 2500);
-        } else {
-          setState('error');
-        }
-      } catch {
-        if (!cancelled && currentAttempt < maxAttempts) {
-          setAttempt(currentAttempt + 1);
-          timer = setTimeout(() => verifyWithSessionId(sid, currentAttempt + 1), 2500);
-        } else if (!cancelled) {
-          setState('error');
-        }
-      }
-    };
-
-    // Fallback: poll /billing/status if no session_id (shouldn't happen but be safe)
+    // Poll local billing status (webhook-driven) instead of verifying with Stripe per reload.
     const pollStatus = async (currentAttempt: number) => {
       if (cancelled) return;
       try {
@@ -137,22 +92,28 @@ export default function CheckoutSucesso() {
           setAttempt(currentAttempt + 1);
           timer = setTimeout(() => pollStatus(currentAttempt + 1), 2500);
         } else {
-          setState('error');
+          if (sessionId) {
+            setMessage('Pagamento confirmado. Aguardando sincronizacao da assinatura.');
+            setState('pending');
+          } else {
+            setState('error');
+          }
         }
       } catch {
         if (!cancelled && currentAttempt < maxAttempts) {
           timer = setTimeout(() => pollStatus(currentAttempt + 1), 2500);
         } else if (!cancelled) {
-          setState('error');
+          if (sessionId) {
+            setMessage('Pagamento em processamento. Tente novamente em alguns instantes.');
+            setState('pending');
+          } else {
+            setState('error');
+          }
         }
       }
     };
 
-    if (sessionId) {
-      verifyWithSessionId(sessionId, 0);
-    } else {
-      pollStatus(0);
-    }
+    pollStatus(0);
 
     return () => {
       cancelled = true;
@@ -165,20 +126,8 @@ export default function CheckoutSucesso() {
   const handleRetry = () => {
     setState('loading');
     setAttempt(0);
-    const sessionId = searchParams.get('session_id');
 
     const retry = async (currentAttempt: number) => {
-      if (sessionId) {
-        try {
-          const result = await apiVerifySession(sessionId);
-          if (result.status === 'active') {
-            await fetchBillingStatus();
-            setState('success');
-            return;
-          }
-        } catch { /* fall through to status poll */ }
-      }
-
       const isActive = await fetchBillingStatus();
       if (isActive) {
         setState('success');

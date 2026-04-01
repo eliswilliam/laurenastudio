@@ -1,161 +1,182 @@
 export const DEFAULT_TEMPLATE_HTML = `<!DOCTYPE html>
-<html lang="fr">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="GrapesJS - Construisez vos templates sans coder" />
-  <title>GrapesJS - Web Builder sans code</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Laurena - Crie seus templates sem programar"/>
+  <title>Laurena - Construtor web sem codigo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-  <header class="header-banner" role="banner">
+
+  <header role="banner" class="header-banner">
     <div class="container-width">
-      <nav class="navbar" role="navigation" aria-label="Navigation principale">
-        <div class="logo"><h1>GrapesJS</h1></div>
+
+      <nav role="navigation" aria-label="Navegacao principal" class="navbar">
+        <div class="logo">
+          <h1>Laurena</h1>
+        </div>
         <ul class="menu">
-          <li><a href="#builder" class="menu-item">BUILDER</a></li>
-          <li><a href="#template" class="menu-item">TEMPLATE</a></li>
-          <li><a href="#web" class="menu-item">WEB</a></li>
+          <li><a href="#builder" class="menu-item">Builder</a></li>
+          <li><a href="#template" class="menu-item">Template</a></li>
+          <li><a href="#web" class="menu-item">Web</a></li>
         </ul>
       </nav>
 
-      <section class="hero" aria-labelledby="hero-title">
-        <h2 id="hero-title" class="hero-title">Build your templates without coding</h2>
+      <section aria-labelledby="hero-title" class="hero">
+        <h2 id="hero-title" class="hero-title">
+          Crie seus templates<br><em>sem programar</em>
+        </h2>
         <p class="hero-subtitle">
-          All text blocks could be edited easily with double clicking on it.
-          You can create new text blocks with the command from the left panel
+          Todos os blocos de texto podem ser editados com duplo clique.
+          Voce pode criar novos blocos de texto pelo painel esquerdo.
         </p>
-        <button class="hero-btn" aria-label="Hover pour plus d'informations">Hover me</button>
+        <button type="button" aria-label="Passe o mouse para mais informacoes" class="hero-btn">
+          Passe o mouse
+        </button>
       </section>
 
-      <div class="hero-notice">Insert your text content here</div>
+      <div class="hero-notice" id="i2mek">
+        Insira aqui seu conteudo de texto
+      </div>
+
     </div>
   </header>
 
-  <button type="button" class="cta-btn" aria-label="Envoyer le formulaire">Send</button>
+  <button type="button" aria-label="Enviar formulario" class="cta-btn">Enviar</button>
 
-  <section class="flex-section" aria-labelledby="flex-title">
+  <section aria-labelledby="flex-title" class="flex-section">
     <div class="container-width">
-      <h2 id="flex-title" class="section-title">Flex is the new black</h2>
+      <h2 id="flex-title" class="section-title">Flex e o novo padrao</h2>
       <p class="section-description">
-        With flexbox system you're able to build complex layouts easily and with free responsivity
+        Com flexbox voce cria layouts complexos com facilidade e responsividade total.
       </p>
+      <div role="list" class="cards-grid">
 
-      <div class="cards-grid" role="list">
-        <article class="card" role="listitem">
+        <article role="listitem" class="card">
           <div class="card-header card-header-1"></div>
           <div class="card-body">
-            <h3 class="card-title">Title one</h3>
-            <p class="card-subtitle">Subtitle one</p>
-            <p class="card-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore</p>
+            <p class="card-subtitle">Categoria um</p>
+            <h3 class="card-title">Titulo um</h3>
+            <p class="card-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore.</p>
           </div>
         </article>
 
-        <article class="card" role="listitem">
+        <article role="listitem" class="card">
           <div class="card-header card-header-2"></div>
           <div class="card-body">
-            <h3 class="card-title">Title two</h3>
-            <p class="card-subtitle">Subtitle two</p>
-            <p class="card-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore</p>
+            <p class="card-subtitle">Categoria dois</p>
+            <h3 class="card-title">Titulo dois</h3>
+            <p class="card-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore.</p>
           </div>
         </article>
 
-        <article class="card" role="listitem">
+        <article role="listitem" class="card">
           <div class="card-header card-header-3"></div>
           <div class="card-body">
-            <h3 class="card-title">Title three</h3>
-            <p class="card-subtitle">Subtitle three</p>
-            <p class="card-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore</p>
+            <p class="card-subtitle">Categoria tres</p>
+            <h3 class="card-title">Titulo tres</h3>
+            <p class="card-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore.</p>
           </div>
         </article>
+
       </div>
     </div>
   </section>
 
-  <section class="asset-section" aria-labelledby="asset-title">
+  <section aria-labelledby="asset-title" class="asset-section">
     <div class="container-width">
       <div class="asset-container">
-        <img src="/assets/images/demos/phone-app.png" alt="Application mobile demonstration" class="asset-image" />
+        <img src="/assets/images/demos/phone-app.png" alt="Demonstracao de app mobile" class="asset-image"/>
         <div class="asset-content">
-          <span class="asset-label">ASSET MANAGER</span>
-          <h2 id="asset-title" class="asset-title">Manage your images with Asset Manager</h2>
-          <p class="asset-description">You can create image blocks with the command from the left panel and edit them with double click</p>
-          <p class="asset-note">Image uploading is not allowed in this demo</p>
+          <span class="asset-label">Gerenciador de Assets</span>
+          <h2 id="asset-title" class="asset-title">
+            Gerencie suas imagens com o gerenciador de assets
+          </h2>
+          <p class="asset-description">
+            Voce pode criar blocos de imagem pelo painel esquerdo e editar com duplo clique.
+          </p>
+          <p class="asset-note">Upload de imagens nao esta disponivel nesta demo</p>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="blocks-section" aria-labelledby="blocks-title">
+  <section aria-labelledby="blocks-title" class="blocks-section">
     <div class="container-width">
-      <h2 id="blocks-title" class="section-title">Blocks</h2>
-      <p class="section-description">Each element in HTML page could be seen as a block. On the left panel you could find different kind of blocks that you can create, move and style</p>
+      <h2 id="blocks-title" class="section-title">Blocos</h2>
+      <p class="section-description">
+        Cada elemento da pagina HTML pode ser um bloco. No painel esquerdo voce cria, move e estiliza blocos.
+      </p>
+      <div role="list" class="pricing-grid">
 
-      <div class="pricing-grid" role="list">
-        <div class="pricing-card starter-plan" role="listitem">
+        <div role="listitem" class="pricing-card starter-plan">
           <h3 class="pricing-title">Starter</h3>
-          <p class="pricing-description">Some random list</p>
+          <p class="pricing-description">Lista de exemplo</p>
           <ul class="pricing-features">
-            <li class="feature">+ Starter feature 1</li>
-            <li class="feature">+ Starter feature 2</li>
-            <li class="feature">+ Starter feature 3</li>
-            <li class="feature">+ Starter feature 4</li>
+            <li class="feature">Starter feature 1</li>
+            <li class="feature">Starter feature 2</li>
+            <li class="feature">Starter feature 3</li>
+            <li class="feature">Starter feature 4</li>
           </ul>
-          <p class="pricing-amount">$9,90<span>/month</span></p>
-          <button class="pricing-btn">Choose Plan</button>
+          <p class="pricing-amount">$9,90<span>/mes</span></p>
+          <button type="button" class="pricing-btn">Escolher plano</button>
         </div>
 
-        <div class="pricing-card regular-plan featured" role="listitem">
+        <div role="listitem" class="pricing-card regular-plan featured">
           <span class="badge-featured">Popular</span>
           <h3 class="pricing-title">Regular</h3>
-          <p class="pricing-description">Some random list</p>
+          <p class="pricing-description">Lista de exemplo</p>
           <ul class="pricing-features">
-            <li class="feature">+ Regular feature 1</li>
-            <li class="feature">+ Regular feature 2</li>
-            <li class="feature">+ Regular feature 3</li>
-            <li class="feature">+ Regular feature 4</li>
+            <li class="feature">Regular feature 1</li>
+            <li class="feature">Regular feature 2</li>
+            <li class="feature">Regular feature 3</li>
+            <li class="feature">Regular feature 4</li>
           </ul>
-          <p class="pricing-amount">$19,90<span>/month</span></p>
-          <button class="pricing-btn primary">Choose Plan</button>
+          <p class="pricing-amount">$19,90<span>/mes</span></p>
+          <button type="button" class="pricing-btn primary">Escolher plano</button>
         </div>
 
-        <div class="pricing-card enterprise-plan" role="listitem">
+        <div role="listitem" class="pricing-card enterprise-plan">
           <h3 class="pricing-title">Enterprise</h3>
-          <p class="pricing-description">Some random list</p>
+          <p class="pricing-description">Lista de exemplo</p>
           <ul class="pricing-features">
-            <li class="feature">+ Enterprise feature 1</li>
-            <li class="feature">+ Enterprise feature 2</li>
-            <li class="feature">+ Enterprise feature 3</li>
-            <li class="feature">+ Enterprise feature 4</li>
+            <li class="feature">Enterprise feature 1</li>
+            <li class="feature">Enterprise feature 2</li>
+            <li class="feature">Enterprise feature 3</li>
+            <li class="feature">Enterprise feature 4</li>
           </ul>
-          <p class="pricing-amount">$29,90<span>/month</span></p>
-          <button class="pricing-btn">Choose Plan</button>
+          <p class="pricing-amount">$29,90<span>/mes</span></p>
+          <button type="button" class="pricing-btn">Escolher plano</button>
         </div>
+
       </div>
     </div>
   </section>
 
-  <footer class="footer" role="contentinfo">
+  <footer role="contentinfo" class="footer">
     <div class="container-width">
       <div class="footer-content">
+
         <nav class="footer-nav">
           <div class="footer-section">
-            <h3 class="footer-title">About us</h3>
+            <h3 class="footer-title">Sobre nos</h3>
             <ul class="footer-list">
-              <li><a href="#contact">Contact</a></li>
-              <li><a href="#events">Events</a></li>
-              <li><a href="#company">Company</a></li>
-              <li><a href="#jobs">Jobs</a></li>
+              <li><a href="#contact">Contato</a></li>
+              <li><a href="#events">Eventos</a></li>
+              <li><a href="#company">Empresa</a></li>
+              <li><a href="#jobs">Vagas</a></li>
               <li><a href="#blog">Blog</a></li>
             </ul>
           </div>
-
           <div class="footer-section">
-            <h3 class="footer-title">Services</h3>
+            <h3 class="footer-title">Servicos</h3>
             <ul class="footer-list">
-              <li><a href="#education">Education</a></li>
-              <li><a href="#partner">Partner</a></li>
-              <li><a href="#community">Community</a></li>
+              <li><a href="#education">Educacao</a></li>
+              <li><a href="#partner">Parceiros</a></li>
+              <li><a href="#community">Comunidade</a></li>
               <li><a href="#forum">Forum</a></li>
               <li><a href="#download">Download</a></li>
               <li><a href="#upgrade">Upgrade</a></li>
@@ -164,298 +185,640 @@ export const DEFAULT_TEMPLATE_HTML = `<!DOCTYPE html>
         </nav>
 
         <div class="footer-form">
-          <h3 class="footer-title">Subscribe</h3>
-          <p class="footer-form-desc">Subscribe to our newsletter to receive exclusive offers and the latest news</p>
-          <form class="subscription-form" method="POST" aria-label="Newsletter subscription">
-            <input type="text" name="name" placeholder="Name" class="form-input" required aria-label="Your name" />
-            <input type="email" name="email" placeholder="Email" class="form-input" required aria-label="Your email" />
-            <button type="submit" class="form-btn">Submit</button>
+          <h3 class="footer-title">Inscreva-se</h3>
+          <p class="footer-form-desc">
+            Assine nossa newsletter para receber ofertas exclusivas e as ultimas novidades.
+          </p>
+          <form method="POST" aria-label="Assinatura da newsletter" class="subscription-form">
+            <input type="text" name="name" placeholder="Nome" required aria-label="Seu nome" class="form-input"/>
+            <input type="email" name="email" placeholder="E-mail" required aria-label="Seu e-mail" class="form-input"/>
+            <button type="submit" class="form-btn">Enviar</button>
           </form>
         </div>
+
       </div>
     </div>
 
     <div class="footer-copyright">
       <div class="container-width">
-        <p class="copyright-text">made with <strong>GrapesJS</strong></p>
+        <p class="copyright-text">feito com <strong>Laurena</strong></p>
         <div class="social-links">
-          <a href="#facebook" aria-label="Facebook">facebook</a>
-          <a href="#twitter" aria-label="Twitter">twitter</a>
-          <a href="#linkedin" aria-label="LinkedIn">linkedin</a>
-          <a href="#email" aria-label="Email">mail</a>
+          <a href="#facebook" aria-label="Facebook">Facebook</a>
+          <a href="#twitter" aria-label="Twitter">Twitter</a>
+          <a href="#linkedin" aria-label="LinkedIn">LinkedIn</a>
+          <a href="#email" aria-label="Email">Email</a>
         </div>
       </div>
     </div>
   </footer>
+
 </body>
 </html>`;
 
-export const DEFAULT_TEMPLATE_CSS = `
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+export const DEFAULT_TEMPLATE_CSS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  line-height: 1.6;
-  color: #374151;
-  background-color: #ffffff;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --color-primary: #3b82f6;
-  --color-primary-light: #dbeafe;
-  --color-primary-dark: #1e40af;
-  --color-secondary: #8b5cf6;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1f2937;
-  --color-gray-900: #111827;
+  --ink: #0d0d0d;
+  --paper: #f5f0e8;
+  --cream: #faf7f2;
+  --gold: #c9a96e;
+  --gold-light: #e8d5b0;
+  --gold-dark: #8a6a38;
+  --muted: #6b6460;
+  --border: rgba(201, 169, 110, 0.25);
+  --border-strong: rgba(201, 169, 110, 0.55);
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'DM Sans', 'Segoe UI', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--ink);
+  background: var(--cream);
+  overflow-x: hidden;
 }
 
 .container-width {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-section {
-  padding: 4rem 0;
+  padding: 0 2.5rem;
 }
 
 .header-banner {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  color: #fff;
-  padding: 4rem 0;
+  position: relative;
+  background: var(--ink);
+  color: var(--cream);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 0;
+}
+
+.header-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.header-banner::after {
+  content: '';
+  position: absolute;
+  top: -10%;
+  right: -5%;
+  width: 55%;
+  height: 130%;
+  background: linear-gradient(135deg, rgba(201,169,110,0.07) 0%, rgba(201,169,110,0.02) 60%, transparent 100%);
+  transform: skewX(-8deg);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.header-banner .container-width {
+  position: relative;
+  z-index: 2;
 }
 
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 3rem;
+  padding: 2.5rem 0 4rem;
+  border-bottom: 1px solid rgba(201,169,110,0.18);
+}
+
+.logo h1 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 1.9rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cream);
 }
 
 .menu {
   display: flex;
   list-style: none;
-  gap: 2rem;
+  gap: 3rem;
 }
 
 .menu-item {
-  color: #fff;
-  font-weight: 600;
+  color: rgba(245,240,232,0.6);
+  font-weight: 400;
+  font-size: 0.75rem;
   text-decoration: none;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition: color 0.3s ease;
+  position: relative;
 }
 
+.menu-item::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--gold);
+  transition: width 0.3s ease;
+}
+
+.menu-item:hover { color: var(--gold-light); }
+.menu-item:hover::after { width: 100%; }
+
 .hero {
-  text-align: center;
+  padding: 7rem 0 5rem;
+  max-width: 760px;
 }
 
 .hero-title {
-  color: #fff;
-  font-size: 2.25rem;
-  margin-bottom: 1rem;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--cream);
+  margin-bottom: 2rem;
+}
+
+.hero-title em {
+  font-style: italic;
+  color: var(--gold-light);
 }
 
 .hero-subtitle {
-  max-width: 640px;
-  margin: 0 auto 1.5rem;
-}
-
-.hero-btn,
-.cta-btn,
-.pricing-btn,
-.form-btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 600;
+  font-size: 0.95rem;
+  color: rgba(245,240,232,0.55);
+  max-width: 480px;
+  margin-bottom: 3rem;
+  line-height: 1.8;
 }
 
 .hero-btn {
-  background: #fff;
-  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2.25rem;
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold-light);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border-radius: 0;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+
+.hero-btn::after {
+  content: '->';
+  font-size: 1rem;
+  transition: transform 0.3s;
+}
+
+.hero-btn:hover {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.hero-btn:hover::after {
+  transform: translateX(4px);
 }
 
 .hero-notice {
-  margin-top: 1.5rem;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  text-align: center;
+  display: inline-block;
+  margin-top: 3.5rem;
+  margin-bottom: 3rem;
+  padding: 0.8rem 1.5rem;
+  background: rgba(201,169,110,0.08);
+  border-left: 2px solid var(--gold);
+  font-size: 0.82rem;
+  color: rgba(245,240,232,0.5);
+  letter-spacing: 0.05em;
 }
 
 .cta-btn {
   display: block;
-  margin: 1.25rem auto;
-  background: var(--color-primary);
-  color: #fff;
+  margin: 3rem auto;
+  padding: 1.1rem 3rem;
+  background: var(--ink);
+  color: var(--gold-light);
+  border: 1px solid var(--gold-dark);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+  border-radius: 0;
 }
 
-.flex-section {
-  background: var(--color-gray-50);
+.cta-btn:hover {
+  background: var(--gold);
+  color: var(--ink);
+  border-color: var(--gold);
 }
+
+section { padding: 6rem 0; }
 
 .section-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(2.2rem, 4vw, 3.5rem);
+  letter-spacing: -0.01em;
+  color: var(--ink);
   text-align: center;
-  color: var(--color-gray-900);
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  line-height: 1.15;
 }
 
 .section-description {
   text-align: center;
-  color: var(--color-gray-600);
-  max-width: 680px;
-  margin: 0 auto 2rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  max-width: 560px;
+  margin: 0 auto 3.5rem;
+  line-height: 1.85;
 }
 
-.cards-grid,
-.pricing-grid,
-.team-grid {
+.flex-section {
+  background: var(--paper);
+  position: relative;
+}
+
+.flex-section::before {
+  content: 'LAURENA';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: 18vw;
+  font-weight: 600;
+  color: rgba(0,0,0,0.025);
+  pointer-events: none;
+  white-space: nowrap;
+  letter-spacing: 0.1em;
+}
+
+.cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5px;
+  border: 1.5px solid var(--border-strong);
 }
 
-.card,
-.pricing-card,
-.team-member {
-  background: #fff;
-  border-radius: 0.75rem;
+.card {
+  background: var(--cream);
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  border: none;
+  box-shadow: none;
+  transition: background 0.3s;
 }
+
+.card:hover { background: #fff; }
 
 .card-header {
-  height: 150px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  height: 200px;
+  position: relative;
+  overflow: hidden;
 }
 
-.card-body,
-.pricing-card,
-.team-body,
-.footer-form {
-  padding: 1.5rem;
+.card-header-1 {
+  background: linear-gradient(160deg, #1a1a1a 0%, #2e2e2e 50%, #c9a96e 100%);
+}
+
+.card-header-2 {
+  background: linear-gradient(160deg, #2a1f14 0%, #6b4c2a 50%, #d4b07e 100%);
+}
+
+.card-header-3 {
+  background: linear-gradient(160deg, #0d1a1a 0%, #1e3a3a 50%, #5a8a8a 100%);
+}
+
+.card-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+.card-body {
+  padding: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.01em;
+}
+
+.card-subtitle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin-bottom: 1rem;
+}
+
+.card-description {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.asset-section {
+  background: var(--ink);
+  color: var(--cream);
+  position: relative;
+  overflow: hidden;
+}
+
+.asset-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 60px,
+    rgba(201,169,110,0.02) 60px,
+    rgba(201,169,110,0.02) 61px
+  );
 }
 
 .asset-container {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 5rem;
   align-items: center;
 }
 
 .asset-image {
   width: 100%;
-  border-radius: 0.75rem;
+  border-radius: 0;
+  filter: grayscale(15%) contrast(1.05);
+  border: 1px solid rgba(201,169,110,0.2);
 }
 
 .asset-label {
   display: inline-block;
-  margin-bottom: 1rem;
-  background: var(--color-primary-light);
-  color: var(--color-primary-dark);
-  border-radius: 999px;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 700;
+  margin-bottom: 1.5rem;
+  padding: 0.4rem 1rem;
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  border-radius: 0;
 }
+
+.asset-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1.15;
+  color: var(--cream);
+  margin-bottom: 1.5rem;
+}
+
+.asset-description {
+  font-size: 0.9rem;
+  color: rgba(245,240,232,0.6);
+  margin-bottom: 1rem;
+  line-height: 1.85;
+}
+
+.asset-note {
+  font-size: 0.78rem;
+  color: rgba(245,240,232,0.3);
+  letter-spacing: 0.05em;
+  border-top: 1px solid rgba(201,169,110,0.15);
+  padding-top: 1rem;
+}
+
+.blocks-section { background: var(--cream); }
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.pricing-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 2.5rem;
+  position: relative;
+  transition: border-color 0.3s, transform 0.3s;
+}
+
+.pricing-card:hover {
+  border-color: var(--gold);
+  transform: translateY(-4px);
+}
+
+.pricing-card.featured {
+  background: var(--ink);
+  color: var(--cream);
+  border-color: var(--gold);
+}
+
+.badge-featured {
+  position: absolute;
+  top: -1px;
+  right: 2rem;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.85rem;
+}
+
+.pricing-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.8rem;
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.02em;
+}
+
+.pricing-card.featured .pricing-title { color: var(--cream); }
+
+.pricing-description {
+  font-size: 0.8rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.pricing-card.featured .pricing-description { color: rgba(245,240,232,0.45); }
 
 .pricing-features {
   list-style: none;
-  margin: 1rem 0;
+  margin: 1.5rem 0 2rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
+
+.pricing-card.featured .pricing-features { border-color: rgba(201,169,110,0.25); }
 
 .feature {
-  margin: 0.4rem 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding-left: 1rem;
+  position: relative;
 }
 
+.feature::before {
+  content: '-';
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+  font-size: 0.7rem;
+}
+
+.pricing-card.featured .feature { color: rgba(245,240,232,0.65); }
+
+.pricing-amount {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  font-weight: 300;
+  color: var(--ink);
+  margin-bottom: 1.75rem;
+  line-height: 1;
+}
+
+.pricing-amount span {
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  color: var(--muted);
+  font-weight: 300;
+}
+
+.pricing-card.featured .pricing-amount { color: var(--gold-light); }
+
 .pricing-btn {
-  background: #fff;
-  border: 2px solid var(--color-primary);
-  color: var(--color-primary);
+  width: 100%;
+  padding: 1rem;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.pricing-btn:hover {
+  background: var(--ink);
+  color: var(--cream);
+  border-color: var(--ink);
 }
 
 .pricing-btn.primary {
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
 }
 
-.team-header {
-  height: 110px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-}
-
-.team-avatar {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  margin: -48px auto 0;
-  display: block;
-  border: 3px solid #fff;
-}
-
-.team-social {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 1rem;
-}
-
-.social-link {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 1px solid var(--color-primary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-primary);
-  text-decoration: none;
+.pricing-btn.primary:hover {
+  background: var(--gold-dark);
+  border-color: var(--gold-dark);
+  color: var(--cream);
 }
 
 .footer {
-  background: var(--color-gray-900);
-  color: #fff;
+  background: #080808;
+  color: rgba(245,240,232,0.7);
 }
 
 .footer-content {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-  padding: 3rem 0;
+  gap: 4rem;
+  padding: 5rem 0 4rem;
+  border-bottom: 1px solid rgba(201,169,110,0.12);
 }
 
 .footer-nav {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.25rem;
+  gap: 2rem;
+}
+
+.footer-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.15rem;
+  color: var(--cream);
+  margin-bottom: 1.25rem;
+  letter-spacing: 0.04em;
 }
 
 .footer-list {
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 .footer-list a {
-  color: var(--color-gray-300);
+  color: rgba(245,240,232,0.4);
   text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  transition: color 0.3s;
 }
 
+.footer-list a:hover { color: var(--gold-light); }
+
 .footer-form {
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 0.75rem;
+  background: rgba(201,169,110,0.05);
+  border: 1px solid rgba(201,169,110,0.15);
+  padding: 2rem;
+  border-radius: 0;
+}
+
+.footer-form-desc {
+  font-size: 0.82rem;
+  color: rgba(245,240,232,0.4);
+  margin-bottom: 1.5rem;
+  line-height: 1.75;
 }
 
 .subscription-form {
@@ -465,25 +828,39 @@ section {
 }
 
 .form-input {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  padding: 0.65rem 0.85rem;
-  border-radius: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(201,169,110,0.2);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.3s;
 }
 
-.form-input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
+.form-input:focus { border-color: var(--gold); }
+.form-input::placeholder { color: rgba(245,240,232,0.3); }
 
 .form-btn {
-  background: var(--color-primary);
-  color: #fff;
+  padding: 0.9rem;
+  background: var(--gold);
+  color: var(--ink);
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.3s;
 }
 
+.form-btn:hover { background: var(--gold-dark); color: var(--cream); }
+
 .footer-copyright {
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 1rem 0;
+  padding: 1.75rem 0;
 }
 
 .footer-copyright .container-width {
@@ -492,215 +869,53 @@ section {
   align-items: center;
 }
 
+.copyright-text {
+  font-size: 0.78rem;
+  color: rgba(245,240,232,0.25);
+  letter-spacing: 0.08em;
+}
+
+.copyright-text strong {
+  color: var(--gold);
+  font-weight: 400;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+}
+
 .social-links {
   display: flex;
-  gap: 0.85rem;
+  gap: 2rem;
 }
 
 .social-links a {
-  color: var(--color-gray-300);
+  color: rgba(245,240,232,0.3);
   text-decoration: none;
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: color 0.3s;
+}
+
+.social-links a:hover { color: var(--gold); }
+
+@media (max-width: 900px) {
+  .asset-container { grid-template-columns: 1fr; gap: 2.5rem; }
+  .footer-content { grid-template-columns: 1fr; gap: 2.5rem; }
+  .footer-nav { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 768px) {
-  .navbar {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .menu {
-    gap: 1rem;
-  }
-
-  .asset-container,
-  .footer-content,
-  .footer-nav {
-    grid-template-columns: 1fr;
-  }
-
-  .footer-copyright .container-width {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
+  .navbar { flex-direction: column; gap: 1.5rem; padding-bottom: 2.5rem; }
+  .menu { gap: 1.5rem; }
+  .hero { padding: 4rem 0 3rem; }
+  .footer-nav { grid-template-columns: 1fr; }
+  .footer-copyright .container-width { flex-direction: column; gap: 1rem; text-align: center; }
+  .cards-grid { gap: 0; border: none; display: flex; flex-direction: column; }
+  .card { border: 1px solid var(--border); margin-bottom: 1rem; }
 }
 `;
 
 type TemplateLocale = 'en' | 'es' | 'fr' | 'pt';
-
-type TemplateDictionary = {
-  htmlLang: string;
-  replacements: Array<[from: string, to: string]>;
-};
-
-const templateDictionary: Record<TemplateLocale, TemplateDictionary> = {
-  en: {
-    htmlLang: 'en',
-    replacements: [
-      ['Construisez vos templates sans coder', 'Build your templates without coding'],
-      ['Web Builder sans code', 'No-code Web Builder'],
-      ['Navigation principale', 'Main navigation'],
-      ['Hover pour plus d\'informations', 'Hover for more information'],
-      ['Insert your text content here', 'Insert your text content here'],
-      ['Envoyer le formulaire', 'Send form'],
-      ['Application mobile demonstration', 'Mobile app demo'],
-      ['Manage your images with Asset Manager', 'Manage your images with Asset Manager'],
-      ['Image uploading is not allowed in this demo', 'Image uploading is not allowed in this demo'],
-      ['About us', 'About us'],
-      ['Services', 'Services'],
-      ['Subscribe', 'Subscribe'],
-      ['Subscribe to our newsletter to receive exclusive offers and the latest news', 'Subscribe to our newsletter to receive exclusive offers and the latest news'],
-      ['Newsletter subscription', 'Newsletter subscription'],
-      ['Votre nom', 'Your name'],
-      ['made with <strong>GrapesJS</strong>', 'Made with <strong>GrapesJS</strong>'],
-      ['mail', 'email'],
-    ],
-  },
-  es: {
-    htmlLang: 'es',
-    replacements: [
-      ['Construisez vos templates sans coder', 'Crea tus plantillas sin programar'],
-      ['Web Builder sans code', 'Constructor web sin codigo'],
-      ['Navigation principale', 'Navegacion principal'],
-      ['Build your templates without coding', 'Crea tus plantillas sin programar'],
-      ['All text blocks could be edited easily with double clicking on it.', 'Todos los bloques de texto se pueden editar facilmente con doble clic.'],
-      ['You can create new text blocks with the command from the left panel', 'Puedes crear nuevos bloques de texto desde el panel izquierdo.'],
-      ['Hover pour plus d\'informations', 'Pasa el cursor para mas informacion'],
-      ['Hover me', 'Pasa el cursor'],
-      ['Insert your text content here', 'Inserta aqui tu contenido de texto'],
-      ['Send', 'Enviar'],
-      ['Flex is the new black', 'Flex es la nueva referencia'],
-      ['With flexbox system you\'re able to build complex layouts easily and with free responsivity', 'Con flexbox puedes crear disenos complejos de forma sencilla y responsive.'],
-      ['Title one', 'Titulo uno'],
-      ['Subtitle one', 'Subtitulo uno'],
-      ['Title two', 'Titulo dos'],
-      ['Subtitle two', 'Subtitulo dos'],
-      ['Title three', 'Titulo tres'],
-      ['Subtitle three', 'Subtitulo tres'],
-      ['ASSET MANAGER', 'GESTOR DE RECURSOS'],
-      ['Manage your images with Asset Manager', 'Gestiona tus imagenes con el gestor de recursos'],
-      ['You can create image blocks with the command from the left panel and edit them with double click', 'Puedes crear bloques de imagen desde el panel izquierdo y editarlos con doble clic.'],
-      ['Image uploading is not allowed in this demo', 'La carga de imagenes no esta disponible en esta demo'],
-      ['Blocks', 'Bloques'],
-      ['Each element in HTML page could be seen as a block. On the left panel you could find different kind of blocks that you can create, move and style', 'Cada elemento HTML puede verse como un bloque. En el panel izquierdo puedes crear, mover y estilizar bloques.'],
-      ['Some random list', 'Lista de ejemplo'],
-      ['Choose Plan', 'Elegir plan'],
-      ['Popular', 'Popular'],
-      ['About us', 'Sobre nosotros'],
-      ['Contact', 'Contacto'],
-      ['Events', 'Eventos'],
-      ['Company', 'Empresa'],
-      ['Jobs', 'Empleos'],
-      ['Services', 'Servicios'],
-      ['Education', 'Educacion'],
-      ['Partner', 'Socios'],
-      ['Community', 'Comunidad'],
-      ['Forum', 'Foro'],
-      ['Download', 'Descargar'],
-      ['Upgrade', 'Mejorar'],
-      ['Subscribe', 'Suscribete'],
-      ['Subscribe to our newsletter to receive exclusive offers and the latest news', 'Suscribete al boletin para recibir ofertas exclusivas y novedades.'],
-      ['Newsletter subscription', 'Suscripcion al boletin'],
-      ['Name', 'Nombre'],
-      ['Your name', 'Tu nombre'],
-      ['Your email', 'Tu correo'],
-      ['Submit', 'Enviar'],
-      ['made with <strong>GrapesJS</strong>', 'Hecho con <strong>GrapesJS</strong>'],
-      ['facebook', 'facebook'],
-      ['twitter', 'twitter'],
-      ['linkedin', 'linkedin'],
-      ['mail', 'correo'],
-    ],
-  },
-  fr: {
-    htmlLang: 'fr',
-    replacements: [
-      ['Construisez vos templates sans coder', 'Construisez vos templates sans coder'],
-      ['Web Builder sans code', 'Web Builder sans code'],
-      ['Build your templates without coding', 'Construisez vos templates sans coder'],
-      ['All text blocks could be edited easily with double clicking on it.', 'Tous les blocs de texte sont modifiables facilement avec un double-clic.'],
-      ['You can create new text blocks with the command from the left panel', 'Vous pouvez creer de nouveaux blocs de texte depuis le panneau de gauche.'],
-      ['Hover me', 'Survolez-moi'],
-      ['Insert your text content here', 'Inserez votre contenu texte ici'],
-      ['Send', 'Envoyer'],
-      ['Flex is the new black', 'Flex est la nouvelle reference'],
-      ['With flexbox system you\'re able to build complex layouts easily and with free responsivity', 'Avec flexbox, vous pouvez creer facilement des mises en page complexes et responsives.'],
-      ['Title one', 'Titre un'],
-      ['Subtitle one', 'Sous-titre un'],
-      ['Title two', 'Titre deux'],
-      ['Subtitle two', 'Sous-titre deux'],
-      ['Title three', 'Titre trois'],
-      ['Subtitle three', 'Sous-titre trois'],
-      ['ASSET MANAGER', 'GESTIONNAIRE DE RESSOURCES'],
-      ['Manage your images with Asset Manager', 'Gerez vos images avec le gestionnaire de ressources'],
-      ['You can create image blocks with the command from the left panel and edit them with double click', 'Vous pouvez creer des blocs image depuis le panneau de gauche et les modifier en double-cliquant.'],
-      ['Blocks', 'Blocs'],
-      ['Some random list', 'Liste exemple'],
-      ['Choose Plan', 'Choisir le plan'],
-      ['About us', 'A propos'],
-      ['Services', 'Services'],
-      ['Subscribe', 'S\'abonner'],
-      ['Name', 'Nom'],
-      ['Submit', 'Envoyer'],
-      ['made with <strong>GrapesJS</strong>', 'Cree avec <strong>GrapesJS</strong>'],
-      ['mail', 'email'],
-    ],
-  },
-  pt: {
-    htmlLang: 'pt-BR',
-    replacements: [
-      ['Construisez vos templates sans coder', 'Crie seus templates sem programar'],
-      ['Web Builder sans code', 'Construtor web sem codigo'],
-      ['Navigation principale', 'Navegacao principal'],
-      ['Build your templates without coding', 'Crie seus templates sem programar'],
-      ['All text blocks could be edited easily with double clicking on it.', 'Todos os blocos de texto podem ser editados com duplo clique.'],
-      ['You can create new text blocks with the command from the left panel', 'Voce pode criar novos blocos de texto pelo painel esquerdo.'],
-      ['Hover pour plus d\'informations', 'Passe o mouse para mais informacoes'],
-      ['Hover me', 'Passe o mouse'],
-      ['Insert your text content here', 'Insira aqui seu conteudo de texto'],
-      ['Envoyer le formulaire', 'Enviar formulario'],
-      ['Send', 'Enviar'],
-      ['Flex is the new black', 'Flex e o novo padrao'],
-      ['With flexbox system you\'re able to build complex layouts easily and with free responsivity', 'Com flexbox voce cria layouts complexos com facilidade e responsividade.'],
-      ['Title one', 'Titulo um'],
-      ['Subtitle one', 'Subtitulo um'],
-      ['Title two', 'Titulo dois'],
-      ['Subtitle two', 'Subtitulo dois'],
-      ['Title three', 'Titulo tres'],
-      ['Subtitle three', 'Subtitulo tres'],
-      ['Application mobile demonstration', 'Demonstracao de app mobile'],
-      ['ASSET MANAGER', 'GERENCIADOR DE ASSETS'],
-      ['Manage your images with Asset Manager', 'Gerencie suas imagens com o gerenciador de assets'],
-      ['You can create image blocks with the command from the left panel and edit them with double click', 'Voce pode criar blocos de imagem pelo painel esquerdo e editar com duplo clique.'],
-      ['Image uploading is not allowed in this demo', 'Upload de imagens nao esta disponivel nesta demo'],
-      ['Blocks', 'Blocos'],
-      ['Each element in HTML page could be seen as a block. On the left panel you could find different kind of blocks that you can create, move and style', 'Cada elemento da pagina HTML pode ser um bloco. No painel esquerdo voce cria, move e estiliza blocos.'],
-      ['Some random list', 'Lista de exemplo'],
-      ['Choose Plan', 'Escolher plano'],
-      ['Popular', 'Popular'],
-      ['About us', 'Sobre nos'],
-      ['Contact', 'Contato'],
-      ['Events', 'Eventos'],
-      ['Company', 'Empresa'],
-      ['Jobs', 'Vagas'],
-      ['Services', 'Servicos'],
-      ['Education', 'Educacao'],
-      ['Partner', 'Parceiros'],
-      ['Community', 'Comunidade'],
-      ['Forum', 'Forum'],
-      ['Download', 'Download'],
-      ['Upgrade', 'Upgrade'],
-      ['Subscribe', 'Inscreva-se'],
-      ['Subscribe to our newsletter to receive exclusive offers and the latest news', 'Assine nossa newsletter para receber ofertas exclusivas e novidades.'],
-      ['Newsletter subscription', 'Assinatura da newsletter'],
-      ['Name', 'Nome'],
-      ['Your name', 'Seu nome'],
-      ['Your email', 'Seu e-mail'],
-      ['Submit', 'Enviar'],
-      ['made with <strong>GrapesJS</strong>', 'feito com <strong>GrapesJS</strong>'],
-      ['mail', 'email'],
-    ],
-  },
-};
 
 function normalizeTemplateLocale(locale?: string): TemplateLocale {
   const lower = String(locale ?? '').toLowerCase();
@@ -710,19 +925,8 @@ function normalizeTemplateLocale(locale?: string): TemplateLocale {
   return 'en';
 }
 
-function replaceAllExact(content: string, from: string, to: string): string {
-  return content.split(from).join(to);
-}
-
 export function getDefaultTemplateHtml(locale?: string): string {
   const normalized = normalizeTemplateLocale(locale);
-  const dictionary = templateDictionary[normalized];
-  let html = DEFAULT_TEMPLATE_HTML;
-
-  html = replaceAllExact(html, '<html lang="fr">', `<html lang="${dictionary.htmlLang}">`);
-  for (const [from, to] of dictionary.replacements) {
-    html = replaceAllExact(html, from, to);
-  }
-
-  return html;
+  const htmlLang = normalized === 'pt' ? 'pt-BR' : normalized;
+  return DEFAULT_TEMPLATE_HTML.replace('<html lang="pt-BR">', `<html lang="${htmlLang}">`);
 }

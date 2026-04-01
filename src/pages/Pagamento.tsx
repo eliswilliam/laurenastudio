@@ -23,6 +23,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
+  apiChangePlan,
   apiCreateCheckout,
   apiCustomerPortal,
   apiBillingStatus,
@@ -35,6 +36,12 @@ const iconesPlano: Record<string, React.ReactNode> = {
   starter: <Zap className="w-5 h-5" />,
   pro: <Crown className="w-5 h-5" />,
   business: <Building2 className="w-5 h-5" />,
+};
+
+const planOrder: Record<string, number> = {
+  starter: 1,
+  pro: 2,
+  business: 3,
 };
 
 function pct(used: number, limit: number): number {
@@ -105,7 +112,11 @@ export default function Pagamento() {
   const isActive = billing?.is_active ?? false;
   const planName = billing?.subscription?.plan?.name ?? null;
   const planDisplayName = (planName ? PLAN_DISPLAY_NAMES[planName] : null) ?? billing?.subscription?.plan?.display_name ?? planName ?? t('pages.dashboard.none');
+  const currentBillingCycle = billing?.subscription?.billing_cycle ?? null;
   const nextBillingDate = billing?.subscription?.current_period_end ?? null;
+  const cancelAtPeriodEnd = Boolean(billing?.subscription?.cancel_at_period_end);
+  const nextPlanDisplayName = billing?.subscription?.next_plan_display_name ?? null;
+  const nextPlanCycle = billing?.subscription?.next_billing_cycle ?? null;
 
   const textUsed = billing?.usage?.usage?.text_used ?? 0;
   const textLimit = billing?.usage?.limits?.text_limit ?? 0;
@@ -119,12 +130,58 @@ export default function Pagamento() {
   const sitePubLimit = billing?.usage?.limits?.site_publish_limit ?? 0;
 
   const handleCheckout = async (planoId: string) => {
-    if (planoId === planName) return;
+    const targetCycle = anual ? 'annual' : 'monthly';
+    const samePlanAndCycle = planoId === planName && currentBillingCycle === targetCycle;
+    if (samePlanAndCycle) return;
+
+    if (isActive && currentBillingCycle === 'annual' && targetCycle === 'monthly') {
+      toast({
+        title: 'Mudanca nao permitida',
+        description:
+          'Voce esta em um plano anual. Aguarde o fim do ciclo anual, cancele a assinatura e depois escolha um plano mensal.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setCarregando(planoId);
     try {
+      if (isActive && planName) {
+        const currentRank = planOrder[planName] ?? 0;
+        const targetRank = planOrder[planoId] ?? 0;
+        const isUpgrade = targetRank > currentRank;
+        const isMonthlyToAnnual = currentBillingCycle === 'monthly' && targetCycle === 'annual';
+
+        if (isUpgrade || isMonthlyToAnnual) {
+          const confirmed = window.confirm(
+            'Este upgrade inicia imediatamente um novo ciclo sem prorrata. ' +
+            'Você perde o tempo restante do plano atual. ' +
+            'Recomendamos aguardar o fim do ciclo atual. Deseja continuar?'
+          );
+          if (!confirmed) {
+            setCarregando(null);
+            return;
+          }
+        }
+
+        const result = await apiChangePlan(planoId, targetCycle);
+        if (result.action === 'upgrade_checkout_required' && result.checkout_url) {
+          window.location.href = result.checkout_url;
+          return;
+        }
+
+        toast({
+          title: isUpgrade ? 'Alteração iniciada' : 'Alteração agendada',
+          description: result.message,
+        });
+        await loadBilling();
+        setCarregando(null);
+        return;
+      }
+
       const { url } = await apiCreateCheckout(
         planoId,
-        anual ? 'annual' : 'monthly',
+        targetCycle,
         `${window.location.origin}/pagamento?status=success`,
         `${window.location.origin}/pagamento?status=canceled`,
       );
@@ -154,6 +211,19 @@ export default function Pagamento() {
     }
   };
 
+  const handleCycleToggle = (checked: boolean) => {
+    if (isActive && currentBillingCycle === 'annual' && !checked) {
+      toast({
+        title: 'Plano anual ativo',
+        description:
+          'Para voltar ao mensal, aguarde o fim do plano anual e cancele a assinatura atual.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setAnual(checked);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -177,9 +247,17 @@ export default function Pagamento() {
                 {billingLoading
                   ? t('pages.payment.loading')
                   : isActive
-                    ? t('pages.payment.nextChargeOn', { date: formatDate(nextBillingDate) })
+                    ? cancelAtPeriodEnd
+                      ? `Ativo até ${formatDate(nextBillingDate)}`
+                      : t('pages.payment.nextChargeOn', { date: formatDate(nextBillingDate) })
                     : t('pages.payment.noSubscription')}
               </CardDescription>
+              {!billingLoading && isActive && nextPlanDisplayName && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Próximo plano agendado: {nextPlanDisplayName}
+                  {nextPlanCycle === 'annual' ? ' (anual)' : ' (mensal)'} em {formatDate(nextBillingDate)}
+                </p>
+              )}
             </div>
             {!billingLoading && (
               <Badge
@@ -286,7 +364,7 @@ export default function Pagamento() {
         <span className={`text-sm font-medium ${!anual ? 'text-foreground' : 'text-muted-foreground'}`}>
           {t('landing.plans.monthly')}
         </span>
-        <Switch checked={anual} onCheckedChange={setAnual} />
+        <Switch checked={anual} onCheckedChange={handleCycleToggle} />
         <span className={`text-sm font-medium ${anual ? 'text-foreground' : 'text-muted-foreground'}`}>
           {t('landing.plans.annual')}
         </span>
@@ -300,7 +378,11 @@ export default function Pagamento() {
       {/* Cards de planos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {PLANOS.map((plano) => {
+          const targetCycle = anual ? 'annual' : 'monthly';
           const isAtual = plano.id === planName;
+          const isSamePlanAndCycle = isAtual && currentBillingCycle === targetCycle;
+          const isDowngrade =
+            Boolean(isActive && planName) && (planOrder[plano.id] ?? 0) < (planOrder[planName ?? ''] ?? 0);
           const preco = anual ? plano.precoAnual : plano.preco;
           const precoAnualTotal = plano.precoAnual * 12;
           const recursosTraduzidos = t(`landing.plans.${plano.id}.recursos`, {
@@ -312,16 +394,16 @@ export default function Pagamento() {
               key={plano.id}
               className={`rounded-xl relative flex flex-col transition-all duration-200 ${
                 plano.destaque ? 'border-primary shadow-lg ring-1 ring-primary/20' : ''
-              } ${isAtual ? 'ring-2 ring-green-500/30 border-green-500/40' : ''}`}
+              } ${isSamePlanAndCycle ? 'ring-2 ring-green-500/30 border-green-500/40' : ''}`}
             >
-              {plano.destaque && !isAtual && (
+              {plano.destaque && !isSamePlanAndCycle && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-primary text-primary-foreground shadow-md text-xs font-semibold">
                     {t('landing.plans.mostPopular')}
                   </Badge>
                 </div>
               )}
-              {isAtual && (
+              {isSamePlanAndCycle && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-green-600 text-white shadow-md text-xs font-semibold">
                     {t('pages.payment.yourPlan')}
@@ -332,7 +414,7 @@ export default function Pagamento() {
               <CardHeader className="text-center pb-4 pt-8 px-4 sm:px-6">
                 <div
                   className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center shrink-0 ${
-                    isAtual
+                    isSamePlanAndCycle
                       ? 'bg-green-600 text-white'
                       : plano.destaque
                         ? 'bg-primary text-primary-foreground'
@@ -390,17 +472,19 @@ export default function Pagamento() {
 
                 <Button
                   className="w-full mt-auto"
-                  variant={isAtual ? 'outline' : plano.destaque ? 'default' : 'outline'}
+                  variant={isSamePlanAndCycle ? 'outline' : plano.destaque ? 'default' : 'outline'}
                   onClick={() => handleCheckout(plano.id)}
-                  disabled={isAtual || carregando === plano.id}
+                  disabled={isSamePlanAndCycle || carregando === plano.id}
                 >
                   {carregando === plano.id ? (
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   ) : null}
-                  {isAtual
+                  {isSamePlanAndCycle
                     ? t('pages.payment.currentPlanBtn')
                     : isActive
-                      ? t('pages.payment.changeTo', { name: plano.nome })
+                      ? isDowngrade
+                        ? `Agendar ${plano.nome}`
+                        : t('pages.payment.changeTo', { name: plano.nome })
                       : t('pages.payment.subscribe', { name: plano.nome })}
                 </Button>
               </CardContent>

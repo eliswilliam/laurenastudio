@@ -19,6 +19,7 @@ from app.schemas.billing import (
     CancelSubscriptionRequest,
     CancelSubscriptionResponse,
     ChangePlanRequest,
+    ChangePlanResponse,
     CheckoutSessionRequest,
     CheckoutSessionResponse,
     CurrentSubscriptionResponse,
@@ -149,8 +150,8 @@ async def activate_plan(
     response_model=CancelSubscriptionResponse,
     summary="Cancel workspace subscription",
     description=(
-        "Cancels the subscription on Stripe (if connected) and locally. "
-        "Immediately blocks access to all protected resources."
+        "Schedules subscription cancellation at period end on Stripe. "
+        "Access remains active until current_period_end."
     ),
 )
 async def cancel_subscription(
@@ -165,16 +166,26 @@ async def cancel_subscription(
 
 @router.post(
     "/change-plan",
-    response_model=ActivatePlanResponse,
-    summary="Change to a different plan",
-    description="Switches the plan and resets usage counters for the new billing period.",
+    response_model=ChangePlanResponse,
+    summary="Request upgrade or downgrade",
+    description=(
+        "Upgrade: returns Stripe checkout URL for immediate switch (no proration). "
+        "Downgrade/lateral: schedules next_plan for end of billing cycle."
+    ),
 )
 async def change_plan(
     payload: ChangePlanRequest,
-    _user=Depends(get_current_user),
+    user=Depends(get_current_user),
+    workspace_id: str = Depends(get_workspace_id),
     db: AsyncSession = Depends(get_db),
-) -> ActivatePlanResponse:
-    return await billing_service.change_plan(db, payload.workspace_id, payload.plan_name)
+) -> ChangePlanResponse:
+    return await billing_service.change_plan(
+        db,
+        workspace_id=workspace_id,
+        plan_name=payload.plan_name,
+        billing_cycle=payload.billing_cycle,
+        user_email=user.email,
+    )
 
 
 # ── GET /billing/status ─────────────────────────────────────────────────────
@@ -260,6 +271,8 @@ async def verify_session(
     plan_name = metadata.get("plan_name")
     billing_cycle = metadata.get("billing_cycle") or "monthly"
     session_workspace = metadata.get("workspace_id")
+    change_mode = metadata.get("change_mode")
+    previous_subscription_id = metadata.get("previous_subscription_id")
 
     logger.info(
         "verify-session: session=%s status=%s payment_status=%s workspace=%s plan=%s",
@@ -285,6 +298,28 @@ async def verify_session(
         # Activate the subscription (idempotent — safe to call multiple times)
         customer_id = sd.get("customer")
         stripe_subscription_id = sd.get("subscription")
+
+        if (
+            change_mode == "upgrade"
+            and previous_subscription_id
+            and stripe_subscription_id
+            and previous_subscription_id != stripe_subscription_id
+        ):
+            try:
+                stripe_service.schedule_cancel_stripe_subscription(previous_subscription_id)
+                logger.info(
+                    "verify-session scheduled old subscription cancellation for upgrade: old=%s new=%s workspace=%s",
+                    previous_subscription_id,
+                    stripe_subscription_id,
+                    workspace_id,
+                )
+            except Exception as e:
+                logger.warning(
+                    "verify-session failed scheduling old subscription cancellation old=%s: %s",
+                    previous_subscription_id,
+                    e,
+                )
+
         resolved_plan = plan_name
         resolved_cycle = billing_cycle
         if stripe_subscription_id:

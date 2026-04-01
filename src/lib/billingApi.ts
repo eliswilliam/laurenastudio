@@ -53,8 +53,12 @@ export interface SubscriptionRead {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   billing_cycle?: 'monthly' | 'annual' | null;
+  cancel_at_period_end?: boolean;
   current_price_brl?: number | null;
   currency?: string | null;
+  next_plan_name?: string | null;
+  next_plan_display_name?: string | null;
+  next_billing_cycle?: 'monthly' | 'annual' | null;
 }
 
 export interface BillingStatusResponse {
@@ -144,11 +148,36 @@ export interface CurrentSubscriptionResponse {
   display_name: string;
   price: number;
   billing_cycle?: 'monthly' | 'annual' | null;
+  cancel_at_period_end?: boolean;
   currency?: string | null;
+  next_plan_name?: string | null;
+  next_plan_display_name?: string | null;
+  next_billing_cycle?: 'monthly' | 'annual' | null;
   status: string;
   current_period_end: string | null;
   limits: PlanRead;
   usage: UsageRead | null;
+}
+
+export interface ChangePlanResponse {
+  action: 'upgrade_checkout_required' | 'downgrade_scheduled' | 'no_change';
+  message: string;
+  checkout_url?: string | null;
+  checkout_session_id?: string | null;
+  target_plan_name?: string | null;
+  target_billing_cycle?: 'monthly' | 'annual' | null;
+  effective_on?: string | null;
+}
+
+export async function apiChangePlan(
+  planName: string,
+  billingCycle: 'monthly' | 'annual' = 'monthly'
+): Promise<ChangePlanResponse> {
+  const res = await api.post<ChangePlanResponse>('/billing/change-plan', {
+    plan_name: planName,
+    billing_cycle: billingCycle,
+  });
+  return res.data;
 }
 
 export async function apiCurrentSubscription(): Promise<CurrentSubscriptionResponse> {

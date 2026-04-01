@@ -117,6 +117,7 @@ def extract_subscription_snapshot(stripe_sub: stripe.Subscription) -> dict:
     currency = (price.get("currency") or "").upper() or None
     interval = recurring.get("interval")
     interval_count = recurring.get("interval_count") or 1
+    cancel_at_period_end = bool(sd.get("cancel_at_period_end"))
 
     billing_cycle: str | None = None
     if interval == "year" and interval_count == 1:
@@ -134,6 +135,7 @@ def extract_subscription_snapshot(stripe_sub: stripe.Subscription) -> dict:
     return {
         "plan_name": plan_name,
         "billing_cycle": billing_cycle,
+        "cancel_at_period_end": cancel_at_period_end,
         "price_id": price_id,
         "unit_amount_brl": amount_brl,
         "currency": currency,
@@ -171,6 +173,9 @@ def create_checkout_session(
     user_email: str,
     success_url: str | None = None,
     cancel_url: str | None = None,
+    customer_id: str | None = None,
+    change_mode: Literal["new", "upgrade"] = "new",
+    previous_subscription_id: str | None = None,
 ) -> stripe.checkout.Session:
     """
     Create a Stripe Checkout Session in **subscription** mode.
@@ -187,26 +192,32 @@ def create_checkout_session(
     _success = success_url or f"{frontend}/checkout/sucesso?session_id={{CHECKOUT_SESSION_ID}}"
     _cancel = cancel_url or f"{frontend}/checkout/sucesso?canceled=true"
 
-    session = stripe.checkout.Session.create(
-        line_items=[{"price": price_id, "quantity": 1}],
-        mode="subscription",
-        payment_method_types=["card", "boleto"],
-        customer_email=user_email,
-        success_url=_success,
-        cancel_url=_cancel,
-        metadata={
-            "workspace_id": workspace_id,
-            "plan_name": plan_name,
-            "billing_cycle": billing_cycle,
+    metadata = {
+        "workspace_id": workspace_id,
+        "plan_name": plan_name,
+        "billing_cycle": billing_cycle,
+        "change_mode": change_mode,
+    }
+    if previous_subscription_id:
+        metadata["previous_subscription_id"] = previous_subscription_id
+
+    session_kwargs: dict = {
+        "line_items": [{"price": price_id, "quantity": 1}],
+        "mode": "subscription",
+        "payment_method_types": ["card", "boleto"],
+        "success_url": _success,
+        "cancel_url": _cancel,
+        "metadata": metadata,
+        "subscription_data": {
+            "metadata": metadata,
         },
-        subscription_data={
-            "metadata": {
-                "workspace_id": workspace_id,
-                "plan_name": plan_name,
-                "billing_cycle": billing_cycle,
-            }
-        },
-    )
+    }
+    if customer_id:
+        session_kwargs["customer"] = customer_id
+    else:
+        session_kwargs["customer_email"] = user_email
+
+    session = stripe.checkout.Session.create(**session_kwargs)
     return session
 
 
@@ -243,6 +254,34 @@ def schedule_cancel_stripe_subscription(
         stripe_subscription_id,
         cancel_at_period_end=True,
     )
+
+
+def create_stripe_subscription(
+    *,
+    customer_id: str,
+    plan_name: str,
+    billing_cycle: Literal["monthly", "annual"],
+    workspace_id: str,
+    idempotency_key: str | None = None,
+) -> stripe.Subscription:
+    """Create a new Stripe subscription for the selected plan/cycle."""
+    price_id = get_price_id_for_plan(plan_name, billing_cycle)
+    create_kwargs = {
+        "customer": customer_id,
+        "items": [{"price": price_id}],
+        "metadata": {
+            "workspace_id": workspace_id,
+            "plan_name": plan_name,
+            "billing_cycle": billing_cycle,
+            "change_mode": "downgrade_apply",
+        },
+    }
+    if idempotency_key:
+        return stripe.Subscription.create(
+            **create_kwargs,
+            idempotency_key=idempotency_key,
+        )
+    return stripe.Subscription.create(**create_kwargs)
 
 
 # ── Webhook signature verification ──────────────────────────────────────────

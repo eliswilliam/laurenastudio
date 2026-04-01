@@ -48,7 +48,10 @@ class Plan(Base):
 
     # ── Relationships ────────────────────────────────────────────────────────
     subscriptions: Mapped[list["Subscription"]] = relationship(  # noqa: F821
-        "Subscription", back_populates="plan", cascade="all, delete-orphan"
+        "Subscription",
+        back_populates="plan",
+        cascade="all, delete-orphan",
+        foreign_keys="Subscription.plan_id",
     )
 
     def __repr__(self) -> str:

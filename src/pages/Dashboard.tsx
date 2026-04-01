@@ -86,6 +86,9 @@ export default function Dashboard() {
   const usage = billingStatus?.usage ?? null;
   const currentPrice = sub?.current_price_brl ?? plan?.price_brl ?? null;
   const isAnnualBilling = sub?.billing_cycle === 'annual';
+  const cancelAtPeriodEnd = Boolean(sub?.cancel_at_period_end);
+  const nextPlanDisplay = sub?.next_plan_display_name ?? null;
+  const nextPlanCycle = sub?.next_billing_cycle ?? null;
 
   const audioUsed = usage?.usage?.audio_used ?? 0;
   const audioLimit = usage?.limits?.audio_limit ?? 0;
@@ -205,8 +208,16 @@ export default function Dashboard() {
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              {t('pages.dashboard.nextCharge')} {formatDate(sub?.current_period_end)}
+              {cancelAtPeriodEnd
+                ? `Ativo até ${formatDate(sub?.current_period_end)}`
+                : `${t('pages.dashboard.nextCharge')} ${formatDate(sub?.current_period_end)}`}
             </p>
+            {nextPlanDisplay && (
+              <p className="text-xs text-amber-600">
+                Próximo plano: {nextPlanDisplay}
+                {nextPlanCycle === 'annual' ? ' (anual)' : ' (mensal)'}
+              </p>
+            )}
           </CardContent>
         </Card>
 

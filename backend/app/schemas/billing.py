@@ -39,8 +39,12 @@ class SubscriptionRead(BaseModel):
     stripe_customer_id: str | None = None
     stripe_subscription_id: str | None = None
     billing_cycle: Literal["monthly", "annual"] | None = None
+    cancel_at_period_end: bool = False
     current_price_brl: float | None = None
     currency: str | None = None
+    next_plan_name: str | None = None
+    next_plan_display_name: str | None = None
+    next_billing_cycle: Literal["monthly", "annual"] | None = None
 
 
 class SubscriptionWithPlan(SubscriptionRead):
@@ -74,8 +78,22 @@ class CancelSubscriptionResponse(BaseModel):
 # ── Change plan ──────────────────────────────────────────────────────────────
 
 class ChangePlanRequest(BaseModel):
-    workspace_id: str
     plan_name: str
+    billing_cycle: Literal["monthly", "annual"] = "monthly"
+
+
+class ChangePlanResponse(BaseModel):
+    action: Literal[
+        "upgrade_checkout_required",
+        "downgrade_scheduled",
+        "no_change",
+    ]
+    message: str
+    checkout_url: str | None = None
+    checkout_session_id: str | None = None
+    target_plan_name: str | None = None
+    target_billing_cycle: Literal["monthly", "annual"] | None = None
+    effective_on: str | None = None
 
 
 # ── Usage ─────────────────────────────────────────────────────────────────────
@@ -119,7 +137,11 @@ class CurrentSubscriptionResponse(BaseModel):
     display_name: str
     price: float
     billing_cycle: Literal["monthly", "annual"] | None = None
+    cancel_at_period_end: bool = False
     currency: str | None = None
+    next_plan_name: str | None = None
+    next_plan_display_name: str | None = None
+    next_billing_cycle: Literal["monthly", "annual"] | None = None
     status: str
     current_period_end: str | None = None
     limits: PlanRead

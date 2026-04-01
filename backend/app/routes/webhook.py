@@ -12,6 +12,7 @@ Events handled:
 NO JWT auth — Stripe authenticates via webhook signature (stripe-signature header).
 """
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
@@ -96,6 +97,39 @@ async def stripe_webhook(
 # ── Event Handlers ───────────────────────────────────────────────────────────
 
 
+def _schedule_old_subscription_if_upgrade(
+    *,
+    metadata: dict,
+    new_subscription_id: str | None,
+    workspace_id: str,
+) -> None:
+    change_mode = metadata.get("change_mode")
+    previous_subscription_id = metadata.get("previous_subscription_id")
+    if (
+        change_mode != "upgrade"
+        or not previous_subscription_id
+        or not new_subscription_id
+        or previous_subscription_id == new_subscription_id
+    ):
+        return
+
+    try:
+        stripe_service.schedule_cancel_stripe_subscription(previous_subscription_id)
+        logger.info(
+            "Upgrade checkout paid: old Stripe subscription scheduled for cancellation "
+            "workspace=%s old=%s new=%s",
+            workspace_id,
+            previous_subscription_id,
+            new_subscription_id,
+        )
+    except Exception as e:
+        logger.warning(
+            "Failed to schedule old Stripe subscription cancellation old=%s: %s",
+            previous_subscription_id,
+            e,
+        )
+
+
 async def _handle_checkout_completed(event: dict, db: AsyncSession) -> None:
     """
     checkout.session.completed
@@ -120,6 +154,12 @@ async def _handle_checkout_completed(event: dict, db: AsyncSession) -> None:
         return
 
     if payment_status == "paid":
+        _schedule_old_subscription_if_upgrade(
+            metadata=metadata,
+            new_subscription_id=stripe_subscription_id,
+            workspace_id=workspace_id,
+        )
+
         resolved_plan = plan_name
         resolved_cycle = billing_cycle
         if stripe_subscription_id:
@@ -182,6 +222,12 @@ async def _handle_async_payment_succeeded(event: dict, db: AsyncSession) -> None
 
     resolved_plan = plan_name
     resolved_cycle = billing_cycle
+    _schedule_old_subscription_if_upgrade(
+        metadata=metadata,
+        new_subscription_id=stripe_subscription_id,
+        workspace_id=workspace_id,
+    )
+
     if stripe_subscription_id:
         try:
             resolved_plan, resolved_cycle, _snapshot = (
@@ -243,42 +289,46 @@ async def _handle_subscription_deleted(event: dict, db: AsyncSession) -> None:
     or the payment fails after all retry attempts.
     """
     subscription = event["data"]["object"]
-    metadata = subscription.get("metadata", {})
-    workspace_id = metadata.get("workspace_id")
     stripe_subscription_id = subscription.get("id")
 
-    if not workspace_id and stripe_subscription_id:
-        result = await db.execute(
-            select(Subscription).where(
-                Subscription.stripe_subscription_id == stripe_subscription_id
-            )
-        )
-        local_sub = result.scalars().first()
-        workspace_id = local_sub.workspace_id if local_sub else None
+    if not stripe_subscription_id:
+        logger.warning("subscription.deleted missing subscription id")
+        return
 
-    if not workspace_id:
-        logger.warning(
-            "subscription.deleted missing workspace reference (metadata/id=%s)",
+    # Only cancel local access if the deleted Stripe subscription is the one
+    # currently linked to the workspace. This avoids stale events from an old
+    # subscription canceling a newly switched plan.
+    result = await db.execute(
+        select(Subscription).where(
+            Subscription.stripe_subscription_id == stripe_subscription_id
+        )
+    )
+    local_sub = result.scalars().first()
+    if not local_sub:
+        logger.info(
+            "Ignoring subscription.deleted for stale/non-linked Stripe sub id=%s",
             stripe_subscription_id,
         )
         return
 
-    logger.info("Stripe subscription deleted for workspace=%s", workspace_id)
-    await billing_service.finalize_subscription_cancellation(db, workspace_id)
+    logger.info(
+        "Stripe subscription deleted for workspace=%s stripe_sub=%s",
+        local_sub.workspace_id,
+        stripe_subscription_id,
+    )
+    await billing_service.finalize_subscription_cancellation(db, local_sub.workspace_id)
 
 
 async def _handle_subscription_updated(event: dict, db: AsyncSession) -> None:
     """
     customer.subscription.updated
-    Used to sync end-of-period cancellation dates while keeping access active.
+    Used to:
+      1) apply scheduled next_plan at renewal,
+      2) sync period_end / cancel_at_period_end metadata.
     """
     subscription = event["data"]["object"]
     stripe_subscription_id = subscription.get("id")
     if not stripe_subscription_id:
-        return
-
-    cancel_at_period_end = bool(subscription.get("cancel_at_period_end"))
-    if not cancel_at_period_end:
         return
 
     result = await db.execute(
@@ -290,19 +340,54 @@ async def _handle_subscription_updated(event: dict, db: AsyncSession) -> None:
     if not local_sub:
         return
 
-    try:
-        stripe_sub = stripe_service.retrieve_stripe_subscription(stripe_subscription_id)
-        local_sub.current_period_end = stripe_service.parse_period_end(stripe_sub)
+    current_period_end_ts = subscription.get("current_period_end")
+    previous_attrs = event.get("data", {}).get("previous_attributes") or {}
+    previous_period_end_ts = previous_attrs.get("current_period_end")
+    period_rolled = (
+        isinstance(previous_period_end_ts, int)
+        and isinstance(current_period_end_ts, int)
+        and current_period_end_ts > previous_period_end_ts
+    )
+
+    if local_sub.next_plan_id and period_rolled:
+        try:
+            await billing_service.apply_scheduled_plan_change(
+                db,
+                workspace_id=local_sub.workspace_id,
+                stripe_subscription_id=stripe_subscription_id,
+                stripe_customer_id=subscription.get("customer"),
+                trigger_event_id=event.get("id"),
+            )
+            logger.info(
+                "Applied scheduled next_plan on renewal: workspace=%s stripe_sub=%s",
+                local_sub.workspace_id,
+                stripe_subscription_id,
+            )
+            return
+        except Exception as e:
+            logger.error(
+                "Failed applying scheduled next_plan on renewal workspace=%s: %s",
+                local_sub.workspace_id,
+                e,
+            )
+
+    updated = False
+    if isinstance(current_period_end_ts, int):
+        local_sub.current_period_end = datetime.fromtimestamp(
+            current_period_end_ts,
+            tz=timezone.utc,
+        )
+        updated = True
+
+    cancel_at_period_end = bool(subscription.get("cancel_at_period_end"))
+    if updated:
         await db.commit()
-        logger.info(
-            "Synced cancel_at_period_end for workspace=%s subscription=%s period_end=%s",
-            local_sub.workspace_id,
-            stripe_subscription_id,
-            local_sub.current_period_end,
-        )
-    except Exception as e:
-        logger.warning(
-            "Failed syncing cancel_at_period_end for subscription=%s: %s",
-            stripe_subscription_id,
-            e,
-        )
+    if not cancel_at_period_end:
+        return
+
+    logger.info(
+        "Synced cancel_at_period_end for workspace=%s subscription=%s period_end=%s",
+        local_sub.workspace_id,
+        stripe_subscription_id,
+        local_sub.current_period_end,
+    )

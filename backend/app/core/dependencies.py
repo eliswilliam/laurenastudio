@@ -71,6 +71,28 @@ async def verify_active_subscription(
         )
 
     if subscription.current_period_end and datetime.now(timezone.utc) >= subscription.current_period_end:
+        if (
+            subscription.next_plan_id
+            and subscription.stripe_customer_id
+            and subscription.stripe_subscription_id
+        ):
+            try:
+                from app.services import billing_service
+
+                await billing_service.apply_scheduled_plan_change(
+                    db,
+                    workspace_id=workspace_id,
+                    stripe_subscription_id=subscription.stripe_subscription_id,
+                    stripe_customer_id=subscription.stripe_customer_id,
+                    trigger_event_id=None,
+                )
+                await db.refresh(subscription)
+                if subscription.status == "active":
+                    return subscription
+            except Exception:
+                # If fallback fails we continue with normal period-end lock.
+                pass
+
         subscription.status = "canceled"
         await db.commit()
         raise HTTPException(

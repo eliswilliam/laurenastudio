@@ -51,6 +51,17 @@ class Subscription(Base):
         String(255), nullable=True, unique=True, index=True
     )
 
+    # ── Scheduled plan change (downgrade at period end) ─────────────────────
+    next_plan_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("plans.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    next_billing_cycle: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -62,8 +73,17 @@ class Subscription(Base):
         "Workspace", back_populates="subscription"
     )
     plan: Mapped["Plan"] = relationship(  # noqa: F821
-        "Plan", back_populates="subscriptions"
+        "Plan", back_populates="subscriptions", foreign_keys=[plan_id]
+    )
+    next_plan: Mapped["Plan | None"] = relationship(  # noqa: F821
+        "Plan", foreign_keys=[next_plan_id]
     )
 
     def __repr__(self) -> str:
-        return f"<Subscription workspace={self.workspace_id} plan={self.plan_id} status={self.status}>"
+        return (
+            "<Subscription "
+            f"workspace={self.workspace_id} "
+            f"plan={self.plan_id} "
+            f"next_plan={self.next_plan_id} "
+            f"status={self.status}>"
+        )

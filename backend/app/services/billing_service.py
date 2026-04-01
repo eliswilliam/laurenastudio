@@ -73,6 +73,29 @@ def _remaining(used: int, limit: int) -> int:
     return max(0, limit - used)
 
 
+async def _expire_subscription_if_needed(
+    db: AsyncSession,
+    sub: Subscription,
+) -> bool:
+    """Expire local access when the current period has ended."""
+    if sub.status != "active" or not sub.current_period_end:
+        return False
+
+    now = datetime.now(timezone.utc)
+    if now < sub.current_period_end:
+        return False
+
+    sub.status = "canceled"
+    await db.commit()
+    await db.refresh(sub)
+    logger.info(
+        "Subscription expired by period end: workspace=%s stripe_sub=%s",
+        sub.workspace_id,
+        sub.stripe_subscription_id,
+    )
+    return True
+
+
 # ── Public helper (used by routes/billing.py for customer portal) ─────────────
 
 async def get_subscription_for_workspace(
@@ -224,22 +247,29 @@ async def cancel_subscription(
             detail="Subscription is already canceled.",
         )
 
-    # Cancel on Stripe if we have a Stripe subscription ID
+    # Cancel on Stripe at period end (access remains until period finishes)
     if sub.stripe_subscription_id:
         try:
-            from app.services.stripe_service import cancel_stripe_subscription
-            cancel_stripe_subscription(sub.stripe_subscription_id)
+            from app.services.stripe_service import (
+                parse_period_end,
+                retrieve_stripe_subscription,
+                schedule_cancel_stripe_subscription,
+            )
+            stripe_sub = schedule_cancel_stripe_subscription(sub.stripe_subscription_id)
+            sub.current_period_end = parse_period_end(stripe_sub)
             logger.info(
-                "Stripe subscription %s canceled for workspace %s",
+                "Stripe subscription %s set to cancel_at_period_end for workspace %s",
                 sub.stripe_subscription_id, workspace_id,
             )
         except Exception as e:
-            logger.error("Failed to cancel Stripe subscription: %s", e)
-            # Continue with local cancellation even if Stripe fails
+            logger.error("Failed to schedule Stripe cancellation: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Could not schedule cancellation with Stripe.",
+            )
 
     owner_id = await notification_service.workspace_owner_id(db, workspace_id)
 
-    sub.status = "canceled"
     await db.commit()
     await db.refresh(sub)
 
@@ -248,15 +278,45 @@ async def cancel_subscription(
             db,
             user_id=owner_id,
             kind="plan_canceled",
-            title="Assinatura cancelada",
-            body="Sua assinatura foi encerrada. Recursos do plano pago não estão mais disponíveis.",
+                title="Cancelamento agendado",
+                body=(
+                    "Sua assinatura foi configurada para encerrar no fim do período atual. "
+                    "Até essa data, o acesso permanece ativo."
+                ),
         )
         await db.commit()
 
     return CancelSubscriptionResponse(
-        message="Subscription canceled. Access blocked immediately.",
+        message="Subscription will cancel at period end. Access remains active until then.",
         subscription=SubscriptionRead.model_validate(sub),
     )
+
+
+async def finalize_subscription_cancellation(
+    db: AsyncSession,
+    workspace_id: str,
+) -> None:
+    """Finalize local cancellation once Stripe ends the subscription."""
+    sub = await _get_subscription(db, workspace_id)
+    if not sub:
+        return
+    if sub.status == "canceled":
+        return
+
+    sub.status = "canceled"
+    await db.commit()
+    await db.refresh(sub)
+
+    owner_id = await notification_service.workspace_owner_id(db, workspace_id)
+    if owner_id:
+        await notification_service.create_user_notification(
+            db,
+            user_id=owner_id,
+            kind="plan_canceled",
+            title="Assinatura encerrada",
+            body="Seu período terminou e a assinatura foi encerrada.",
+        )
+        await db.commit()
 
 
 # ── Change plan ──────────────────────────────────────────────────────────────
@@ -340,6 +400,8 @@ async def get_billing_status(
             is_active=False,
         )
 
+    await _expire_subscription_if_needed(db, sub)
+
     # Eagerly load plan if not already loaded
     if not sub.plan:
         plan = await _get_plan_by_name(db, "starter")  # fallback
@@ -413,6 +475,13 @@ async def get_usage(
             detail="No active subscription.",
         )
 
+    await _expire_subscription_if_needed(db, sub)
+    if sub.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Subscription period ended. Please choose a plan.",
+        )
+
     usage = await _get_usage(db, workspace_id)
     if not usage:
         raise HTTPException(
@@ -459,6 +528,8 @@ async def get_current_subscription(
 
     usage = await _get_usage(db, workspace_id)
     usage_read = UsageRead.model_validate(usage) if usage else None
+
+    await _expire_subscription_if_needed(db, sub)
 
     billing_cycle = None
     current_price_brl = float(plan.price_brl)

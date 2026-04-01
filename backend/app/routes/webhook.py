@@ -14,9 +14,11 @@ NO JWT auth — Stripe authenticates via webhook signature (stripe-signature hea
 import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.models.subscription import Subscription
 from app.services import billing_service, stripe_service
 
 logger = logging.getLogger(__name__)
@@ -76,6 +78,9 @@ async def stripe_webhook(
 
         elif event_type == "customer.subscription.deleted":
             await _handle_subscription_deleted(ed, db)
+
+        elif event_type == "customer.subscription.updated":
+            await _handle_subscription_updated(ed, db)
 
         else:
             logger.debug("Unhandled Stripe event type: %s", event_type)
@@ -240,10 +245,64 @@ async def _handle_subscription_deleted(event: dict, db: AsyncSession) -> None:
     subscription = event["data"]["object"]
     metadata = subscription.get("metadata", {})
     workspace_id = metadata.get("workspace_id")
+    stripe_subscription_id = subscription.get("id")
+
+    if not workspace_id and stripe_subscription_id:
+        result = await db.execute(
+            select(Subscription).where(
+                Subscription.stripe_subscription_id == stripe_subscription_id
+            )
+        )
+        local_sub = result.scalars().first()
+        workspace_id = local_sub.workspace_id if local_sub else None
 
     if not workspace_id:
-        logger.warning("subscription.deleted missing workspace_id in metadata")
+        logger.warning(
+            "subscription.deleted missing workspace reference (metadata/id=%s)",
+            stripe_subscription_id,
+        )
         return
 
     logger.info("Stripe subscription deleted for workspace=%s", workspace_id)
-    await billing_service.cancel_subscription(db, workspace_id)
+    await billing_service.finalize_subscription_cancellation(db, workspace_id)
+
+
+async def _handle_subscription_updated(event: dict, db: AsyncSession) -> None:
+    """
+    customer.subscription.updated
+    Used to sync end-of-period cancellation dates while keeping access active.
+    """
+    subscription = event["data"]["object"]
+    stripe_subscription_id = subscription.get("id")
+    if not stripe_subscription_id:
+        return
+
+    cancel_at_period_end = bool(subscription.get("cancel_at_period_end"))
+    if not cancel_at_period_end:
+        return
+
+    result = await db.execute(
+        select(Subscription).where(
+            Subscription.stripe_subscription_id == stripe_subscription_id
+        )
+    )
+    local_sub = result.scalars().first()
+    if not local_sub:
+        return
+
+    try:
+        stripe_sub = stripe_service.retrieve_stripe_subscription(stripe_subscription_id)
+        local_sub.current_period_end = stripe_service.parse_period_end(stripe_sub)
+        await db.commit()
+        logger.info(
+            "Synced cancel_at_period_end for workspace=%s subscription=%s period_end=%s",
+            local_sub.workspace_id,
+            stripe_subscription_id,
+            local_sub.current_period_end,
+        )
+    except Exception as e:
+        logger.warning(
+            "Failed syncing cancel_at_period_end for subscription=%s: %s",
+            stripe_subscription_id,
+            e,
+        )

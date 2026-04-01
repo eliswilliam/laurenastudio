@@ -70,6 +70,14 @@ async def verify_active_subscription(
             detail="Active subscription required. Please subscribe to a plan.",
         )
 
+    if subscription.current_period_end and datetime.now(timezone.utc) >= subscription.current_period_end:
+        subscription.status = "canceled"
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Subscription period ended. Please choose a new plan.",
+        )
+
     return subscription
 
 

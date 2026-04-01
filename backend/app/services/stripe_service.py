@@ -235,6 +235,16 @@ def cancel_stripe_subscription(stripe_subscription_id: str) -> stripe.Subscripti
     return stripe.Subscription.cancel(stripe_subscription_id)
 
 
+def schedule_cancel_stripe_subscription(
+    stripe_subscription_id: str,
+) -> stripe.Subscription:
+    """Schedule cancellation at period end (no immediate access cut)."""
+    return stripe.Subscription.modify(
+        stripe_subscription_id,
+        cancel_at_period_end=True,
+    )
+
+
 # ── Webhook signature verification ──────────────────────────────────────────
 
 def verify_webhook_signature(payload: bytes, sig_header: str) -> stripe.Event:

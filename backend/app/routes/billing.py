@@ -69,6 +69,7 @@ async def create_checkout(
     try:
         session = stripe_service.create_checkout_session(
             plan_name=payload.plan_name,
+            billing_cycle=payload.billing_cycle,
             workspace_id=workspace_id,
             user_email=user.email,
             success_url=payload.success_url,
@@ -257,6 +258,7 @@ async def verify_session(
     session_status = sd.get("status")  # "complete", "expired", "open"
     metadata = sd.get("metadata") or {}
     plan_name = metadata.get("plan_name")
+    billing_cycle = metadata.get("billing_cycle") or "monthly"
     session_workspace = metadata.get("workspace_id")
 
     logger.info(
@@ -275,6 +277,7 @@ async def verify_session(
         return VerifySessionResponse(
             status="expired",
             plan_name=plan_name,
+            billing_cycle=billing_cycle,
             message="This checkout session has expired.",
         )
 
@@ -282,17 +285,37 @@ async def verify_session(
         # Activate the subscription (idempotent — safe to call multiple times)
         customer_id = sd.get("customer")
         stripe_subscription_id = sd.get("subscription")
+        resolved_plan = plan_name
+        resolved_cycle = billing_cycle
+        if stripe_subscription_id:
+            try:
+                resolved_plan, resolved_cycle, _snapshot = (
+                    stripe_service.resolve_plan_and_cycle_from_subscription(
+                        stripe_subscription_id,
+                        fallback_plan_name=plan_name,
+                        fallback_cycle=billing_cycle,
+                    )
+                )
+            except Exception as e:
+                logger.warning(
+                    "verify-session could not resolve plan/cycle from subscription %s: %s",
+                    stripe_subscription_id,
+                    e,
+                )
+
         await billing_service.activate_plan(
             db,
             workspace_id=workspace_id,
-            plan_name=plan_name,
+            plan_name=resolved_plan,
+            billing_cycle=resolved_cycle,
             stripe_customer_id=customer_id,
             stripe_subscription_id=stripe_subscription_id,
         )
         return VerifySessionResponse(
             status="active",
-            plan_name=plan_name,
-            message=f"Subscription '{plan_name}' activated successfully!",
+            plan_name=resolved_plan,
+            billing_cycle=resolved_cycle,
+            message=f"Subscription '{resolved_plan}' activated successfully!",
         )
 
     if payment_status == "unpaid":
@@ -300,6 +323,7 @@ async def verify_session(
         return VerifySessionResponse(
             status="pending",
             plan_name=plan_name,
+            billing_cycle=billing_cycle,
             message="Payment is pending (boleto). We'll activate once confirmed.",
         )
 
@@ -307,5 +331,6 @@ async def verify_session(
     return VerifySessionResponse(
         status="pending",
         plan_name=plan_name,
+        billing_cycle=billing_cycle,
         message=f"Session status: {session_status}, payment: {payment_status}",
     )

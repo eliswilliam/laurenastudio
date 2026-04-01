@@ -195,6 +195,8 @@ export default function CheckoutSucesso() {
   // Derived
   const plan = billingStatus?.subscription?.plan;
   const sub = billingStatus?.subscription;
+  const currentPrice = sub?.current_price_brl ?? plan?.price_brl ?? null;
+  const isAnnualBilling = sub?.billing_cycle === 'annual';
 
   // ── LOADING: Waiting for webhook ─────────────────────────────────────────
 
@@ -371,7 +373,11 @@ export default function CheckoutSucesso() {
                     <Badge className="bg-green-600 text-white text-xs">{t('common.active')}</Badge>
                   </div>
                   <p className="text-muted-foreground text-sm">
-                    R$ {plan.price_brl.toFixed(2)} {t('landing.plans.perMonth')}
+                     {currentPrice != null
+                       ? isAnnualBilling
+                         ? t('landing.plans.billedYear', { total: currentPrice.toFixed(2) })
+                         : `R$ ${currentPrice.toFixed(2)} ${t('landing.plans.perMonth')}`
+                       : '-'}
                   </p>
                 </div>
               </div>

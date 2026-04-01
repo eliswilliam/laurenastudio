@@ -97,22 +97,28 @@ async def activate_plan(
     workspace_id: str,
     plan_name: str,
     *,
+    billing_cycle: str = "monthly",
     stripe_customer_id: str | None = None,
     stripe_subscription_id: str | None = None,
 ) -> ActivatePlanResponse:
     plan = await _get_plan_by_name(db, plan_name)
     now = datetime.now(timezone.utc)
-    period_end = now + timedelta(days=30)
+    period_end = now + timedelta(days=365 if billing_cycle == "annual" else 30)
 
     # If we have a stripe subscription, try to get the real period_end
     if stripe_subscription_id:
         try:
             from app.services.stripe_service import (
+                extract_subscription_snapshot,
                 parse_period_end,
                 retrieve_stripe_subscription,
             )
             stripe_sub = retrieve_stripe_subscription(stripe_subscription_id)
             period_end = parse_period_end(stripe_sub)
+            snapshot = extract_subscription_snapshot(stripe_sub)
+            snapshot_cycle = snapshot.get("billing_cycle")
+            if snapshot_cycle in {"monthly", "annual"}:
+                billing_cycle = snapshot_cycle
         except Exception as e:
             logger.warning("Could not fetch Stripe period_end: %s", e)
 
@@ -340,6 +346,23 @@ async def get_billing_status(
     else:
         plan = sub.plan
 
+    billing_cycle = None
+    current_price_brl = None
+    currency = None
+    if sub.stripe_subscription_id:
+        try:
+            from app.services.stripe_service import (
+                extract_subscription_snapshot,
+                retrieve_stripe_subscription,
+            )
+            stripe_sub = retrieve_stripe_subscription(sub.stripe_subscription_id)
+            snapshot = extract_subscription_snapshot(stripe_sub)
+            billing_cycle = snapshot.get("billing_cycle")
+            current_price_brl = snapshot.get("unit_amount_brl")
+            currency = snapshot.get("currency")
+        except Exception as e:
+            logger.warning("Could not fetch Stripe snapshot for billing status: %s", e)
+
     sub_read = SubscriptionWithPlan(
         id=sub.id,
         workspace_id=sub.workspace_id,
@@ -349,6 +372,9 @@ async def get_billing_status(
         current_period_end=sub.current_period_end,
         stripe_customer_id=sub.stripe_customer_id,
         stripe_subscription_id=sub.stripe_subscription_id,
+        billing_cycle=billing_cycle,
+        current_price_brl=current_price_brl,
+        currency=currency,
         plan=PlanRead.model_validate(plan),
     )
 
@@ -434,10 +460,30 @@ async def get_current_subscription(
     usage = await _get_usage(db, workspace_id)
     usage_read = UsageRead.model_validate(usage) if usage else None
 
+    billing_cycle = None
+    current_price_brl = float(plan.price_brl)
+    currency = "BRL"
+    if sub.stripe_subscription_id:
+        try:
+            from app.services.stripe_service import (
+                extract_subscription_snapshot,
+                retrieve_stripe_subscription,
+            )
+            stripe_sub = retrieve_stripe_subscription(sub.stripe_subscription_id)
+            snapshot = extract_subscription_snapshot(stripe_sub)
+            billing_cycle = snapshot.get("billing_cycle")
+            if snapshot.get("unit_amount_brl") is not None:
+                current_price_brl = float(snapshot["unit_amount_brl"])
+            currency = snapshot.get("currency") or currency
+        except Exception as e:
+            logger.warning("Could not fetch Stripe snapshot for current subscription: %s", e)
+
     return CurrentSubscriptionResponse(
         plan_name=plan.name,
         display_name=plan.display_name,
-        price=float(plan.price_brl),
+        price=current_price_brl,
+        billing_cycle=billing_cycle,
+        currency=currency,
         status=sub.status,
         current_period_end=sub.current_period_end.isoformat() if sub.current_period_end else None,
         limits=PlanRead.model_validate(plan),

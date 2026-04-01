@@ -8,6 +8,7 @@ FastAPI-compatible async code using the official stripe-python SDK.
 import logging
 import stripe
 from datetime import datetime, timezone
+from typing import Literal
 
 from app.core.config import settings
 
@@ -36,23 +37,128 @@ def stripe_object_to_dict(obj: object) -> dict:
         return {}
 
 
-# ── Plan name → Stripe Price ID mapping ──────────────────────────────────────
-PLAN_PRICE_MAP: dict[str, str] = {
-    "starter": settings.STRIPE_PRICE_ID_STARTER,
-    "pro": settings.STRIPE_PRICE_ID_PRO,
-    "business": settings.STRIPE_PRICE_ID_BUSINESS,
-}
+def _get_cycle_price_id(plan_key: str, billing_cycle: str) -> str:
+    if billing_cycle == "monthly":
+        cycle_map = {
+            "starter": settings.STRIPE_PRICE_ID_STARTER_MONTHLY,
+            "pro": settings.STRIPE_PRICE_ID_PRO_MONTHLY,
+            "business": settings.STRIPE_PRICE_ID_BUSINESS_MONTHLY,
+        }
+    else:
+        cycle_map = {
+            "starter": settings.STRIPE_PRICE_ID_STARTER_ANNUAL,
+            "pro": settings.STRIPE_PRICE_ID_PRO_ANNUAL,
+            "business": settings.STRIPE_PRICE_ID_BUSINESS_ANNUAL,
+        }
+    return cycle_map.get(plan_key, "")
 
 
-def get_price_id_for_plan(plan_name: str) -> str:
-    """Resolve a plan name to its Stripe Price ID."""
-    price_id = PLAN_PRICE_MAP.get(plan_name.lower().strip())
+def map_price_id_to_plan_cycle(price_id: str | None) -> tuple[str, str] | None:
+    """Map a Stripe price ID to internal plan + billing cycle."""
     if not price_id:
+        return None
+
+    price_to_plan: dict[str, tuple[str, str]] = {}
+    configured = {
+        settings.STRIPE_PRICE_ID_STARTER_MONTHLY: ("starter", "monthly"),
+        settings.STRIPE_PRICE_ID_PRO_MONTHLY: ("pro", "monthly"),
+        settings.STRIPE_PRICE_ID_BUSINESS_MONTHLY: ("business", "monthly"),
+        settings.STRIPE_PRICE_ID_STARTER_ANNUAL: ("starter", "annual"),
+        settings.STRIPE_PRICE_ID_PRO_ANNUAL: ("pro", "annual"),
+        settings.STRIPE_PRICE_ID_BUSINESS_ANNUAL: ("business", "annual"),
+    }
+    for pid, plan_cycle in configured.items():
+        if pid:
+            price_to_plan[pid] = plan_cycle
+
+    # Legacy IDs are assumed monthly.
+    if settings.STRIPE_PRICE_ID_STARTER:
+        price_to_plan[settings.STRIPE_PRICE_ID_STARTER] = ("starter", "monthly")
+    if settings.STRIPE_PRICE_ID_PRO:
+        price_to_plan[settings.STRIPE_PRICE_ID_PRO] = ("pro", "monthly")
+    if settings.STRIPE_PRICE_ID_BUSINESS:
+        price_to_plan[settings.STRIPE_PRICE_ID_BUSINESS] = ("business", "monthly")
+
+    return price_to_plan.get(price_id)
+
+
+def get_price_id_for_plan(
+    plan_name: str,
+    billing_cycle: Literal["monthly", "annual"] = "monthly",
+) -> str:
+    """Resolve a plan name + cycle to its Stripe Price ID."""
+    plan_key = plan_name.lower().strip()
+    if plan_key not in {"starter", "pro", "business"}:
         raise ValueError(
-            f"No Stripe Price ID configured for plan '{plan_name}'. "
-            f"Valid plans: {list(PLAN_PRICE_MAP.keys())}"
+            f"Invalid plan '{plan_name}'. Valid plans: ['starter', 'pro', 'business']"
         )
-    return price_id
+
+    cycle_price_id = _get_cycle_price_id(plan_key, billing_cycle)
+    if cycle_price_id:
+        return cycle_price_id
+
+    raise ValueError(
+        "No Stripe Price ID configured for "
+        f"plan='{plan_name}' cycle='{billing_cycle}'. "
+        "Set STRIPE_PRICE_ID_<PLAN>_<MONTHLY|ANNUAL>."
+    )
+
+
+def extract_subscription_snapshot(stripe_sub: stripe.Subscription) -> dict:
+    """Extract normalized cycle/price metadata from a Stripe subscription."""
+    sd = stripe_object_to_dict(stripe_sub)
+    items = (((sd.get("items") or {}).get("data")) or [])
+    first_item = items[0] if items else {}
+    price = first_item.get("price") or {}
+    recurring = price.get("recurring") or {}
+
+    price_id = price.get("id")
+    amount_cents = price.get("unit_amount")
+    currency = (price.get("currency") or "").upper() or None
+    interval = recurring.get("interval")
+    interval_count = recurring.get("interval_count") or 1
+
+    billing_cycle: str | None = None
+    if interval == "year" and interval_count == 1:
+        billing_cycle = "annual"
+    elif interval == "month" and interval_count == 1:
+        billing_cycle = "monthly"
+
+    mapped = map_price_id_to_plan_cycle(price_id)
+    plan_name = mapped[0] if mapped else None
+
+    amount_brl = None
+    if isinstance(amount_cents, int):
+        amount_brl = amount_cents / 100
+
+    return {
+        "plan_name": plan_name,
+        "billing_cycle": billing_cycle,
+        "price_id": price_id,
+        "unit_amount_brl": amount_brl,
+        "currency": currency,
+    }
+
+
+def resolve_plan_and_cycle_from_subscription(
+    subscription_id: str,
+    *,
+    fallback_plan_name: str | None = None,
+    fallback_cycle: Literal["monthly", "annual"] = "monthly",
+) -> tuple[str, Literal["monthly", "annual"], dict]:
+    """Resolve authoritative plan/cycle using Stripe subscription price metadata."""
+    stripe_sub = retrieve_stripe_subscription(subscription_id)
+    snapshot = extract_subscription_snapshot(stripe_sub)
+
+    resolved_plan = snapshot.get("plan_name") or fallback_plan_name
+    resolved_cycle = snapshot.get("billing_cycle") or fallback_cycle
+
+    if not resolved_plan:
+        raise ValueError("Unable to resolve plan name from Stripe subscription.")
+    if resolved_cycle not in {"monthly", "annual"}:
+        resolved_cycle = fallback_cycle
+
+    return resolved_plan, resolved_cycle, snapshot
 
 
 # ── Create Checkout Session ──────────────────────────────────────────────────
@@ -60,6 +166,7 @@ def get_price_id_for_plan(plan_name: str) -> str:
 def create_checkout_session(
     *,
     plan_name: str,
+    billing_cycle: Literal["monthly", "annual"] = "monthly",
     workspace_id: str,
     user_email: str,
     success_url: str | None = None,
@@ -74,7 +181,7 @@ def create_checkout_session(
     multi-tenant: workspace_id is passed as metadata, and mode is always
     'subscription'.
     """
-    price_id = get_price_id_for_plan(plan_name)
+    price_id = get_price_id_for_plan(plan_name, billing_cycle)
 
     frontend = settings.FRONTEND_URL
     _success = success_url or f"{frontend}/checkout/sucesso?session_id={{CHECKOUT_SESSION_ID}}"
@@ -90,11 +197,13 @@ def create_checkout_session(
         metadata={
             "workspace_id": workspace_id,
             "plan_name": plan_name,
+            "billing_cycle": billing_cycle,
         },
         subscription_data={
             "metadata": {
                 "workspace_id": workspace_id,
                 "plan_name": plan_name,
+                "billing_cycle": billing_cycle,
             }
         },
     )

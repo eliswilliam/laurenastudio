@@ -124,6 +124,7 @@ export default function Pagamento() {
     try {
       const { url } = await apiCreateCheckout(
         planoId,
+        anual ? 'annual' : 'monthly',
         `${window.location.origin}/pagamento?status=success`,
         `${window.location.origin}/pagamento?status=canceled`,
       );

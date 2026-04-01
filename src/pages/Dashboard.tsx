@@ -84,6 +84,8 @@ export default function Dashboard() {
   const sub = billingStatus?.subscription ?? null;
   const plan = sub?.plan ?? null;
   const usage = billingStatus?.usage ?? null;
+  const currentPrice = sub?.current_price_brl ?? plan?.price_brl ?? null;
+  const isAnnualBilling = sub?.billing_cycle === 'annual';
 
   const audioUsed = usage?.usage?.audio_used ?? 0;
   const audioLimit = usage?.limits?.audio_limit ?? 0;
@@ -195,7 +197,11 @@ export default function Dashboard() {
             </div>
             {plan && (
               <p className="text-muted-foreground text-sm">
-                R$ {plan.price_brl.toFixed(2)}{t('landing.plans.perMonth')}
+                {currentPrice != null
+                  ? isAnnualBilling
+                    ? t('landing.plans.billedYear', { total: currentPrice.toFixed(2) })
+                    : `R$ ${currentPrice.toFixed(2)}${t('landing.plans.perMonth')}`
+                  : '-'}
               </p>
             )}
             <p className="text-xs text-muted-foreground">

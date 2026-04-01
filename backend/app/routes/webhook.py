@@ -103,6 +103,7 @@ async def _handle_checkout_completed(event: dict, db: AsyncSession) -> None:
     metadata = session.get("metadata", {})
     workspace_id = metadata.get("workspace_id")
     plan_name = metadata.get("plan_name")
+    billing_cycle = metadata.get("billing_cycle") or "monthly"
     customer_id = session.get("customer")
     stripe_subscription_id = session.get("subscription")
 
@@ -114,15 +115,34 @@ async def _handle_checkout_completed(event: dict, db: AsyncSession) -> None:
         return
 
     if payment_status == "paid":
+        resolved_plan = plan_name
+        resolved_cycle = billing_cycle
+        if stripe_subscription_id:
+            try:
+                resolved_plan, resolved_cycle, _snapshot = (
+                    stripe_service.resolve_plan_and_cycle_from_subscription(
+                        stripe_subscription_id,
+                        fallback_plan_name=plan_name,
+                        fallback_cycle=billing_cycle,
+                    )
+                )
+            except Exception as e:
+                logger.warning(
+                    "Could not resolve plan/cycle from Stripe subscription %s: %s",
+                    stripe_subscription_id,
+                    e,
+                )
+
         # Card payment — activate immediately
         logger.info(
-            "Activating subscription: workspace=%s plan=%s stripe_sub=%s",
-            workspace_id, plan_name, stripe_subscription_id,
+            "Activating subscription: workspace=%s plan=%s cycle=%s stripe_sub=%s",
+            workspace_id, resolved_plan, resolved_cycle, stripe_subscription_id,
         )
         await billing_service.activate_plan(
             db,
             workspace_id=workspace_id,
-            plan_name=plan_name,
+            plan_name=resolved_plan,
+            billing_cycle=resolved_cycle,
             stripe_customer_id=customer_id,
             stripe_subscription_id=stripe_subscription_id,
         )
@@ -144,6 +164,7 @@ async def _handle_async_payment_succeeded(event: dict, db: AsyncSession) -> None
     metadata = session.get("metadata", {})
     workspace_id = metadata.get("workspace_id")
     plan_name = metadata.get("plan_name")
+    billing_cycle = metadata.get("billing_cycle") or "monthly"
     customer_id = session.get("customer")
     stripe_subscription_id = session.get("subscription")
 
@@ -154,13 +175,35 @@ async def _handle_async_payment_succeeded(event: dict, db: AsyncSession) -> None
         )
         return
 
+    resolved_plan = plan_name
+    resolved_cycle = billing_cycle
+    if stripe_subscription_id:
+        try:
+            resolved_plan, resolved_cycle, _snapshot = (
+                stripe_service.resolve_plan_and_cycle_from_subscription(
+                    stripe_subscription_id,
+                    fallback_plan_name=plan_name,
+                    fallback_cycle=billing_cycle,
+                )
+            )
+        except Exception as e:
+            logger.warning(
+                "Could not resolve async plan/cycle from Stripe subscription %s: %s",
+                stripe_subscription_id,
+                e,
+            )
+
     logger.info(
-        "Boleto payment confirmed: workspace=%s plan=%s", workspace_id, plan_name,
+        "Boleto payment confirmed: workspace=%s plan=%s cycle=%s",
+        workspace_id,
+        resolved_plan,
+        resolved_cycle,
     )
     await billing_service.activate_plan(
         db,
         workspace_id=workspace_id,
-        plan_name=plan_name,
+        plan_name=resolved_plan,
+        billing_cycle=resolved_cycle,
         stripe_customer_id=customer_id,
         stripe_subscription_id=stripe_subscription_id,
     )

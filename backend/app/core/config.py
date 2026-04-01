@@ -176,10 +176,18 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PUBLISHABLE_KEY: str = ""
-    # Price IDs — one per plan (subscription mode)
+    # Legacy Price IDs (fallback if cycle-specific IDs are not set)
     STRIPE_PRICE_ID_STARTER: str = ""
     STRIPE_PRICE_ID_PRO: str = ""
     STRIPE_PRICE_ID_BUSINESS: str = ""
+
+    # Price IDs by billing cycle
+    STRIPE_PRICE_ID_STARTER_MONTHLY: str = ""
+    STRIPE_PRICE_ID_PRO_MONTHLY: str = ""
+    STRIPE_PRICE_ID_BUSINESS_MONTHLY: str = ""
+    STRIPE_PRICE_ID_STARTER_ANNUAL: str = ""
+    STRIPE_PRICE_ID_PRO_ANNUAL: str = ""
+    STRIPE_PRICE_ID_BUSINESS_ANNUAL: str = ""
 
     # ── Azure Cognitive Services — Speech (text-to-speech) ───────────────────
     # Key + endpoint from Azure Portal (Speech resource). Never commit real keys.

@@ -52,6 +52,9 @@ export interface SubscriptionRead {
   current_period_end: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  billing_cycle?: 'monthly' | 'annual' | null;
+  current_price_brl?: number | null;
+  currency?: string | null;
 }
 
 export interface BillingStatusResponse {
@@ -73,11 +76,13 @@ export interface BillingStatusResponse {
 /** Create a Stripe Checkout session and return the redirect URL */
 export async function apiCreateCheckout(
   planName: string,
+  billingCycle: 'monthly' | 'annual' = 'monthly',
   successUrl?: string,
   cancelUrl?: string
 ): Promise<CheckoutSessionResponse> {
   const res = await api.post<CheckoutSessionResponse>('/billing/create-checkout', {
     plan_name: planName,
+    billing_cycle: billingCycle,
     success_url: successUrl,
     cancel_url: cancelUrl,
   });
@@ -138,6 +143,8 @@ export interface CurrentSubscriptionResponse {
   plan_name: string;
   display_name: string;
   price: number;
+  billing_cycle?: 'monthly' | 'annual' | null;
+  currency?: string | null;
   status: string;
   current_period_end: string | null;
   limits: PlanRead;

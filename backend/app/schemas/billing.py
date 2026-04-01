@@ -3,6 +3,7 @@ schemas/billing.py
 Pydantic schemas for billing, subscription, plans, usage, and Stripe integration.
 """
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -37,6 +38,9 @@ class SubscriptionRead(BaseModel):
     current_period_end: datetime | None = None
     stripe_customer_id: str | None = None
     stripe_subscription_id: str | None = None
+    billing_cycle: Literal["monthly", "annual"] | None = None
+    current_price_brl: float | None = None
+    currency: str | None = None
 
 
 class SubscriptionWithPlan(SubscriptionRead):
@@ -114,6 +118,8 @@ class CurrentSubscriptionResponse(BaseModel):
     plan_name: str
     display_name: str
     price: float
+    billing_cycle: Literal["monthly", "annual"] | None = None
+    currency: str | None = None
     status: str
     current_period_end: str | None = None
     limits: PlanRead
@@ -124,6 +130,7 @@ class CurrentSubscriptionResponse(BaseModel):
 
 class CheckoutSessionRequest(BaseModel):
     plan_name: str  # "starter" | "pro" | "business"
+    billing_cycle: Literal["monthly", "annual"] = "monthly"
     success_url: str | None = None
     cancel_url: str | None = None
 
@@ -152,6 +159,7 @@ class VerifySessionRequest(BaseModel):
 class VerifySessionResponse(BaseModel):
     status: str  # "active" | "pending" | "canceled" | "expired"
     plan_name: str | None = None
+    billing_cycle: Literal["monthly", "annual"] | None = None
     message: str
 
 

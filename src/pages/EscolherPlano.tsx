@@ -55,6 +55,7 @@ export default function EscolherPlano() {
     try {
       const { url } = await apiCreateCheckout(
         planoId,
+        anual ? 'annual' : 'monthly',
         `${window.location.origin}/checkout/sucesso?session_id={CHECKOUT_SESSION_ID}`,
         `${window.location.origin}/checkout/sucesso?canceled=true`,
       );

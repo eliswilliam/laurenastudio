@@ -11,6 +11,8 @@ class AIGenerateRequest(BaseModel):
     prompt: str
     model: str | None = None
     style: str | None = None
+    reference_image_b64: str | None = None
+    reference_mime: str = "image/png"
 
 
 class AIGenerateResponse(BaseModel):

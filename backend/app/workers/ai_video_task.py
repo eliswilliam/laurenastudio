@@ -5,6 +5,7 @@ so nginx / Azure do not return 504 while polling generation for several minutes.
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
 from functools import partial
 from uuid import UUID
@@ -48,15 +49,27 @@ async def _arq_ai_video_impl(job_id: str) -> None:
         try:
             if mode == "studio":
                 prompt = str(payload.get("prompt") or "")
-                style = payload.get("style")
+                reference_image_b64 = payload.get("reference_image_b64")
                 workspace_id = str(payload.get("workspace_id") or "")
                 user_id = str(payload.get("user_id") or "")
                 usage_after = int(payload.get("usage_after") or 0)
                 limit = int(payload.get("limit") or 0)
 
+                reference_bytes: bytes | None = None
+                if reference_image_b64:
+                    try:
+                        reference_bytes = base64.b64decode(reference_image_b64)
+                    except Exception as exc:
+                        raise ValueError("reference_image_b64 inválida") from exc
+
                 logger.info("[ai_video][studio] job=%s prompt_len=%s", job_id, len(prompt))
                 content_url = await asyncio.to_thread(
-                    partial(_sync_generate_video, prompt, style=style),
+                    partial(
+                        _sync_generate_video,
+                        prompt,
+                        style=None,
+                        reference_image_bytes=reference_bytes,
+                    ),
                 )
 
                 record = AIGeneration(
@@ -65,7 +78,7 @@ async def _arq_ai_video_impl(job_id: str) -> None:
                     prompt=prompt[:4000],
                     content=content_url,
                     model_used="minimax/hailuo-2.3-fast",
-                    style=style,
+                    style=None,
                 )
                 db.add(record)
                 await db.flush()

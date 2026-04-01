@@ -633,7 +633,7 @@ export default function CriarSite() {
         <div
           className={cn(
             'sticky z-20 -mx-3 px-3 sm:-mx-4 sm:px-4',
-            'top-14 md:top-16',
+            'top-[calc(env(safe-area-inset-top)+3.5rem)] md:top-16',
             'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/85',
             'border-b border-border/50 shadow-sm'
           )}
@@ -1184,10 +1184,9 @@ export default function CriarSite() {
     <div
       className={cn(
         'animate-fade-in w-full max-w-7xl mx-auto flex flex-col flex-1 min-h-0 px-3 sm:px-4',
-        '-mt-2 pt-0 sm:-mt-1 md:mt-0 md:pt-0',
-        'min-h-[calc(100dvh-8.5rem)] md:min-h-[calc(100dvh-7rem)]',
-        emConversa && !isWideLg && 'max-md:pb-[12.5rem] md:pb-[5.75rem]',
-        emConversa && !isWideLg && 'max-lg:-mx-0.5 max-lg:overflow-hidden'
+        'pt-0',
+        'min-h-[calc(100dvh-7rem)]',
+        emConversa && !isWideLg && 'pb-[12.5rem]'
       )}
     >
       {mainChrome}

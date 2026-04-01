@@ -23,33 +23,46 @@ logger = logging.getLogger(__name__)
 
 # â”€â”€ Prompt optimization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+def _clean(value: str | None) -> str:
+    return (value or "").strip()
+
 def _build_image_prompt(
     brand_name: str,
     ad_text: str,
     user_prompt: str | None = None,
 ) -> str:
-    """Build an optimized prompt for advertising image generation."""
-    base = (
-        f"Create a professional, high-quality advertising image.\n\n"
-        f"Brand: {brand_name}\n"
-        f"Ad headline / copy: {ad_text}\n"
-    )
+    """Build a structured prompt for advertising image generation."""
+    brand = _clean(brand_name)
+    copy = _clean(ad_text)
+    direction = _clean(user_prompt)
 
-    if user_prompt:
-        base += f"Creative direction from the user: {user_prompt}\n"
+    parts = [
+        "You are an expert ad creative director and visual designer.",
+        "Task: create one final social ad image (no mockup, no device frame).",
+        "",
+        f"Brand: {brand}",
+        f"Core message: {copy}",
+    ]
 
-    base += (
-        "\nDesign requirements:\n"
-        "- Modern, clean layout suitable for social-media ads\n"
-        "- The brand name must appear prominently and be legible\n"
-        "- The ad copy must be integrated clearly into the composition\n"
-        "- Professional typography and strong visual hierarchy\n"
-        "- Eye-catching, scroll-stopping composition\n"
-        "- If a product or scene is depicted, make it look premium\n"
-        "- Output a single finished ad creative â€” no mockup frames or device outlines\n"
-        "- Choose the best colour palette and visual style based on the brand and prompt\n"
-    )
-    return base
+    if direction:
+        parts += ["", f"Creative direction from user: {direction}"]
+
+    parts += [
+        "",
+        "Creative goals:",
+        "- Scroll-stopping composition with a clear focal point.",
+        "- Brand readability: brand name must be clearly visible.",
+        "- Copy readability: text must be short, legible and integrated naturally.",
+        "- Visual hierarchy: focal visual > headline > support details > CTA.",
+        "- Premium, modern ad style suitable for paid social.",
+        "",
+        "Output constraints:",
+        "- 1:1 ad creative.",
+        "- High contrast and mobile-first readability.",
+        "- Avoid clutter, tiny text, watermark, logos of other brands.",
+        "- Return only the final ad image.",
+    ]
+    return "\n".join(parts)
 
 
 def _build_video_prompt(
@@ -58,34 +71,46 @@ def _build_video_prompt(
     user_prompt: str | None = None,
     video_mode: str = "text_to_video",
 ) -> str:
-    """Build an optimized prompt for advertising video generation."""
-    base = (
-        f"Create a professional advertising video.\n\n"
-        f"Brand: {brand_name}\n"
-        f"Ad message: {ad_text}\n"
-    )
+    """Build a structured prompt for advertising video generation."""
+    brand = _clean(brand_name)
+    copy = _clean(ad_text)
+    direction = _clean(user_prompt)
 
-    if user_prompt:
-        base += f"Creative direction: {user_prompt}\n"
+    parts = [
+        "You are an expert ad film director for short-form social video.",
+        "Task: create one high-converting ad video for social platforms.",
+        "",
+        f"Brand: {brand}",
+        f"Core message: {copy}",
+        "Duration target: 6-12 seconds.",
+        "Format: vertical-friendly composition, mobile-first legibility.",
+    ]
+
+    if direction:
+        parts += ["", f"Creative direction from user: {direction}"]
 
     if video_mode == "image_to_video":
-        base += (
-            "\nThe provided image should be used as the starting visual. "
-            "Animate it into a dynamic video that brings the scene to life.\n"
-        )
+        parts += [
+            "",
+            "Use the provided image as first frame and preserve identity continuity.",
+            "Animate naturally with smooth, realistic motion.",
+        ]
 
-    base += (
-        "\nVideo requirements:\n"
-        "- Open with an attention-grabbing visual hook in the first 2 seconds\n"
-        f"- Display the brand name \"{brand_name}\" prominently\n"
-        f"- Communicate the message: \"{ad_text}\"\n"
-        "- Use smooth, professional transitions and motion\n"
-        "- Modern, dynamic feel suitable for social media ads\n"
-        "- End with a clear call-to-action moment\n"
-        "- Cinematic quality, well-lit, visually polished\n"
-        "- Choose the best colour palette and visual style based on the brand and prompt\n"
-    )
-    return base
+    parts += [
+        "",
+        "Storyboard constraints:",
+        "- 0-2s: strong visual hook.",
+        "- Mid: demonstrate offer/value clearly.",
+        "- End: clear CTA beat.",
+        "- Keep brand readable on-screen.",
+        "- Cinematic but clean; avoid over-effects and visual noise.",
+        "",
+        "Safety/output constraints:",
+        "- No unrelated logos/brands.",
+        "- No unreadable tiny text.",
+        "- Return only the final video.",
+    ]
+    return "\n".join(parts)
 
 
 # â”€â”€ Sync generation helpers (run in thread pool) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

@@ -75,6 +75,25 @@ async def _arq_publish_site_impl(job_id: str) -> None:
                 await db.commit()
                 raise RuntimeError("Site project not found.")
 
+            if deployment_id:
+                dep_result = await db.execute(
+                    select(SiteDeployment).where(SiteDeployment.id == deployment_id)
+                )
+                deployment = dep_result.scalars().first()
+
+        if raw_files:
+            norm: list[tuple[str, str]] = []
+            for f in raw_files:
+                if isinstance(f, dict):
+                    p = (f.get("path") or "").strip().replace("\\", "/").lstrip("/")
+                    c = f.get("content") or ""
+                    if p and not p.startswith("..") and "/../" not in f"/{p}/":
+                        norm.append((p, c))
+            if len(norm) == 1 and norm[0][0].strip().lower() in {"index.html", "index.htm"}:
+                file_map = split_html_to_static_files(norm[0][1])
+            else:
+                file_map = norm
+        elif project_id:
             index_path = Path(SITES_DIR) / project_id / "index.html"
             if not index_path.is_file():
                 await append_log(db, jid, "Erro: gere o site antes de publicar.")
@@ -86,21 +105,6 @@ async def _arq_publish_site_impl(job_id: str) -> None:
 
             html = index_path.read_text(encoding="utf-8")
             file_map = split_html_to_static_files(html)
-
-            if deployment_id:
-                dep_result = await db.execute(
-                    select(SiteDeployment).where(SiteDeployment.id == deployment_id)
-                )
-                deployment = dep_result.scalars().first()
-        else:
-            norm: list[tuple[str, str]] = []
-            for f in raw_files:
-                if isinstance(f, dict):
-                    p = (f.get("path") or "").strip().replace("\\", "/").lstrip("/")
-                    c = f.get("content") or ""
-                    if p and not p.startswith("..") and "/../" not in f"/{p}/":
-                        norm.append((p, c))
-            file_map = norm
 
         if not file_map:
             await append_log(db, jid, "Erro: nada para publicar.")
@@ -263,6 +267,7 @@ async def _arq_publish_site_impl(job_id: str) -> None:
                 dns_applied=dns_applied,
             )
             result_dict = resp.model_dump(by_alias=True)
+            result_dict["cloudRunServiceName"] = service_name
 
             await append_log(db, jid, "Publicação concluída.")
             await mark_success(db, jid, result_dict)

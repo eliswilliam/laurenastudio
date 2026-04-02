@@ -1,6 +1,6 @@
 """
 services/marketing_service.py
-Marketing AI — imagens via Gemini image API (com fallback Pexels);
+Marketing AI — imagens via Gemini on Vertex AI (com fallback Pexels);
 vídeos via Replicate (Minimax).
 """
 import asyncio
@@ -16,7 +16,10 @@ from app.services.ai_service import (
     GENERATED_DIR,
     VIDEOS_DIR,
 )
-from app.services.replicate_image_service import GEMINI_IMAGE_MODEL, run_replicate_image
+from app.services.gemini_vertex_image_service import (
+    GEMINI_IMAGE_MODEL,
+    run_vertex_gemini_image,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -121,9 +124,8 @@ def _sync_marketing_image(
     reference_mime: str = "image/png",
 ) -> tuple[str, bytes | None, str]:
     """Imagem publicitária via Gemini image model (text-to-image / image-to-image)."""
-    image_data = run_replicate_image(
+    image_data = run_vertex_gemini_image(
         prompt,
-        aspect_ratio="1:1",
         image_bytes=reference_image_bytes,
         reference_mime=reference_mime,
         model=GEMINI_IMAGE_MODEL,

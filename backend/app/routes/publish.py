@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,7 +32,7 @@ from app.services.arq_enqueue import enqueue_publish_job
 from app.services.dns_service import dns_configured, validate_slug
 from app.services.job_service import create_job, get_job
 from app.services.site_generator import SITES_DIR
-from app.services.site_publish_queries import is_publish_slug_taken_by_other_project
+from app.services.site_publish_queries import is_publish_slug_taken
 from app.services.site_static_bundle import split_html_to_static_files
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,28 @@ def _normalize_paths(files: list) -> list[tuple[str, str]]:
             continue
         out.append((p, f.content or ""))
     return out
+
+
+def _expand_single_index_html(file_map: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    if len(file_map) != 1:
+        return file_map
+    path, content = file_map[0]
+    if path.strip().lower() not in {"index.html", "index.htm"}:
+        return file_map
+    return split_html_to_static_files(content)
+
+
+def _save_project_files(project_id: str, file_map: list[tuple[str, str]]) -> None:
+    """Persist current publish payload so project-based deploys use the latest customized template."""
+    project_dir = Path(SITES_DIR) / project_id
+    if project_dir.exists():
+        shutil.rmtree(project_dir, ignore_errors=True)
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    for rel_path, content in file_map:
+        target = project_dir / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
 
 
 @router.get(
@@ -95,11 +118,6 @@ async def publish_site(
 
     slug_norm: str | None = None
     if dns_configured():
-        if not payload.project_id:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail="projectId is required when custom domain (Cloudflare) is configured.",
-            )
         raw_slug = (payload.slug or "").strip().lower()
         if not raw_slug:
             raise HTTPException(
@@ -111,14 +129,18 @@ async def publish_site(
         except ValueError as exc:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         slug_norm = raw_slug
-        if await is_publish_slug_taken_by_other_project(db, slug_norm, payload.project_id):
+        if await is_publish_slug_taken(db, slug_norm, exclude_project_id=payload.project_id):
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
                 detail="Ce nom est déjà utilisé",
             )
 
+    normalized_payload_files = _expand_single_index_html(_normalize_paths(payload.files))
+    has_payload_files = bool(normalized_payload_files)
+
     file_map: list[tuple[str, str]] = []
     project: SiteProject | None = None
+    from_files_payload = False
 
     if payload.project_id:
         result = await db.execute(
@@ -130,16 +152,23 @@ async def publish_site(
         project = result.scalars().first()
         if not project:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Site project not found.")
-        index_path = Path(SITES_DIR) / payload.project_id / "index.html"
-        if not index_path.is_file():
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail="No generated index.html for this project. Generate the site first.",
-            )
-        html = index_path.read_text(encoding="utf-8")
-        file_map = split_html_to_static_files(html)
+        if has_payload_files:
+            # Template flow: publish the current editor state and keep it as latest project files.
+            from_files_payload = True
+            file_map = normalized_payload_files
+            _save_project_files(project.id, file_map)
+        else:
+            index_path = Path(SITES_DIR) / payload.project_id / "index.html"
+            if not index_path.is_file():
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail="No generated index.html for this project. Generate the site first.",
+                )
+            html = index_path.read_text(encoding="utf-8")
+            file_map = split_html_to_static_files(html)
     else:
-        file_map = _normalize_paths(payload.files)
+        from_files_payload = True
+        file_map = normalized_payload_files
 
     if not file_map:
         raise HTTPException(
@@ -150,6 +179,18 @@ async def publish_site(
     await check_and_increment_usage(
         db, workspace_id, "site_publish", subscription
     )
+
+    if not project and from_files_payload:
+        inferred_name = f"Template {slug_norm}" if slug_norm else "Template published site"
+        project = SiteProject(
+            id=str(uuid.uuid4()),
+            workspace_id=workspace_id,
+            name=inferred_name,
+            status="ready",
+        )
+        db.add(project)
+        await db.flush()
+        _save_project_files(project.id, file_map)
 
     deployment: SiteDeployment | None = None
     if project:
@@ -166,13 +207,13 @@ async def publish_site(
         await db.flush()
 
     files_payload: list[dict[str, str]] = []
-    if not payload.project_id:
+    if from_files_payload:
         files_payload = [{"path": p, "content": c} for p, c in file_map]
 
     input_payload = {
         "workspace_id": workspace_id,
         "user_id": current_user.id,
-        "project_id": payload.project_id,
+        "project_id": project.id if project else payload.project_id,
         "slug": slug_norm,
         "deployment_id": deployment.id if deployment else None,
         "files": files_payload,
@@ -182,11 +223,14 @@ async def publish_site(
         db,
         job_type="publish_site",
         user_id=current_user.id,
-        project_id=payload.project_id,
+        project_id=project.id if project else payload.project_id,
         input_payload=input_payload,
     )
     await db.commit()
 
     await enqueue_publish_job(str(job.id))
 
-    return PublishEnqueueResponse(job_id=str(job.id))
+    return PublishEnqueueResponse(
+        job_id=str(job.id),
+        project_id=project.id if project else payload.project_id,
+    )

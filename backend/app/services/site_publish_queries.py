@@ -7,6 +7,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.site_project import SiteProject
 
 
+async def is_publish_slug_taken(
+    db: AsyncSession,
+    slug: str,
+    exclude_project_id: str | None = None,
+) -> bool:
+    """True if any project already owns this publish_slug."""
+    slug = (slug or "").strip().lower()
+    if not slug:
+        return False
+
+    stmt = select(SiteProject).where(SiteProject.publish_slug == slug)
+    if exclude_project_id:
+        stmt = stmt.where(SiteProject.id != exclude_project_id)
+
+    r = await db.execute(stmt)
+    return r.scalars().first() is not None
+
+
 async def is_publish_slug_taken_by_other_project(
     db: AsyncSession,
     slug: str,
@@ -16,13 +34,4 @@ async def is_publish_slug_taken_by_other_project(
     True if another project already owns this publish_slug.
     Equivalent to a get_site_by_slug guard for 409 conflicts.
     """
-    slug = (slug or "").strip().lower()
-    if not slug:
-        return False
-    r = await db.execute(
-        select(SiteProject).where(
-            SiteProject.publish_slug == slug,
-            SiteProject.id != project_id,
-        )
-    )
-    return r.scalars().first() is not None
+    return await is_publish_slug_taken(db, slug, exclude_project_id=project_id)

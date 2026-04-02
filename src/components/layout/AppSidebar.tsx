@@ -4,6 +4,7 @@ import {
   LayoutTemplate,
   Megaphone,
   BrainCircuit,
+  Globe,
   CreditCard,
   Settings,
   ChevronLeft,
@@ -14,17 +15,67 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { getPublishJobStatus } from '@/lib/publishApi';
+import { useTemplatePublishStore } from '@/store/useTemplatePublishStore';
+
+const POLL_MS = 3000;
 
 export default function AppSidebar() {
   const { collapsed, toggle } = useSidebarStore();
   const { t } = useTranslation();
+  const publishJobId = useTemplatePublishStore((s) => s.publishJobId);
+  const clearPublishJob = useTemplatePublishStore((s) => s.clearPublishJob);
+  const [isPublishing, setIsPublishing] = useState(Boolean(publishJobId));
+
+  useEffect(() => {
+    if (!publishJobId) {
+      setIsPublishing(false);
+      return;
+    }
+
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const stop = () => {
+      if (intervalId !== undefined) clearInterval(intervalId);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      try {
+        const job = await getPublishJobStatus(publishJobId);
+        if (cancelled) return;
+        if (job.status === 'success' || job.status === 'failed') {
+          clearPublishJob();
+          setIsPublishing(false);
+          stop();
+          return;
+        }
+        setIsPublishing(true);
+      } catch {
+        if (!cancelled) {
+          setIsPublishing(Boolean(publishJobId));
+        }
+      }
+    };
+
+    setIsPublishing(true);
+    void tick();
+    intervalId = setInterval(() => void tick(), POLL_MS);
+
+    return () => {
+      cancelled = true;
+      stop();
+    };
+  }, [publishJobId, clearPublishJob]);
 
   const menuItems = useMemo(
     () => [
       { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
       { icon: LayoutTemplate, label: t('nav.criarSite'), href: '/criar-site' },
       { icon: LayoutTemplate, label: t('nav.template'), href: '/template' },
+      { icon: Globe, label: t('nav.sitePublished'), href: '/sites-publicados' },
       { icon: Megaphone, label: t('nav.marketingAI'), href: '/marketing-ai' },
       { icon: BrainCircuit, label: t('nav.aiStudio'), href: '/ai-studio' },
       { icon: CreditCard, label: t('nav.pagamento'), href: '/pagamento' },
@@ -38,7 +89,7 @@ export default function AppSidebar() {
       className={cn(
         'fixed left-0 top-0 z-40 h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 flex-col',
         'hidden md:flex',
-        collapsed ? 'w-[68px]' : 'w-[250px]'
+        collapsed ? 'w-[64px]' : 'w-[220px]'
       )}
     >
       <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border shrink-0">
@@ -53,6 +104,7 @@ export default function AppSidebar() {
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
+          const showPublishingBadge = item.href === '/template' && isPublishing;
           const link = (
             <NavLink
               key={item.href}
@@ -66,8 +118,22 @@ export default function AppSidebar() {
                 )
               }
             >
-              <Icon className="w-5 h-5 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              <div className="relative shrink-0">
+                <Icon className="w-5 h-5" />
+                {showPublishingBadge && (
+                  <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-sidebar" />
+                )}
+              </div>
+              {!collapsed && (
+                <span className="flex items-center gap-2">
+                  <span>{item.label}</span>
+                  {showPublishingBadge && (
+                    <span className="rounded-full border border-emerald-300/60 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-100">
+                      {t('pages.templateBuilder.publishing')}
+                    </span>
+                  )}
+                </span>
+              )}
             </NavLink>
           );
 

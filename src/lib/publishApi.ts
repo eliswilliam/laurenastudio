@@ -52,6 +52,7 @@ export interface PublishResponse {
 /** Resposta imediata de POST /api/publish (fila ARQ). */
 export interface PublishEnqueueResponse {
   jobId: string;
+  projectId?: string | null;
   message: string;
 }
 

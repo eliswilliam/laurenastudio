@@ -280,3 +280,20 @@ def apply_google_resource_records_to_cloudflare(
             rrdata,
             body.get("proxied"),
         )
+
+
+def delete_subdomain_records(slug: str) -> None:
+    """Delete Cloudflare DNS records for slug and ACME variants under ROOT_DOMAIN."""
+    if not dns_configured():
+        return
+
+    validate_slug(slug)
+    zone_id = settings.CLOUDFLARE_ZONE_ID.strip()
+    root = settings.ROOT_DOMAIN.strip().lower().rstrip(".")
+    if not zone_id or not root:
+        return
+
+    fqdn = f"{slug}.{root}"
+    acme = f"_acme-challenge.{slug}"
+    acme_fqdn = f"_acme-challenge.{fqdn}"
+    _delete_dns_records_for_names(zone_id, {fqdn, slug, acme, acme_fqdn})

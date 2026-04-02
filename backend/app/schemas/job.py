@@ -61,4 +61,5 @@ class PublishEnqueueResponse(BaseModel):
     model_config = {"populate_by_name": True}
 
     job_id: str = Field(serialization_alias="jobId")
+    project_id: str | None = Field(default=None, serialization_alias="projectId")
     message: str = "Publicação em fila em segundo plano."

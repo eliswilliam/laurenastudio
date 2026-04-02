@@ -90,3 +90,26 @@ class ProjectSummary(BaseModel):
     created_at: str
     has_site: bool
     publish_slug: str | None = None
+
+
+# ── Published sites history / deletion ─────────────────────────────────────
+
+class PublishedSiteItem(BaseModel):
+    deployment_id: str
+    project_id: str
+    project_name: str
+    status: str
+    created_at: str
+    slug: str | None = None
+    site_url: str | None = None
+    github_repo_url: str | None = None
+    cloud_run_service_name: str | None = None
+    cloud_run_url: str | None = None
+    error_message: str | None = None
+
+
+class DeletePublishedSiteEnqueueResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    job_id: str = Field(serialization_alias="jobId")
+    message: str = "Suppression en file d'attente en arriere-plan."

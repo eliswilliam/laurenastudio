@@ -4,6 +4,7 @@ import {
   LayoutTemplate,
   Megaphone,
   BrainCircuit,
+  Globe,
   CreditCard,
   Settings,
   MoreHorizontal,
@@ -12,10 +13,13 @@ import {
 import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useTemplatePublishStore } from '@/store/useTemplatePublishStore';
 
 export default function MobileBottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
   const { t } = useTranslation();
+  const publishJobId = useTemplatePublishStore((s) => s.publishJobId);
+  const isPublishing = Boolean(publishJobId);
 
   const mainItems = useMemo(
     () => [
@@ -30,6 +34,7 @@ export default function MobileBottomNav() {
   const moreItems = useMemo(
     () => [
       { icon: LayoutTemplate, label: t('nav.template'), href: '/template' },
+      { icon: Globe, label: t('nav.sitePublished'), href: '/sites-publicados' },
       { icon: CreditCard, label: t('nav.pagamento'), href: '/pagamento' },
       { icon: Settings, label: t('nav.configuracoes'), href: '/configuracoes' },
     ],
@@ -65,6 +70,7 @@ export default function MobileBottomNav() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-4">
           {moreItems.map((item) => {
             const Icon = item.icon;
+            const showPublishingBadge = item.href === '/template' && isPublishing;
             return (
               <NavLink
                 key={item.href}
@@ -79,8 +85,13 @@ export default function MobileBottomNav() {
                   )
                 }
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-center leading-tight">{item.label}</span>
+                  <div className="relative">
+                    <Icon className="w-5 h-5" />
+                    {showPublishingBadge && (
+                      <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    )}
+                  </div>
+                  <span className="text-center leading-tight">{item.label}</span>
               </NavLink>
             );
           })}

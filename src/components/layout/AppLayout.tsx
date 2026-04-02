@@ -57,7 +57,7 @@ export default function AppLayout() {
       <div
         className={cn(
           'transition-all duration-300 flex flex-col min-h-screen',
-          collapsed ? 'md:ml-[68px]' : 'md:ml-[250px]'
+          collapsed ? 'md:ml-[64px]' : 'md:ml-[220px]'
         )}
       >
         <AppTopbar />

@@ -27,6 +27,7 @@ import PreviewPost from "./pages/PreviewPost";
 import Editor from "./pages/Editor";
 import CriarSite from "./pages/CriarSite";
 import Template from "./pages/Template";
+import SitesPublicados from "./pages/SitesPublicados";
 import NotFound from "./pages/NotFound";
 
 // Legacy blog template pages
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/preview-post" element={<PreviewPost />} />
             <Route path="/editor" element={<Editor />} />
             <Route path="/template" element={<Template />} />
+            <Route path="/sites-publicados" element={<SitesPublicados />} />
           </Route>
 
           {/* Home & Legacy blog template pages */}

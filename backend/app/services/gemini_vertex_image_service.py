@@ -1,50 +1,79 @@
 """
-Google Gemini image generation using API key (Generative Language API).
+Image generation via Google Gemini on Vertex AI.
+
+This module is intentionally dedicated to Vertex AI to avoid confusion with
+older Replicate-based image implementations.
 """
 from __future__ import annotations
 
 import logging
 import os
+import tempfile
+from pathlib import Path
 from typing import Optional
 
 import httpx
-import base64
+from google import genai
+from google.genai import types
 
 from app.core.config import settings
+from app.core.google_credentials import decode_google_service_account_json
 
 logger = logging.getLogger(__name__)
 
 GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"
+_VERTEX_CREDENTIALS_PATH: Path | None = None
 
 
-def _get_gemini_client():
-    """Get Gemini client using google.genai library (same as ai_service)."""
-    from google import genai
-    
-    api_key = (settings.GOOGLE_CLOUD_API_KEY or settings.GOOGLE_API_KEY or "").strip()
-    if not api_key:
-        raise RuntimeError("GOOGLE_CLOUD_API_KEY or GOOGLE_API_KEY is missing.")
-    return genai.Client(vertexai=False, api_key=api_key)
+def _ensure_vertex_credentials() -> None:
+    """Ensure ADC credentials are available for Vertex AI client auth."""
+    global _VERTEX_CREDENTIALS_PATH
+
+    existing = (os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or "").strip()
+    if existing:
+        return
+
+    raw = decode_google_service_account_json(settings.GOOGLE_CREDENTIALS_JSON)
+    if not raw:
+        return
+
+    if _VERTEX_CREDENTIALS_PATH and _VERTEX_CREDENTIALS_PATH.is_file():
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(_VERTEX_CREDENTIALS_PATH)
+        return
+
+    fd, temp_path = tempfile.mkstemp(prefix="laurena-vertex-sa-", suffix=".json")
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(raw)
+
+    _VERTEX_CREDENTIALS_PATH = Path(temp_path)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(_VERTEX_CREDENTIALS_PATH)
 
 
-def _build_gemini_image_config(style: str | None = None):
-    """Build GenerateContentConfig for image (complete config matching text generation)."""
-    from google.genai import types
-    
+def _get_vertex_client() -> genai.Client:
+    """Get a Vertex AI Gemini client."""
+    project = (settings.GOOGLE_CLOUD_PROJECT or "").strip()
+    if not project:
+        raise RuntimeError("GOOGLE_CLOUD_PROJECT is required for Vertex AI image generation.")
+
+    location = (settings.GOOGLE_CLOUD_LOCATION or "us-central1").strip() or "us-central1"
+
+    _ensure_vertex_credentials()
+    return genai.Client(vertexai=True, project=project, location=location)
+
+
+def _build_image_config(style: str | None = None) -> types.GenerateContentConfig:
+    """Build Gemini image config with consistent creative guardrails."""
     system_text = (
         "You are an expert visual designer and creative director.\n"
-        "Your task: generate ONE final, high-quality image that directly matches the user's request.\n"
+        "Generate one final, high-quality image that matches the user request exactly.\n"
         "Constraints:\n"
-        "- Composition must be visually balanced, professional, modern.\n"
-        "- Subject/text must be clear and readable.\n"
-        "- No text overlays unless explicitly requested.\n"
-        "- Cohesive color palette, consistent lighting.\n"
-        "- High contrast; mobile-first visual hierarchy.\n"
-        "- No watermark or unintended logos.\n"
-        "- Return only the final image; no explanations.\n"
+        "- Professional composition with clear focal point.\n"
+        "- Keep visual hierarchy and readability.\n"
+        "- No watermark or unrelated logos.\n"
+        "- Return only the generated image.\n"
     )
     if style:
-        system_text += f"- Creative style/tone: {style}.\n"
+        system_text += f"- Creative style: {style}.\n"
 
     return types.GenerateContentConfig(
         temperature=1,
@@ -65,26 +94,26 @@ def _build_gemini_image_config(style: str | None = None):
     )
 
 
-def _build_enhanced_image_prompt(user_prompt: str, style: str | None = None) -> str:
-    """Build context-rich prompt for better understanding."""
+def _build_enhanced_prompt(user_prompt: str, style: str | None = None) -> str:
+    """Build context-rich prompt to improve consistency and intent retention."""
     parts = [
-        "Task: Generate an image matching this request:",
+        "Task: Generate an image for this request:",
         f"\n\n{user_prompt.strip()}",
     ]
     if style:
-        parts.append(f"\n\nVisual style/tone: {style}")
+        parts.append(f"\n\nVisual style: {style}")
+
     parts.append(
-        "\n\nEnsure the final image is:\n"
-        "- Clear, professional, modern\n"
-        "- Visually balanced with strong focal point\n"
-        "- High quality, suitable for professional use\n"
-        "- No watermark or unintended logos"
+        "\n\nQuality constraints:\n"
+        "- High quality and coherent composition\n"
+        "- Clear subject and visual intent\n"
+        "- No artifacts or watermarks"
     )
     return "".join(parts)
 
 
 def _fallback_pexels_image_bytes(prompt: str) -> Optional[bytes]:
-    """Return image bytes from Pexels when Gemini image is unavailable."""
+    """Return image bytes from Pexels only when Gemini fails."""
     pexels_key = (settings.PEXELS_API_KEY or "").strip()
     if not pexels_key:
         return None
@@ -121,7 +150,7 @@ def _fallback_pexels_image_bytes(prompt: str) -> Optional[bytes]:
 
 
 def _resolve_image_model(requested_model: str | None) -> str:
-    """Return the enforced Gemini image model and log unsupported overrides."""
+    """Force Gemini 2.5 Flash Image for both AI Studio and Marketing AI."""
     if requested_model and requested_model != GEMINI_IMAGE_MODEL:
         logger.warning(
             "Unsupported image model '%s' requested. Forcing '%s'.",
@@ -130,50 +159,33 @@ def _resolve_image_model(requested_model: str | None) -> str:
         )
     return GEMINI_IMAGE_MODEL
 
-def run_replicate_image(
+
+def run_vertex_gemini_image(
     prompt: str,
     *,
-    aspect_ratio: str = "1:1",
     image_bytes: Optional[bytes] = None,
     reference_mime: str = "image/png",
     style: str | None = None,
     model: str | None = None,
 ) -> bytes:
-    """
-    Generate image using Gemini 2.5 via google.genai (streaming, full config, system instruction).
-    Aligned with ai_service.generate_text() pattern for consistency.
-    """
-    from google.genai import types
-    
-    client = _get_gemini_client()
-    config = _build_gemini_image_config(style=style)
+    """Generate image bytes using Gemini 2.5 Flash Image on Vertex AI."""
     selected_model = _resolve_image_model(model)
+    client = _get_vertex_client()
+    config = _build_image_config(style=style)
 
-    # Build parts: image reference + enhanced prompt
-    parts = []
+    parts: list[types.Part] = []
     if image_bytes:
         mime = reference_mime or "image/png"
-        parts.append(
-            types.Part.from_text(text="Use this image as visual reference/starting point:")
-        )
-        parts.append(
-            types.Part(
-                inline_data=types.Blob(mime_type=mime, data=image_bytes)
-            )
-        )
+        parts.append(types.Part.from_text(text="Use this image as visual reference:"))
+        parts.append(types.Part(inline_data=types.Blob(mime_type=mime, data=image_bytes)))
 
-    enhanced_prompt = _build_enhanced_image_prompt(prompt, style=style)
+    enhanced_prompt = _build_enhanced_prompt(prompt, style=style)
     parts.append(types.Part.from_text(text=enhanced_prompt))
 
-    contents = [
-        types.Content(
-            role="user",
-            parts=parts,
-        ),
-    ]
+    contents = [types.Content(role="user", parts=parts)]
 
     logger.info(
-        "Calling Gemini image model=%s (streaming, img2img=%s, style=%s)",
+        "Calling Vertex Gemini image model=%s (img2img=%s, style=%s)",
         selected_model,
         bool(image_bytes),
         style or "none",
@@ -192,21 +204,20 @@ def run_replicate_image(
                 if part.inline_data and part.inline_data.data:
                     image_data = part.inline_data.data
                     break
-
-    except Exception as e:
-        logger.error("Gemini image generation failed: %s", e)
+    except Exception as exc:
+        logger.error("Vertex Gemini image generation failed: %s", exc)
         fallback = _fallback_pexels_image_bytes(prompt)
         if fallback:
-            logger.info("Using Pexels fallback after Gemini failure")
+            logger.info("Using Pexels fallback after Vertex Gemini failure")
             return fallback
-        raise RuntimeError("Falha na geração de imagem com IA.") from e
+        raise RuntimeError("Falha na geração de imagem com IA.") from exc
 
     if not image_data:
-        logger.warning("Gemini returned no image; trying Pexels fallback")
+        logger.warning("Vertex Gemini returned no image; trying Pexels fallback")
         fallback = _fallback_pexels_image_bytes(prompt)
         if fallback:
             return fallback
         raise RuntimeError("Gemini nao devolveu nenhuma imagem.")
 
-    logger.info("Gemini image generation succeeded: %d bytes", len(image_data))
+    logger.info("Vertex Gemini image generation succeeded: %d bytes", len(image_data))
     return image_data

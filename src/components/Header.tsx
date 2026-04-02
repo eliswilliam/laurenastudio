@@ -53,9 +53,6 @@ const Header = () => {
             <a href="#planos" className="text-sm font-medium hover:bg-muted/60 rounded-full px-4 py-2 transition-all">
               {t("landing.header.pricing")}
             </a>
-            <Link to="/template" className="text-sm font-medium hover:bg-muted/60 rounded-full px-4 py-2 transition-all">
-              {t("nav.template")}
-            </Link>
             <Link to="/login" className="text-sm font-medium hover:bg-muted/60 rounded-full px-4 py-2 transition-all">
               {t("landing.header.login")}
             </Link>
@@ -99,9 +96,6 @@ const Header = () => {
               <a href="#planos" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-primary transition-colors">
                 {t("landing.header.pricing")}
               </a>
-              <Link to="/template" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-primary transition-colors">
-                {t("nav.template")}
-              </Link>
               <Link to="/login" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-primary transition-colors">
                 {t("landing.header.login")}
               </Link>

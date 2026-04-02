@@ -1,8 +1,8 @@
 """
 services/ai_service.py
-Google Gemini (text) + Google Gemini image + Replicate Minimax (video).
+Google Gemini (text) + Gemini image on Vertex AI + Replicate Minimax (video).
     - Text: Gemini
-    - Image: Gemini model gemini-2.5-flash-image
+    - Image: Gemini model gemini-2.5-flash-image (Vertex AI)
     - Video: Replicate Minimax (hailuo-2.3-fast)
 """
 import asyncio
@@ -19,7 +19,10 @@ from google.genai import types
 
 from app.core.config import settings
 from app.core.google_credentials import decode_google_service_account_json
-from app.services.replicate_image_service import GEMINI_IMAGE_MODEL, run_replicate_image
+from app.services.gemini_vertex_image_service import (
+    GEMINI_IMAGE_MODEL,
+    run_vertex_gemini_image,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -137,13 +140,12 @@ async def generate_image(
     model: str | None = None,
     style: str | None = None,
 ) -> str:
-    """Generate image via Google Gemini (full context config + streaming)."""
+    """Generate image via Gemini 2.5 Flash Image on Vertex AI."""
     loop = asyncio.get_running_loop()
 
     def _run() -> bytes:
-        return run_replicate_image(
+        return run_vertex_gemini_image(
             prompt.strip(),
-            aspect_ratio="1:1",
             style=style,
             model=model or GEMINI_IMAGE_MODEL,
         )

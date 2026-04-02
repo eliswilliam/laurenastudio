@@ -30,7 +30,7 @@ from app.services.arq_enqueue import enqueue_ai_video_job
 from app.services.job_service import create_job
 from app.core.config import settings
 from app.services.marketing_service import generate_marketing_image
-from app.services.replicate_image_service import GEMINI_IMAGE_MODEL
+from app.services.gemini_vertex_image_service import GEMINI_IMAGE_MODEL
 
 logger = logging.getLogger(__name__)
 

@@ -1,28 +1,32 @@
 """
 services/site_ai_service.py
-Criar site — Groq via client OpenAI (base_url https://api.groq.com/openai/v1).
+Criar site — Replicate Meta Llama (chat Laurena + JSON structure generation).
 
-- Priorité : ``client.responses.create`` (instructions + input → ``output_text``), comme la doc Groq/OpenAI.
-- Secours : ``chat.completions`` si l’API ``/responses`` n’est pas disponible côté Groq.
-
-Aucun appel Google Gemini pour ce module (remplace GEMINI_TEXT / GEMINI_SITE_GENERATION pour chat + JSON).
-Les images « AI Studio / Marketing » restent Replicate (autre endpoint) ; pas ici.
+This module intentionally keeps the same public functions so routes/workers remain unchanged,
+while switching provider from Groq to Replicate.
 """
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
+import os
+import time
 from functools import partial
 from typing import Any
 
-from openai import APIConnectionError, APIStatusError, OpenAI, RateLimitError
+import replicate
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+_REPLICATE_DEFAULT_MODEL = "meta/meta-llama-3-8b-instruct"
+_REPLICATE_PROMPT_TEMPLATE = (
+    "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\\n\\n"
+    "{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\\n\\n"
+    "{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\\n\\n"
+)
 
 
 def build_site_generation_brief_from_prompts(prompts: list[Any]) -> str:
@@ -62,156 +66,42 @@ class GeminiGenerationError(Exception):
 
 
 def _msg_empty_or_model_stop() -> str:
-    return (
-        "A IA nÃ£o devolveu texto. Tente reformular o pedido ou aguarde um momento e tente novamente."
-    )
+    return "A IA nao devolveu texto. Tente reformular o pedido ou aguarde um momento e tente novamente."
 
 
-def _groq_client() -> OpenAI:
-    key = (settings.GROQ_API_KEY or "").strip()
-    if not key:
-        raise RuntimeError(
-            "GROQ_API_KEY nÃ£o estÃ¡ definido. Adicione a chave no .env para o Criar site."
-        )
-    return OpenAI(api_key=key, base_url=_GROQ_BASE_URL)
+def _ensure_replicate_token() -> None:
+    token_env = (os.getenv("REPLICATE_API_TOKEN") or "").strip()
+    token_cfg = (settings.REPLICATE_API_TOKEN or "").strip()
+    token = token_env or token_cfg
+    if not token:
+        raise RuntimeError("REPLICATE_API_TOKEN nao esta definido. Adicione a chave no .env para o Criar site.")
+    if not token_env:
+        os.environ["REPLICATE_API_TOKEN"] = token
 
 
-def _groq_handle_errors(exc: BaseException, *, context: str) -> None:
-    if isinstance(exc, RateLimitError):
-        logger.warning("Groq [%s] rate limit: %s", context, exc)
+def _replicate_handle_error(exc: BaseException, *, context: str) -> None:
+    detail = str(exc)
+    detail_l = detail.lower()
+
+    if "rate" in detail_l and "limit" in detail_l:
+        logger.warning("Replicate [%s] rate limit: %s", context, detail)
         raise GeminiGenerationError(
-            "Limite de pedidos à IA atingida. Aguarde um minuto e tente novamente.",
+            "Limite de pedidos a IA atingido. Aguarde um minuto e tente novamente.",
             reason="rate_limit",
         ) from exc
-    if isinstance(exc, APIConnectionError):
-        logger.exception("Groq [%s] connection error", context)
+
+    if "401" in detail_l or "unauthorized" in detail_l or "forbidden" in detail_l:
+        logger.exception("Replicate [%s] auth error", context)
         raise GeminiGenerationError(
-            "Erro de ligaçÃ£o à IA. Tente novamente dentro de alguns minutos.",
-            reason="api_error",
-        ) from exc
-    if isinstance(exc, APIStatusError):
-        logger.exception("Groq [%s] HTTP error", context)
-        detail = getattr(exc, "message", None) or str(exc)
-        if exc.status_code == 401:
-            raise GeminiGenerationError(
-                "Chave da API Groq invÃ¡lida (GROQ_API_KEY). Verifique o .env.",
-                reason="auth",
-            ) from exc
-        raise GeminiGenerationError(
-            f"Erro da IA ({exc.status_code}): {detail}",
-            reason="api_error",
+            "Chave da API Replicate invalida (REPLICATE_API_TOKEN). Verifique o .env.",
+            reason="auth",
         ) from exc
 
-
-def _text_from_response_object(resp: Any) -> str:
-    out = getattr(resp, "output_text", None)
-    if isinstance(out, str) and out.strip():
-        return out.strip()
-    return ""
-
-
-def _responses_api_unsupported(exc: APIStatusError) -> bool:
-    b = str(exc).lower()
-    if exc.status_code in (404, 405):
-        return True
-    return "response" in b and ("not found" in b or "unknown" in b or "invalid" in b)
-
-
-def _responses_output_parse_failed(exc: APIStatusError) -> bool:
-    """
-    Groq /responses sometimes returns 400 output_parse_failed (model output not parseable
-    by the API). chat.completions does not hit that path — fall back.
-    """
-    if exc.status_code != 400:
-        return False
-    code = getattr(exc, "code", None)
-    if code == "output_parse_failed":
-        return True
-    body = getattr(exc, "body", None)
-    if isinstance(body, dict):
-        err = body.get("error")
-        if isinstance(err, dict) and err.get("code") == "output_parse_failed":
-            return True
-    msg = (getattr(exc, "message", None) or str(exc)).lower()
-    if "output_parse_failed" in msg or "could not be parsed" in msg:
-        return True
-    return False
-
-
-def _sync_groq_responses_create(
-    *,
-    instructions: str,
-    user_input: str,
-    model: str,
-    max_output_tokens: int,
-    temperature: float,
-    context: str,
-) -> str:
-    """Groq: POST .../responses via SDK (équivalent doc utilisateur)."""
-    client = _groq_client()
-    try:
-        resp = client.responses.create(
-            model=model,
-            instructions=instructions,
-            input=user_input,
-            max_output_tokens=max_output_tokens,
-            temperature=temperature,
-        )
-    except APIStatusError as exc:
-        if _responses_api_unsupported(exc):
-            raise
-        if _responses_output_parse_failed(exc):
-            # Caller (_sync_groq_completion) falls back to chat.completions.
-            raise
-        _groq_handle_errors(exc, context=context)
-    except (RateLimitError, APIConnectionError) as exc:
-        _groq_handle_errors(exc, context=context)
-    except Exception as exc:
-        logger.exception("Groq [%s] responses.create failed", context)
-        raise GeminiGenerationError(
-            "Erro ao contactar a IA. Tente novamente dentro de alguns minutos.",
-            reason="api_error",
-        ) from exc
-
-    text = _text_from_response_object(resp)
-    if not text:
-        logger.warning("Groq [%s] empty output_text from responses.create", context)
-        raise GeminiGenerationError(_msg_empty_or_model_stop(), reason="empty_response")
-    return text
-
-
-def _sync_groq_chat_completions(
-    messages: list[dict[str, str]],
-    *,
-    model: str,
-    max_tokens: int,
-    temperature: float,
-    context: str,
-) -> str:
-    client = _groq_client()
-    try:
-        resp = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-        )
-    except (RateLimitError, APIConnectionError, APIStatusError) as exc:
-        _groq_handle_errors(exc, context=context)
-        raise
-    except Exception as exc:
-        logger.exception("Groq [%s] chat.completions failed", context)
-        raise GeminiGenerationError(
-            "Erro ao contactar a IA. Tente novamente dentro de alguns minutos.",
-            reason="api_error",
-        ) from exc
-
-    choice = resp.choices[0] if resp.choices else None
-    text = (choice.message.content or "").strip() if choice and choice.message else ""
-    if not text:
-        logger.warning("Groq [%s] empty chat completion", context)
-        raise GeminiGenerationError(_msg_empty_or_model_stop(), reason="empty_response")
-    return text
+    logger.exception("Replicate [%s] error", context)
+    raise GeminiGenerationError(
+        "Erro ao contactar a IA. Tente novamente dentro de alguns minutos.",
+        reason="api_error",
+    ) from exc
 
 
 def _split_system_and_rest(
@@ -233,7 +123,7 @@ def _dialog_string_from_turns(turns: list[dict[str, str]]) -> str:
     return "\n\n".join(parts)
 
 
-def _sync_groq_completion(
+def _sync_replicate_completion(
     messages: list[dict[str, str]],
     *,
     model: str,
@@ -241,6 +131,8 @@ def _sync_groq_completion(
     temperature: float,
     context: str,
 ) -> str:
+    _ensure_replicate_token()
+
     instructions, rest = _split_system_and_rest(messages)
     user_input = (
         rest[0].get("content", "").strip()
@@ -251,42 +143,53 @@ def _sync_groq_completion(
         # Pas de système : tout en input (rare)
         user_input = _dialog_string_from_turns(messages)
 
-    try:
-        return _sync_groq_responses_create(
-            instructions=instructions.strip() or "You are a helpful assistant.",
-            user_input=user_input,
-            model=model,
-            max_output_tokens=max_tokens,
-            temperature=temperature,
-            context=context,
-        )
-    except APIStatusError as exc:
-        if _responses_api_unsupported(exc):
-            logger.warning(
-                "Groq [%s] responses API indisponÃ­vel (%s); fallback chat.completions.",
-                context,
-                exc.status_code,
-            )
-            return _sync_groq_chat_completions(
-                messages,
-                model=model,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                context=context,
-            )
-        if _responses_output_parse_failed(exc):
-            logger.warning(
-                "Groq [%s] responses API output_parse_failed; fallback chat.completions.",
-                context,
-            )
-            return _sync_groq_chat_completions(
-                messages,
-                model=model,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                context=context,
-            )
-        _groq_handle_errors(exc, context=context)
+    payload = {
+        "prompt": user_input,
+        "max_new_tokens": max_tokens,
+        "temperature": temperature,
+        "prompt_template": _REPLICATE_PROMPT_TEMPLATE,
+        "system_prompt": instructions.strip() or "You are a helpful assistant.",
+    }
+
+    logger.info("Replicate [%s] model=%s", context, model)
+
+    max_attempts = 3
+    text_parts: list[str] = []
+    for attempt in range(1, max_attempts + 1):
+        text_parts.clear()
+        try:
+            for event in replicate.stream(model, input=payload):
+                if isinstance(event, str):
+                    text_parts.append(event)
+                    continue
+                data = getattr(event, "data", None)
+                if isinstance(data, str):
+                    text_parts.append(data)
+                    continue
+                if event is not None:
+                    text_parts.append(str(event))
+            break
+        except Exception as exc:
+            detail_l = str(exc).lower()
+            is_rate_limit = "rate" in detail_l and "limit" in detail_l
+            if is_rate_limit and attempt < max_attempts:
+                backoff_s = attempt * 2
+                logger.warning(
+                    "Replicate [%s] rate limited on attempt %s/%s; retrying in %ss",
+                    context,
+                    attempt,
+                    max_attempts,
+                    backoff_s,
+                )
+                time.sleep(backoff_s)
+                continue
+            _replicate_handle_error(exc, context=context)
+
+    text = "".join(text_parts).strip()
+    if not text:
+        logger.warning("Replicate [%s] empty stream output", context)
+        raise GeminiGenerationError(_msg_empty_or_model_stop(), reason="empty_response")
+    return text
 
 
 SITE_SYSTEM_PROMPT = """\
@@ -444,12 +347,12 @@ The hero **ticker** animation is defined in CSS; you only provide the repeating 
 
 
 def _sync_generate_site_structure(brief: str) -> dict:
-    model = (settings.GROQ_SITE_STRUCTURE_MODEL or "openai/gpt-oss-20b").strip()
+    model = (settings.REPLICATE_SITE_STRUCTURE_MODEL or _REPLICATE_DEFAULT_MODEL).strip()
     messages = [
         {"role": "system", "content": SITE_SYSTEM_PROMPT},
         {"role": "user", "content": brief},
     ]
-    raw = _sync_groq_completion(
+    raw = _sync_replicate_completion(
         messages,
         model=model,
         max_tokens=16384,
@@ -474,9 +377,9 @@ def _sync_generate_site_structure(brief: str) -> dict:
     try:
         structure = json.loads(raw)
     except json.JSONDecodeError as exc:
-        logger.error("Groq returned invalid JSON: %s… — %s", raw[:300], exc)
+        logger.error("Replicate returned invalid JSON: %s… — %s", raw[:300], exc)
         raise GeminiGenerationError(
-            "A IA devolveu um formato invÃ¡lido. Tente gerar o site novamente.",
+            "A IA devolveu um formato invalido. Tente gerar o site novamente.",
             reason="invalid_json",
         ) from exc
 
@@ -501,11 +404,11 @@ def _sync_generate_site_structure(brief: str) -> dict:
 
 def _sync_chat_reply(messages: list[dict], latest_user: str) -> str:
     del latest_user  # historique déjà dans messages
-    model = (settings.GROQ_SITE_CHAT_MODEL or "openai/gpt-oss-20b").strip()
+    model = (settings.REPLICATE_SITE_CHAT_MODEL or _REPLICATE_DEFAULT_MODEL).strip()
 
     system_text = (
         "You are Laurena (chat / brief refinement), inside Laurena Studio. "
-        "Another model fills a fixed JSON schema when the user clicks « Gerar site » — it must not change key names or page structure, only content and styling fields allowed by that template. "
+        "The same Meta Llama model also fills a fixed JSON schema when the user clicks « Gerar site » — it must not change key names or page structure, only content and styling fields allowed by that template. "
         "CRITICAL PRODUCT FACTS (never contradict): "
         "« Gerar site » builds a REAL multi-section static site (HTML+CSS+JS), preview + ZIP. "
         "You do NOT output full HTML in chat — you refine the brief in natural language. "
@@ -531,7 +434,7 @@ def _sync_chat_reply(messages: list[dict], latest_user: str) -> str:
             continue
         openai_messages.append({"role": role, "content": str(msg.get("content", ""))})
 
-    text = _sync_groq_completion(
+    text = _sync_replicate_completion(
         openai_messages,
         model=model,
         max_tokens=512,

@@ -559,11 +559,6 @@ export default function CriarSite() {
 
       const bot: Mensagem = { id: ID(), papel: 'bot', texto: data.reply };
       setLista((p) => [...p, bot]);
-        
-      if (data.job_id) {
-        setGenerateJobId(data.job_id);
-        setAGerar(true);
-      }
     } catch (err: any) {
       const msg = err?.message || t('pages.criarSite.errors.chat');
       setErro(msg);

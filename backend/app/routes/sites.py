@@ -6,6 +6,7 @@ Protected by active subscription.
 import json
 import logging
 from uuid import UUID
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc, select
@@ -19,14 +20,17 @@ from app.core.dependencies import (
 )
 from app.db.session import get_db
 from app.models.site_project import GeneratedSite, SiteDeployment, SiteProject, SitePrompt
+from app.models.background_job import BackgroundJob
 from app.models.subscription import Subscription
 from app.models.user import User
 from app.routes.auth import get_current_user
 from app.schemas.site import (
     ChatMessage,
+    DeletePublishedSiteEnqueueResponse,
     GenerateSiteRequest,
     GenerateSiteResponse,
     DeploymentInfo,
+    PublishedSiteItem,
     ProjectSummary,
     SiteChatRequest,
     SiteChatResponse,
@@ -41,14 +45,31 @@ from app.services.site_ai_service import (
     generate_chat_reply,
 )
 from app.services.job_service import create_job, get_job
-from app.services.arq_enqueue import enqueue_generate_job
+from app.services.arq_enqueue import enqueue_delete_published_site_job, enqueue_generate_job
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sites", tags=["Site Builder"])
 
 
-# ── POST /sites/chat ─────────────────────────────────────────────────────────
+def _service_name_from_repo_url(repo_url: str | None) -> str | None:
+    raw = (repo_url or "").strip()
+    if not raw:
+        return None
+    try:
+        path = urlparse(raw).path or ""
+    except Exception:
+        return None
+    parts = [p for p in path.strip("/").split("/") if p]
+    if len(parts) < 2:
+        return None
+    repo = parts[-1]
+    if repo.endswith(".git"):
+        repo = repo[:-4]
+    return repo or None
+
+
+# -- POST /sites/chat ---------------------------------------------------------
 
 @router.post("/chat", response_model=SiteChatResponse, summary="Chat with Laurena about a site")
 async def site_chat(
@@ -71,7 +92,7 @@ async def site_chat(
         )
         project = result.scalars().first()
         if not project:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Projeto não encontrado.")
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Projeto nao encontrado.")
 
     if not project:
         project = SiteProject(workspace_id=workspace_id, name="Novo site")
@@ -81,11 +102,11 @@ async def site_chat(
     # Persist the latest user message
     last_user = payload.messages[-1]
     if last_user.role != "user":
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Última mensagem deve ser do user.")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ultima mensagem deve ser do user.")
 
     db.add(SitePrompt(project_id=project.id, role="user", content=last_user.content))
 
-    # Build conversation for Groq (chat)
+    # Build conversation for Replicate (chat)
     history = [{"role": m.role, "content": m.content} for m in payload.messages]
 
     await check_and_increment_usage(db, workspace_id, "text", subscription)
@@ -107,43 +128,23 @@ async def site_chat(
             project_id=project.id,
             role="assistant",
             content=reply,
-            model_used=settings.GROQ_SITE_CHAT_MODEL,
+            model_used=settings.REPLICATE_SITE_CHAT_MODEL,
         )
     )
     await db.flush()
 
     prompt_count = len(payload.messages) + 1
-    
-    # "Lovable" approach: automatically enqueue a generation job with every chat message
-    # if there is an active project. We compile the latest briefs just like manual "Gerar site"
-    
-    # Re-fetch prompts to include the newly added ones
-    prompts_result = await db.execute(select(SitePrompt).where(SitePrompt.project_id == project.id).order_by(SitePrompt.created_at.asc()))
-    plist = prompts_result.scalars().all()
-    
-    brief = build_site_generation_brief_from_prompts(plist)
-    project.user_prompt = brief
-    project.status = "generating"
-    
-    job = await create_job(
-        db,
-        job_type="generate_site",
-        user_id=current_user.id,
-        project_id=project.id,
-        input_payload=None,
-    )
     await db.commit()
-    await enqueue_generate_job(str(job.id))
 
     return SiteChatResponse(
-        project_id=project.id, 
-        reply=reply, 
+        project_id=project.id,
+        reply=reply,
         message_count=prompt_count,
-        job_id=str(job.id)
+        job_id=None,
     )
 
 
-# ── POST /sites/generate ────────────────────────────────────────────────────
+# -- POST /sites/generate ----------------------------------------------------
 
 @router.post(
     "/generate",
@@ -168,11 +169,11 @@ async def generate_site(
     )
     project = result.scalars().first()
     if not project:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projeto não encontrado.")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projeto nao encontrado.")
 
     plist = list(project.prompts)
     if not any(p.role == "user" for p in plist):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Nenhuma descrição encontrada. Envie mensagens primeiro.")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Nenhuma descricao encontrada. Envie mensagens primeiro.")
 
     brief = build_site_generation_brief_from_prompts(plist)
     project.user_prompt = brief
@@ -196,11 +197,11 @@ async def generate_site(
     return GenerateSiteResponse(
         job_id=str(job.id),
         project_id=project.id,
-        message="Geração em fila em segundo plano.",
+        message="Geracao em fila em segundo plano.",
     )
 
 
-# ── GET /sites/jobs/{job_id} (before /{project_id}) ─────────────────────────
+# -- GET /sites/jobs/{job_id} (before /{project_id}) -------------------------
 
 @router.get(
     "/jobs/{job_id}",
@@ -221,7 +222,226 @@ async def get_site_job(
     return BackgroundJobResponse.from_model(row)
 
 
-# ── GET /sites/{project_id} ─────────────────────────────────────────────────
+@router.get("/published-sites", response_model=list[PublishedSiteItem], summary="List published sites history")
+async def list_published_sites(
+    workspace_id: str = Depends(get_workspace_id),
+    db: AsyncSession = Depends(get_db),
+) -> list[PublishedSiteItem]:
+    result = await db.execute(
+        select(SiteDeployment, SiteProject)
+        .join(SiteProject, SiteProject.id == SiteDeployment.project_id)
+        .where(SiteProject.workspace_id == workspace_id)
+        .order_by(desc(SiteDeployment.created_at))
+        .limit(100)
+    )
+    rows = result.all()
+
+    out: list[PublishedSiteItem] = []
+    seen_deployments: set[str] = set()
+    for dep, proj in rows:
+        if not any([
+            dep.site_url,
+            dep.github_repo_url,
+            dep.cloud_run_url,
+            dep.slug,
+        ]):
+            continue
+        seen_deployments.add(dep.id)
+        out.append(
+            PublishedSiteItem(
+                deployment_id=dep.id,
+                project_id=proj.id,
+                project_name=proj.name,
+                status=dep.status,
+                created_at=dep.created_at.isoformat(),
+                slug=dep.slug,
+                site_url=dep.site_url,
+                github_repo_url=dep.github_repo_url,
+                cloud_run_service_name=dep.cloud_run_service_name,
+                cloud_run_url=dep.cloud_run_url,
+                error_message=dep.error_message,
+            )
+        )
+
+    # Legacy fallback: template publishes enqueued before deployment persistence was added.
+    jobs_result = await db.execute(
+        select(BackgroundJob)
+        .where(BackgroundJob.job_type == "publish_site")
+        .where(BackgroundJob.status == "success")
+        .where(BackgroundJob.project_id.is_(None))
+        .order_by(desc(BackgroundJob.created_at))
+        .limit(100)
+    )
+    jobs = jobs_result.scalars().all()
+    for job in jobs:
+        input_payload = job.input_payload or {}
+        if input_payload.get("workspace_id") != workspace_id:
+            continue
+
+        result_payload = job.result or {}
+        site_url = (result_payload.get("siteUrl") or "").strip() or None
+        github_repo_url = (result_payload.get("github") or "").strip() or None
+        cloud_run_url = (result_payload.get("cloudRun") or "").strip() or None
+        cloud_run_service_name = (
+            (result_payload.get("cloudRunServiceName") or "").strip()
+            or _service_name_from_repo_url(github_repo_url)
+        )
+        slug = (input_payload.get("slug") or "").strip().lower() or None
+        synthetic_id = f"job:{job.id}"
+        if synthetic_id in seen_deployments:
+            continue
+        if not site_url and not github_repo_url and not cloud_run_url:
+            continue
+
+        out.append(
+            PublishedSiteItem(
+                deployment_id=synthetic_id,
+                project_id="",
+                project_name="Template",
+                status="success",
+                created_at=job.created_at.isoformat(),
+                slug=slug,
+                site_url=site_url,
+                github_repo_url=github_repo_url,
+                cloud_run_service_name=cloud_run_service_name,
+                cloud_run_url=cloud_run_url,
+                error_message=None,
+            )
+        )
+
+    out.sort(key=lambda x: x.created_at, reverse=True)
+    return out
+
+
+@router.post(
+    "/published-sites/{deployment_id}/delete",
+    response_model=DeletePublishedSiteEnqueueResponse,
+    response_model_by_alias=True,
+    summary="Delete published site resources (GitHub, Cloud Run, Cloudflare)",
+)
+async def delete_published_site(
+    deployment_id: str,
+    current_user: User = Depends(get_current_user),
+    workspace_id: str = Depends(get_workspace_id),
+    db: AsyncSession = Depends(get_db),
+) -> DeletePublishedSiteEnqueueResponse:
+    if deployment_id.startswith("job:"):
+        raw_job_id = deployment_id.split(":", 1)[1].strip()
+        try:
+            publish_job_id = UUID(raw_job_id)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Identifiant de publication invalide.") from exc
+
+        job_result = await db.execute(
+            select(BackgroundJob).where(BackgroundJob.id == publish_job_id)
+        )
+        publish_job = job_result.scalars().first()
+        if not publish_job:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Publication non trouvee.")
+        if publish_job.user_id != current_user.id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Acces refuse.")
+        if publish_job.job_type != "publish_site" or publish_job.status != "success":
+            raise HTTPException(status.HTTP_409_CONFLICT, "La publication n'est pas dans un etat supprimable.")
+
+        input_payload = publish_job.input_payload or {}
+        if input_payload.get("workspace_id") != workspace_id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Acces refuse.")
+        result_payload = publish_job.result or {}
+
+        repo_url = (result_payload.get("github") or "").strip() or None
+        service_name = (result_payload.get("cloudRunServiceName") or "").strip() or _service_name_from_repo_url(repo_url)
+        slug = (input_payload.get("slug") or "").strip().lower() or None
+
+        delete_input = {
+            "workspace_id": workspace_id,
+            "user_id": current_user.id,
+            "project_id": None,
+            "deployment_id": None,
+            "slug": slug,
+            "github_repo_url": repo_url,
+            "cloud_run_service_name": service_name,
+            "cloud_run_url": (result_payload.get("cloudRun") or "").strip() or None,
+            "site_url": (result_payload.get("siteUrl") or "").strip() or None,
+        }
+
+        delete_job = await create_job(
+            db,
+            job_type="delete_published_site",
+            user_id=current_user.id,
+            project_id=None,
+            input_payload=delete_input,
+        )
+        await db.commit()
+        await enqueue_delete_published_site_job(str(delete_job.id))
+        return DeletePublishedSiteEnqueueResponse(job_id=str(delete_job.id))
+
+    result = await db.execute(
+        select(SiteDeployment, SiteProject)
+        .join(SiteProject, SiteProject.id == SiteDeployment.project_id)
+        .where(SiteDeployment.id == deployment_id)
+        .where(SiteProject.workspace_id == workspace_id)
+    )
+    row = result.first()
+    if not row:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Publicacao nao encontrada.")
+
+    deployment, project = row
+    if deployment.status == "deleting":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Remocao ja em andamento para este site.")
+
+    slug = (deployment.slug or project.publish_slug or "").strip().lower() or None
+
+    input_payload = {
+        "workspace_id": workspace_id,
+        "user_id": current_user.id,
+        "project_id": project.id,
+        "deployment_id": deployment.id,
+        "slug": slug,
+        "github_repo_url": deployment.github_repo_url,
+        "cloud_run_service_name": deployment.cloud_run_service_name,
+        "cloud_run_url": deployment.cloud_run_url,
+        "site_url": deployment.site_url,
+    }
+
+    job = await create_job(
+        db,
+        job_type="delete_published_site",
+        user_id=current_user.id,
+        project_id=project.id,
+        input_payload=input_payload,
+    )
+
+    deployment.status = "deleting"
+    deployment.error_message = None
+    project.publication_status = "deleting"
+    await db.flush()
+    await db.commit()
+
+    await enqueue_delete_published_site_job(str(job.id))
+
+    return DeletePublishedSiteEnqueueResponse(job_id=str(job.id))
+
+
+@router.get(
+    "/published-sites/jobs/{job_id}",
+    response_model=BackgroundJobResponse,
+    response_model_by_alias=True,
+    summary="Poll published-site deletion job status",
+)
+async def get_published_site_delete_job(
+    job_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> BackgroundJobResponse:
+    row = await get_job(db, job_id)
+    if not row or row.user_id != current_user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Job not found.")
+    if row.job_type != "delete_published_site":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Job not found.")
+    return BackgroundJobResponse.from_model(row)
+
+
+# -- GET /sites/{project_id} -------------------------------------------------
 
 @router.get("/{project_id}", response_model=SiteStatusResponse, summary="Get site project status")
 async def get_site_status(
@@ -239,7 +459,7 @@ async def get_site_status(
     )
     project = result.scalars().first()
     if not project:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projeto não encontrado.")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projeto nao encontrado.")
 
     site = project.site
     prompt_rows = [
@@ -288,7 +508,7 @@ async def get_site_status(
     )
 
 
-# ── GET /sites/ (list projects) ─────────────────────────────────────────────
+# -- GET /sites/ (list projects) ---------------------------------------------
 
 @router.get("/", response_model=list[ProjectSummary], summary="List site projects")
 async def list_projects(

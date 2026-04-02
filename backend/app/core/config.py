@@ -97,14 +97,15 @@ class Settings(BaseSettings):
     # JSON « structure du site » au clic « Gerar site » (POST /sites/generate → worker). Pas le chat.
     GEMINI_SITE_GENERATION_MODEL: str = "gemini-3.1-pro-preview"
 
-    # ── Groq OpenAI-compatible API — Criar site (chat Laurena + génération JSON du site) ─
+    # ── Legacy Groq settings (kept for backward compatibility) ───────────────
     GROQ_API_KEY: str = ""
     GROQ_SITE_CHAT_MODEL: str = "openai/gpt-oss-20b"
     GROQ_SITE_STRUCTURE_MODEL: str = "openai/gpt-oss-20b"
 
-    # ── Replicate (text-to-image: FLUX; substitui Gemini para imagens) ───────
+    # ── Replicate (Criar site text + video generation tasks) ─────────────────
     REPLICATE_API_TOKEN: str = ""
-    REPLICATE_IMAGE_MODEL: str = "black-forest-labs/flux-dev"
+    REPLICATE_SITE_CHAT_MODEL: str = "meta/meta-llama-3-8b-instruct"
+    REPLICATE_SITE_STRUCTURE_MODEL: str = "meta/meta-llama-3-8b-instruct"
 
     # ── Pexels (stock photos for generated sites; https://www.pexels.com/api/) ─
     PEXELS_API_KEY: str = Field(
@@ -116,6 +117,9 @@ class Settings(BaseSettings):
 
     # ── Publish to GitHub (API-only; PAT needs repo + workflow scopes) ─────────
     GITHUB_TOKEN: str = ""
+    # Optional dedicated token for repository deletion (needs delete_repo/admin rights).
+    # If empty, deletion reuses GITHUB_TOKEN.
+    GITHUB_DELETE_TOKEN: str = ""
     GITHUB_OWNER: str = ""
     GCP_PROJECT_ID: str = ""
     # Service account JSON for Cloud Run deploy (from Actions). Plain JSON or base64-of-JSON in .env.

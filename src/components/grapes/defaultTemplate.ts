@@ -917,6 +917,35 @@ section { padding: 6rem 0; }
 
 type TemplateLocale = 'en' | 'es' | 'fr' | 'pt';
 
+type TemplateLocaleTexts = {
+  metaDescription: string;
+  documentTitle: string;
+  heroTitle: string;
+};
+
+const TEMPLATE_LOCALE_TEXTS: Record<TemplateLocale, TemplateLocaleTexts> = {
+  pt: {
+    metaDescription: 'Laurena - Crie seus templates sem programar',
+    documentTitle: 'Laurena - Construtor web sem codigo',
+    heroTitle: 'Crie seus templates<br><em>sem programar</em>',
+  },
+  en: {
+    metaDescription: 'Laurena - Create your templates without coding',
+    documentTitle: 'Laurena - No-code website builder',
+    heroTitle: 'Create your templates<br><em>without coding</em>',
+  },
+  es: {
+    metaDescription: 'Laurena - Crea tus templates sin programar',
+    documentTitle: 'Laurena - Constructor web sin codigo',
+    heroTitle: 'Crea tus templates<br><em>sin programar</em>',
+  },
+  fr: {
+    metaDescription: 'Laurena - Creez vos templates sans coder',
+    documentTitle: 'Laurena - Constructeur web sans code',
+    heroTitle: 'Creez vos templates<br><em>sans coder</em>',
+  },
+};
+
 function normalizeTemplateLocale(locale?: string): TemplateLocale {
   const lower = String(locale ?? '').toLowerCase();
   if (lower.startsWith('fr')) return 'fr';
@@ -928,5 +957,10 @@ function normalizeTemplateLocale(locale?: string): TemplateLocale {
 export function getDefaultTemplateHtml(locale?: string): string {
   const normalized = normalizeTemplateLocale(locale);
   const htmlLang = normalized === 'pt' ? 'pt-BR' : normalized;
-  return DEFAULT_TEMPLATE_HTML.replace('<html lang="pt-BR">', `<html lang="${htmlLang}">`);
+  const texts = TEMPLATE_LOCALE_TEXTS[normalized] ?? TEMPLATE_LOCALE_TEXTS.en;
+  return DEFAULT_TEMPLATE_HTML
+    .replace('<html lang="pt-BR">', `<html lang="${htmlLang}">`)
+    .replace('Laurena - Crie seus templates sem programar', texts.metaDescription)
+    .replace('Laurena - Construtor web sem codigo', texts.documentTitle)
+    .replace('Crie seus templates<br><em>sem programar</em>', texts.heroTitle);
 }

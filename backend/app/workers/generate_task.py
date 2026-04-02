@@ -1,5 +1,5 @@
 """
-ARQ task: run site generation (Groq JSON structure + Jinja2 HTML) for a background job.
+ARQ task: run site generation (Replicate Llama JSON structure + Jinja2 HTML) for a background job.
 """
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ async def _arq_generate_site_impl(job_id: str) -> None:
         await mark_running(db, jid)
         await db.commit()
 
-        await append_log(db, jid, "Iniciando geração do site…")
+        await append_log(db, jid, "Iniciando geracao do site...")
         await db.commit()
 
         result = await db.execute(
@@ -77,13 +77,14 @@ async def _arq_generate_site_impl(job_id: str) -> None:
         await db.flush()
         await db.commit()
 
-        await append_log(db, jid, "A gerar estrutura do site com IA (Groq)…")
+        model_name = (settings.REPLICATE_SITE_STRUCTURE_MODEL or "meta/meta-llama-3-8b-instruct").strip()
+        await append_log(db, jid, f"A gerar estrutura do site com IA (Replicate Llama, model={model_name})...")
         await db.commit()
 
         try:
             structure = await generate_site_structure(brief)
         except GeminiGenerationError as exc:
-            logger.warning("Groq structure blocked or invalid: %s", exc.reason)
+            logger.warning("Replicate structure blocked or invalid: %s", exc.reason)
             err_msg = exc.user_message
             await append_log(db, jid, f"Falha na IA: {err_msg}")
             project.status = "error"
@@ -102,7 +103,7 @@ async def _arq_generate_site_impl(job_id: str) -> None:
             await db.commit()
             raise
         except Exception as exc:
-            logger.exception("Groq structure failed")
+            logger.exception("Replicate structure failed")
             await append_log(db, jid, f"Falha na IA: {exc}")
             project.status = "error"
             if project.site:
@@ -124,20 +125,20 @@ async def _arq_generate_site_impl(job_id: str) -> None:
 
         # Pexels: search API → first photo URL per section (non-footer), then Jinja injects <img src="https://…">
         if settings.SITE_USE_PEXELS_STOCK:
-            await append_log(db, jid, "A pesquisar fotos de stock (Pexels)…")
+            await append_log(db, jid, "A pesquisar fotos de stock (Pexels)...")
             await db.commit()
 
             try:
                 structure = await enrich_site_structure_with_pexels(structure, brief)
             except Exception as exc:
                 logger.exception("Pexels enrichment failed, continuing without stock images")
-                await append_log(db, jid, f"Aviso: fotos stock indisponíveis ({exc}). A continuar…")
+                await append_log(db, jid, f"Aviso: fotos stock indisponiveis ({exc}). A continuar...")
                 await db.commit()
         else:
             await append_log(db, jid, "Fotos Pexels desativadas (SITE_USE_PEXELS_STOCK).")
             await db.commit()
 
-        await append_log(db, jid, "A compilar HTML com Jinja2…")
+        await append_log(db, jid, "A compilar HTML com Jinja2...")
         await db.commit()
 
         try:

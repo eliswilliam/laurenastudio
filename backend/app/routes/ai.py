@@ -1,7 +1,7 @@
 """
 routes/ai.py
 AI generation endpoints — protected by active subscription + usage limits.
-Uses Google Gemini for text; Replicate (FLUX) for image; Replicate Minimax (video); Azure Speech for audio only.
+Uses Google Gemini for text; Gemini 2.5 Flash Image on Vertex AI for image; Replicate Minimax (video); Azure Speech for audio only.
 Video runs in an ARQ worker so HTTP returns 202 quickly (avoids nginx/Azure 504).
 """
 import asyncio
@@ -33,7 +33,7 @@ from app.services import notification_service
 from app.services.ai_service import generate_image, generate_text
 from app.services.arq_enqueue import enqueue_ai_video_job
 from app.services.job_service import create_job, get_job
-from app.services.replicate_image_service import GEMINI_IMAGE_MODEL
+from app.services.gemini_vertex_image_service import GEMINI_IMAGE_MODEL
 from app.services.speech_service import save_speech_wav_to_uploads
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ async def get_ai_video_job(
     response_model=None,
     summary="Generate AI content (text, image, video, or audio)",
     description=(
-        "Requires active subscription. Text uses Gemini; image uses Replicate (FLUX). Audio uses Azure Speech only. "
+        "Requires active subscription. Text uses Gemini; image uses Gemini 2.5 Flash Image (Vertex AI). Audio uses Azure Speech only. "
         "Video returns 202 with jobId — poll GET /ai/jobs/{job_id} until status is success."
     ),
 )
@@ -172,7 +172,7 @@ async def generate(
             message="Áudio gerado com sucesso.",
         )
 
-    # ── Text (Gemini) / imagem (Replicate FLUX) ───────────────────────────────
+    # ── Text (Gemini) / image (Gemini Vertex AI) ──────────────────────────────
     try:
         if payload.resource_type == "text":
             generated_content = await generate_text(

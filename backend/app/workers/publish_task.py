@@ -44,7 +44,6 @@ async def _arq_publish_site_impl(job_id: str) -> None:
             return
 
         payload = job.input_payload or {}
-        workspace_id = payload.get("workspace_id") or ""
         user_id = payload.get("user_id") or job.user_id
         project_id = payload.get("project_id")
         slug_norm: str | None = payload.get("slug")
@@ -65,7 +64,7 @@ async def _arq_publish_site_impl(job_id: str) -> None:
             result = await db.execute(
                 select(SiteProject).where(
                     SiteProject.id == project_id,
-                    SiteProject.workspace_id == workspace_id,
+                    SiteProject.user_id == str(user_id),
                 )
             )
             project = result.scalars().first()

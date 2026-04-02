@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.dependencies import (
-    get_workspace_id,
     verify_active_subscription,
     check_and_increment_usage,
 )
@@ -75,7 +74,6 @@ def _service_name_from_repo_url(repo_url: str | None) -> str | None:
 async def site_chat(
     payload: SiteChatRequest,
     current_user: User = Depends(get_current_user),
-    workspace_id: str = Depends(get_workspace_id),
     subscription: Subscription = Depends(verify_active_subscription),
     db: AsyncSession = Depends(get_db),
 ) -> SiteChatResponse:
@@ -87,7 +85,7 @@ async def site_chat(
             .options(selectinload(SiteProject.prompts))
             .where(
                 SiteProject.id == payload.project_id,
-                SiteProject.workspace_id == workspace_id,
+                SiteProject.user_id == current_user.id,
             )
         )
         project = result.scalars().first()
@@ -95,7 +93,7 @@ async def site_chat(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Projeto nao encontrado.")
 
     if not project:
-        project = SiteProject(workspace_id=workspace_id, name="Novo site")
+        project = SiteProject(user_id=current_user.id, name="Novo site")
         db.add(project)
         await db.flush()
 
@@ -109,7 +107,7 @@ async def site_chat(
     # Build conversation for Replicate (chat)
     history = [{"role": m.role, "content": m.content} for m in payload.messages]
 
-    await check_and_increment_usage(db, workspace_id, "text", subscription)
+    await check_and_increment_usage(db, subscription.workspace_id, "text", subscription)
 
     try:
         reply = await generate_chat_reply(history, last_user.content)
@@ -155,7 +153,6 @@ async def site_chat(
 async def generate_site(
     payload: GenerateSiteRequest,
     current_user: User = Depends(get_current_user),
-    workspace_id: str = Depends(get_workspace_id),
     subscription: Subscription = Depends(verify_active_subscription),
     db: AsyncSession = Depends(get_db),
 ) -> GenerateSiteResponse:
@@ -164,7 +161,7 @@ async def generate_site(
         .options(selectinload(SiteProject.prompts), selectinload(SiteProject.site))
         .where(
             SiteProject.id == payload.project_id,
-            SiteProject.workspace_id == workspace_id,
+            SiteProject.user_id == current_user.id,
         )
     )
     project = result.scalars().first()
@@ -181,7 +178,7 @@ async def generate_site(
     project.status = "generating"
     await db.flush()
 
-    await check_and_increment_usage(db, workspace_id, "text", subscription)
+    await check_and_increment_usage(db, subscription.workspace_id, "text", subscription)
 
     job = await create_job(
         db,
@@ -224,13 +221,13 @@ async def get_site_job(
 
 @router.get("/published-sites", response_model=list[PublishedSiteItem], summary="List published sites history")
 async def list_published_sites(
-    workspace_id: str = Depends(get_workspace_id),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[PublishedSiteItem]:
     result = await db.execute(
         select(SiteDeployment, SiteProject)
         .join(SiteProject, SiteProject.id == SiteDeployment.project_id)
-        .where(SiteProject.workspace_id == workspace_id)
+        .where(SiteProject.user_id == current_user.id)
         .order_by(desc(SiteDeployment.created_at))
         .limit(100)
     )
@@ -274,9 +271,9 @@ async def list_published_sites(
     )
     jobs = jobs_result.scalars().all()
     for job in jobs:
-        input_payload = job.input_payload or {}
-        if input_payload.get("workspace_id") != workspace_id:
+        if str(job.user_id) != current_user.id:
             continue
+        input_payload = job.input_payload or {}
 
         result_payload = job.result or {}
         site_url = (result_payload.get("siteUrl") or "").strip() or None
@@ -322,7 +319,6 @@ async def list_published_sites(
 async def delete_published_site(
     deployment_id: str,
     current_user: User = Depends(get_current_user),
-    workspace_id: str = Depends(get_workspace_id),
     db: AsyncSession = Depends(get_db),
 ) -> DeletePublishedSiteEnqueueResponse:
     if deployment_id.startswith("job:"):
@@ -344,8 +340,6 @@ async def delete_published_site(
             raise HTTPException(status.HTTP_409_CONFLICT, "La publication n'est pas dans un etat supprimable.")
 
         input_payload = publish_job.input_payload or {}
-        if input_payload.get("workspace_id") != workspace_id:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "Acces refuse.")
         result_payload = publish_job.result or {}
 
         repo_url = (result_payload.get("github") or "").strip() or None
@@ -353,7 +347,6 @@ async def delete_published_site(
         slug = (input_payload.get("slug") or "").strip().lower() or None
 
         delete_input = {
-            "workspace_id": workspace_id,
             "user_id": current_user.id,
             "project_id": None,
             "deployment_id": None,
@@ -379,7 +372,7 @@ async def delete_published_site(
         select(SiteDeployment, SiteProject)
         .join(SiteProject, SiteProject.id == SiteDeployment.project_id)
         .where(SiteDeployment.id == deployment_id)
-        .where(SiteProject.workspace_id == workspace_id)
+        .where(SiteProject.user_id == current_user.id)
     )
     row = result.first()
     if not row:
@@ -392,7 +385,6 @@ async def delete_published_site(
     slug = (deployment.slug or project.publish_slug or "").strip().lower() or None
 
     input_payload = {
-        "workspace_id": workspace_id,
         "user_id": current_user.id,
         "project_id": project.id,
         "deployment_id": deployment.id,
@@ -446,7 +438,7 @@ async def get_published_site_delete_job(
 @router.get("/{project_id}", response_model=SiteStatusResponse, summary="Get site project status")
 async def get_site_status(
     project_id: str,
-    workspace_id: str = Depends(get_workspace_id),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SiteStatusResponse:
     result = await db.execute(
@@ -454,7 +446,7 @@ async def get_site_status(
         .options(selectinload(SiteProject.site), selectinload(SiteProject.prompts))
         .where(
             SiteProject.id == project_id,
-            SiteProject.workspace_id == workspace_id,
+            SiteProject.user_id == current_user.id,
         )
     )
     project = result.scalars().first()
@@ -512,13 +504,13 @@ async def get_site_status(
 
 @router.get("/", response_model=list[ProjectSummary], summary="List site projects")
 async def list_projects(
-    workspace_id: str = Depends(get_workspace_id),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectSummary]:
     result = await db.execute(
         select(SiteProject)
         .options(selectinload(SiteProject.site))
-        .where(SiteProject.workspace_id == workspace_id)
+        .where(SiteProject.user_id == current_user.id)
         .order_by(SiteProject.created_at.desc())
         .limit(50)
     )

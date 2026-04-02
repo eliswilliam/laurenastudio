@@ -2,6 +2,7 @@ import { Link, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   LayoutTemplate,
+  Sparkles,
   Megaphone,
   BrainCircuit,
   Globe,
@@ -33,6 +34,7 @@ export default function MobileBottomNav() {
 
   const moreItems = useMemo(
     () => [
+      { icon: Sparkles, label: t('nav.novidade'), href: '/novidade' },
       { icon: LayoutTemplate, label: t('nav.template'), href: '/template' },
       { icon: Globe, label: t('nav.sitePublished'), href: '/sites-publicados' },
       { icon: CreditCard, label: t('nav.pagamento'), href: '/pagamento' },

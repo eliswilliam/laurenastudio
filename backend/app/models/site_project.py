@@ -22,14 +22,14 @@ from app.db.base import Base
 
 
 class SiteProject(Base):
-    """One project = one site the user is building (workspace-scoped)."""
+    """One project = one site the user is building (user-scoped)."""
 
     __tablename__ = "laurena_site_projects"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    workspace_id = Column(
+    user_id = Column(
         String(36),
-        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -57,6 +57,12 @@ class SiteProject(Base):
         "SiteDeployment",
         back_populates="project",
         cascade="all, delete-orphan",
+    )
+    snapshots = relationship(
+        "SiteGitSnapshot",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        order_by="SiteGitSnapshot.created_at.desc()",
     )
 
 
@@ -130,3 +136,23 @@ class SiteDeployment(Base):
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     project = relationship("SiteProject", back_populates="deployments")
+
+
+class SiteGitSnapshot(Base):
+    """Automatic git-like snapshot of virtual files after each saved assistant run."""
+
+    __tablename__ = "laurena_site_git_snapshots"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id = Column(
+        String(36),
+        ForeignKey("laurena_site_projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    commit_hash = Column(String(64), nullable=False, index=True)
+    files_json = Column(Text, nullable=False)
+    message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    project = relationship("SiteProject", back_populates="snapshots")

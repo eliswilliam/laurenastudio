@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   LayoutTemplate,
+  Sparkles,
   Megaphone,
   BrainCircuit,
   Globe,
@@ -74,6 +75,7 @@ export default function AppSidebar() {
     () => [
       { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
       { icon: LayoutTemplate, label: t('nav.criarSite'), href: '/criar-site' },
+      { icon: Sparkles, label: t('nav.novidade'), href: '/novidade' },
       { icon: LayoutTemplate, label: t('nav.template'), href: '/template' },
       { icon: Globe, label: t('nav.sitePublished'), href: '/sites-publicados' },
       { icon: Megaphone, label: t('nav.marketingAI'), href: '/marketing-ai' },

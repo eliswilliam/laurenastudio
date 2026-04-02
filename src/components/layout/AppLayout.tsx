@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
 import AppTopbar from './AppTopbar';
 import MobileBottomNav from './MobileBottomNav';
@@ -13,7 +13,9 @@ export default function AppLayout() {
   const { isAutenticado, temPlanoAtivo, billingChecked, fetchBillingStatus } = useAuthStore();
   const collapsed = useSidebarStore((s) => s.collapsed);
   const navigate = useNavigate();
+  const location = useLocation();
   const [ready, setReady] = useState(false);
+  const isNovidadeRoute = location.pathname.startsWith('/novidade');
 
   useEffect(() => {
     if (!isAutenticado) {
@@ -46,6 +48,16 @@ export default function AppLayout() {
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-muted-foreground text-sm">{t('appLayout.checkingSubscription')}</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isNovidadeRoute) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="min-h-screen">
+          <Outlet />
+        </main>
       </div>
     );
   }

@@ -107,6 +107,15 @@ class Settings(BaseSettings):
     REPLICATE_SITE_CHAT_MODEL: str = "meta/meta-llama-3-8b-instruct"
     REPLICATE_SITE_STRUCTURE_MODEL: str = "meta/meta-llama-3-8b-instruct"
 
+    # ── Anthropic Claude (Novidade streaming site builder) ──────────────────
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-3-7-sonnet-20250219"
+    ANTHROPIC_MAX_TOKENS: int = 8000
+
+    # ── Novidade builder (Gemini streaming via google-genai SDK) ───────────
+    NOVIDADE_GEMINI_MODEL: str = "gemini-2.5-flash-lite"
+    NOVIDADE_GEMINI_MAX_OUTPUT_TOKENS: int = 65535
+
     # ── Pexels (stock photos for generated sites; https://www.pexels.com/api/) ─
     PEXELS_API_KEY: str = Field(
         default="",

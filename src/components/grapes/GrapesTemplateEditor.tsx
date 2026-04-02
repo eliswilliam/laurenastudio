@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import type { Editor } from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
@@ -21,9 +21,14 @@ export const GrapesTemplateEditor = forwardRef<Editor | null, GrapesTemplateEdit
     ref
   ) {
     const rootRef = useRef<HTMLDivElement>(null);
-    const [editor, setEditor] = useState<Editor | null>(null);
+    const editorRef = useRef<Editor | null>(null);
+    const whenReadyRef = useRef<typeof whenReady>(whenReady);
 
-    useImperativeHandle(ref, () => editor, [editor]);
+    useImperativeHandle(ref, () => editorRef.current, []);
+
+    useEffect(() => {
+      whenReadyRef.current = whenReady;
+    }, [whenReady]);
 
     useEffect(() => {
       const el = rootRef.current;
@@ -39,14 +44,14 @@ export const GrapesTemplateEditor = forwardRef<Editor | null, GrapesTemplateEdit
         components: initialComponents,
         style: initialStyle,
       });
-      setEditor(ed);
-      whenReady?.(ed);
+      editorRef.current = ed;
+      whenReadyRef.current?.(ed);
 
       return () => {
         ed.destroy();
-        setEditor(null);
+        editorRef.current = null;
       };
-    }, [assetBaseUrl, canvasStyles, initialComponents, initialStyle, locale, whenReady]);
+    }, [assetBaseUrl, canvasStyles, initialComponents, initialStyle, locale]);
 
     return (
       <div

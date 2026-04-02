@@ -13,12 +13,12 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import (
     check_and_increment_usage,
-    get_workspace_id,
     verify_active_subscription,
 )
 from app.db.session import get_db
@@ -27,7 +27,7 @@ from app.models.subscription import Subscription
 from app.models.user import User
 from app.routes.auth import get_current_user
 from app.schemas.job import BackgroundJobResponse, PublishEnqueueResponse
-from app.schemas.publish import PublishRequest
+from app.schemas.publish import PublishRequest, SaveTemplateRequest, SaveTemplateResponse
 from app.services.arq_enqueue import enqueue_publish_job
 from app.services.dns_service import dns_configured, validate_slug
 from app.services.job_service import create_job, get_job
@@ -78,6 +78,90 @@ def _save_project_files(project_id: str, file_map: list[tuple[str, str]]) -> Non
         target.write_text(content, encoding="utf-8")
 
 
+@router.post(
+    "/publish/save",
+    response_model=SaveTemplateResponse,
+    response_model_by_alias=True,
+    summary="Save template editor state without publishing",
+)
+async def save_template_state(
+    payload: SaveTemplateRequest,
+    current_user: User = Depends(get_current_user),
+    _subscription: Subscription = Depends(verify_active_subscription),
+    db: AsyncSession = Depends(get_db),
+) -> SaveTemplateResponse:
+    if payload.user_id != current_user.id:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="userId does not match the authenticated user.",
+        )
+
+    slug_norm: str | None = None
+    raw_slug = (payload.slug or "").strip().lower()
+    if raw_slug:
+        try:
+            validate_slug(raw_slug)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        slug_norm = raw_slug
+        if await is_publish_slug_taken(db, slug_norm, exclude_project_id=payload.project_id):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="Ce nom est déjà utilisé",
+            )
+
+    file_map = _expand_single_index_html(_normalize_paths(payload.files))
+    if not file_map:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Nothing to save. Provide files[].",
+        )
+
+    project: SiteProject | None = None
+    if payload.project_id:
+        result = await db.execute(
+            select(SiteProject).where(
+                SiteProject.id == payload.project_id,
+                SiteProject.user_id == current_user.id,
+            )
+        )
+        project = result.scalars().first()
+        if not project:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Site project not found.")
+
+    if not project:
+        inferred_name = f"Template {slug_norm}" if slug_norm else "Template draft"
+        project = SiteProject(
+            id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            name=inferred_name,
+            status="ready",
+            publish_slug=slug_norm,
+        )
+        db.add(project)
+        await db.flush()
+    elif slug_norm:
+        project.publish_slug = slug_norm
+
+    _save_project_files(project.id, file_map)
+    if project.status in {"draft", "error"}:
+        project.status = "ready"
+
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        msg = str(getattr(exc, "orig", exc)).lower()
+        if "publish_slug" in msg:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="Ce nom est déjà utilisé",
+            ) from exc
+        raise
+
+    return SaveTemplateResponse(project_id=project.id)
+
+
 @router.get(
     "/publish/jobs/{job_id}",
     response_model=BackgroundJobResponse,
@@ -106,7 +190,6 @@ async def get_publish_job(
 async def publish_site(
     payload: PublishRequest,
     current_user: User = Depends(get_current_user),
-    workspace_id: str = Depends(get_workspace_id),
     subscription: Subscription = Depends(verify_active_subscription),
     db: AsyncSession = Depends(get_db),
 ) -> PublishEnqueueResponse:
@@ -146,7 +229,7 @@ async def publish_site(
         result = await db.execute(
             select(SiteProject).where(
                 SiteProject.id == payload.project_id,
-                SiteProject.workspace_id == workspace_id,
+                SiteProject.user_id == current_user.id,
             )
         )
         project = result.scalars().first()
@@ -177,20 +260,27 @@ async def publish_site(
         )
 
     await check_and_increment_usage(
-        db, workspace_id, "site_publish", subscription
+        db,
+        subscription.workspace_id,
+        "site_publish",
+        subscription,
     )
 
     if not project and from_files_payload:
         inferred_name = f"Template {slug_norm}" if slug_norm else "Template published site"
         project = SiteProject(
             id=str(uuid.uuid4()),
-            workspace_id=workspace_id,
+            user_id=current_user.id,
             name=inferred_name,
+            publish_slug=slug_norm,
             status="ready",
         )
         db.add(project)
         await db.flush()
         _save_project_files(project.id, file_map)
+
+    if project and slug_norm:
+        project.publish_slug = slug_norm
 
     deployment: SiteDeployment | None = None
     if project:
@@ -211,7 +301,6 @@ async def publish_site(
         files_payload = [{"path": p, "content": c} for p, c in file_map]
 
     input_payload = {
-        "workspace_id": workspace_id,
         "user_id": current_user.id,
         "project_id": project.id if project else payload.project_id,
         "slug": slug_norm,
@@ -226,7 +315,17 @@ async def publish_site(
         project_id=project.id if project else payload.project_id,
         input_payload=input_payload,
     )
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        msg = str(getattr(exc, "orig", exc)).lower()
+        if "publish_slug" in msg:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="Ce nom est déjà utilisé",
+            ) from exc
+        raise
 
     await enqueue_publish_job(str(job.id))
 

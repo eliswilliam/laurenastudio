@@ -32,6 +32,7 @@ from app.routes.marketing import router as marketing_router
 from app.routes.sites import router as sites_router
 from app.routes.publish import router as publish_router
 from app.routes.notifications import router as notifications_router
+from app.routes.novidade import router as novidade_router
 from app.services.arq_enqueue import close_arq_pool
 
 
@@ -78,6 +79,7 @@ app.include_router(media_router, prefix="/api/v1")
 app.include_router(deletion_router, prefix="/api/v1")
 app.include_router(marketing_router, prefix="/api/v1")
 app.include_router(sites_router, prefix="/api/v1")
+app.include_router(novidade_router, prefix="/api/v1")
 app.include_router(publish_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api/v1")
 

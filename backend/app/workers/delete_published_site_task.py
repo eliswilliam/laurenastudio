@@ -143,9 +143,9 @@ async def _arq_delete_published_site_impl(job_id: str) -> None:
             return
 
         payload = job.input_payload or {}
-        workspace_id = payload.get("workspace_id") or ""
         deployment_id = payload.get("deployment_id")
         project_id = payload.get("project_id")
+        user_id = payload.get("user_id") or job.user_id
         repo_url = (payload.get("github_repo_url") or "").strip()
         service_name = (payload.get("cloud_run_service_name") or "").strip()
         slug = (payload.get("slug") or "").strip().lower() or None
@@ -165,7 +165,7 @@ async def _arq_delete_published_site_impl(job_id: str) -> None:
             proj_result = await db.execute(
                 select(SiteProject).where(
                     SiteProject.id == project_id,
-                    SiteProject.workspace_id == workspace_id,
+                    SiteProject.user_id == str(user_id),
                 )
             )
             project = proj_result.scalars().first()

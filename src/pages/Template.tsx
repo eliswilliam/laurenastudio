@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Editor } from 'grapesjs';
-import { Loader2, Rocket, Sparkles } from 'lucide-react';
+import { Loader2, Rocket, Save, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GrapesTemplateEditor } from '@/components/grapes/GrapesTemplateEditor';
@@ -8,7 +8,7 @@ import { DEFAULT_TEMPLATE_CSS, getDefaultTemplateHtml } from '@/components/grape
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTemplatePublishStore } from '@/store/useTemplatePublishStore';
-import { getPublishConfig, getPublishJobStatus, postPublish } from '@/lib/publishApi';
+import { getPublishConfig, getPublishJobStatus, postPublish, postSaveTemplate } from '@/lib/publishApi';
 import { useToast } from '@/hooks/use-toast';
 
 const POLL_MS = 2500;
@@ -34,6 +34,34 @@ function userFacingSiteUrl(slug: string, siteUrl: string | null): string | null 
   return siteUrl;
 }
 
+function buildTemplateFiles(ed: Editor, activeLocale: string): { path: string; content: string }[] {
+  const html = ed.getHtml();
+  const css = ed.getCss();
+  const js = typeof (ed as Editor & { getJs?: () => string }).getJs === 'function'
+    ? (ed as Editor & { getJs: () => string }).getJs()
+    : '';
+
+  const documentHtml = [
+    '<!DOCTYPE html>',
+    `<html lang="${activeLocale}">`,
+    '<head>',
+    '<meta charset="UTF-8" />',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0" />',
+    '<title>Laurena Site</title>',
+    '<link rel="stylesheet" href="styles.css" />',
+    '</head>',
+    `<body>${html}</body>`,
+    js.trim() ? '<script src="app.js" defer></script>' : '',
+    '</html>',
+  ].filter(Boolean).join('');
+
+  return [
+    { path: 'index.html', content: documentHtml },
+    { path: 'styles.css', content: css || '/* Empty stylesheet */\n' },
+    ...(js.trim() ? [{ path: 'app.js', content: js }] : []),
+  ];
+}
+
 export default function Template() {
   const editorRef = useRef<Editor | null>(null);
   const { t, i18n } = useTranslation();
@@ -53,10 +81,15 @@ export default function Template() {
   const markPublishSuccess = useTemplatePublishStore((s) => s.markPublishSuccess);
   const markPublishFailed = useTemplatePublishStore((s) => s.markPublishFailed);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [requirePublishSlug, setRequirePublishSlug] = useState(false);
   const preferred = i18n.resolvedLanguage ?? i18n.language;
   const activeLocale = preferred || navigator.language || 'en';
+  const initialTemplateHtml = useMemo(() => getDefaultTemplateHtml(activeLocale), [activeLocale]);
   const publishing = isSubmitting || Boolean(publishJobId);
+  const busy = publishing || isSaving;
 
   useEffect(() => {
     let active = true;
@@ -150,7 +183,8 @@ export default function Template() {
     };
   }, [clearPublishJob, markPublishFailed, markPublishSuccess, publishJobId, publishSlug, t, toast]);
 
-  const handleEditorReady = (ed: Editor) => {
+  const handleEditorReady = useCallback((ed: Editor) => {
+    editorRef.current = ed;
     const hideButtonIds = [
       'export-template',
       'open-code',
@@ -165,11 +199,18 @@ export default function Template() {
         ed.Panels.removeButton(panelId, btnId);
       });
     });
-  };
+  }, []);
 
   const handlePublish = async () => {
     const ed = editorRef.current;
-    if (!ed) return;
+    if (!ed) {
+      toast({
+        title: t('pages.templateBuilder.publishErrorTitle'),
+        description: 'Editor not ready yet. Please wait a second and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (!userId) {
       toast({
         title: t('pages.templateBuilder.publishErrorTitle'),
@@ -197,35 +238,11 @@ export default function Template() {
       return;
     }
 
+    const files = buildTemplateFiles(ed, activeLocale);
+
     setIsSubmitting(true);
     markPublishing();
     try {
-      const html = ed.getHtml();
-      const css = ed.getCss();
-      const js = typeof (ed as Editor & { getJs?: () => string }).getJs === 'function'
-        ? (ed as Editor & { getJs: () => string }).getJs()
-        : '';
-
-      const documentHtml = [
-        '<!DOCTYPE html>',
-        `<html lang="${activeLocale}">`,
-        '<head>',
-        '<meta charset="UTF-8" />',
-        '<meta name="viewport" content="width=device-width, initial-scale=1.0" />',
-        '<title>Laurena Site</title>',
-        '<link rel="stylesheet" href="styles.css" />',
-        '</head>',
-        `<body>${html}</body>`,
-        js.trim() ? '<script src="app.js" defer></script>' : '',
-        '</html>',
-      ].filter(Boolean).join('');
-
-      const files = [
-        { path: 'index.html', content: documentHtml },
-        { path: 'styles.css', content: css || '/* Empty stylesheet */\n' },
-        ...(js.trim() ? [{ path: 'app.js', content: js }] : []),
-      ];
-
       const enqueue = await postPublish({
         userId,
         projectId,
@@ -250,6 +267,72 @@ export default function Template() {
       });
       markPublishFailed(message);
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    const ed = editorRef.current;
+    if (!ed) {
+      setSaveState('failed');
+      setSaveError('Editor not ready yet. Please wait a second and try again.');
+      toast({
+        title: t('pages.templateBuilder.saveErrorTitle'),
+        description: 'Editor not ready yet. Please wait a second and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!userId) {
+      toast({
+        title: t('pages.templateBuilder.saveErrorTitle'),
+        description: t('pages.templateBuilder.saveAuthRequired'),
+        variant: 'destructive',
+      });
+      setSaveState('failed');
+      setSaveError(t('pages.templateBuilder.saveAuthRequired'));
+      return;
+    }
+
+    const slug = publishSlug.trim().toLowerCase();
+    if (slug && !slugValid(slug)) {
+      toast({
+        title: t('pages.templateBuilder.saveErrorTitle'),
+        description: t('pages.criarSite.errors.slugInvalid'),
+        variant: 'destructive',
+      });
+      setSaveState('failed');
+      setSaveError(t('pages.criarSite.errors.slugInvalid'));
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveState('saving');
+    setSaveError(null);
+    try {
+      const files = buildTemplateFiles(ed, activeLocale);
+      const response = await postSaveTemplate({
+        userId,
+        projectId,
+        files,
+        ...(slug ? { slug } : {}),
+      });
+      setProjectId(response.projectId);
+      setSaveState('saved');
+      toast({
+        title: t('pages.templateBuilder.saveSuccessTitle'),
+        description: t('pages.templateBuilder.saveSuccessDescription'),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('pages.templateBuilder.saveErrorDescription');
+      setSaveState('failed');
+      setSaveError(message);
+      toast({
+        title: t('pages.templateBuilder.saveErrorTitle'),
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -283,26 +366,57 @@ export default function Template() {
                 placeholder={t('pages.criarSite.slugPlaceholder')}
                 value={publishSlug}
                 onChange={(e) => setPublishSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                disabled={publishing}
+                disabled={busy}
                 className="h-9 rounded-md border-[#e8b79a] bg-white/95 text-xs"
               />
-              {slugValid(publishSlug.trim()) && (
-                <p className="mt-1 text-[10px] text-[#6f4634]">
-                  https://{publishSlug.trim().toLowerCase()}.{ROOT_DOMAIN}
-                </p>
-              )}
+              <p className="mt-1 min-h-[14px] text-[10px] text-[#6f4634]">
+                {slugValid(publishSlug.trim())
+                  ? `https://${publishSlug.trim().toLowerCase()}.${ROOT_DOMAIN}`
+                  : '\u00A0'}
+              </p>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 gap-2 border-[#e8b79a] bg-white/85 px-4 text-[#7a3f29] hover:bg-white"
+              onClick={handleSave}
+              disabled={busy}
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isSaving ? t('pages.templateBuilder.saving') : t('pages.templateBuilder.saveButton')}
+            </Button>
             <Button
               type="button"
               className="h-9 gap-2 bg-[#cf6537] px-4 text-[#fff8f2] hover:bg-[#b8572d]"
               onClick={handlePublish}
-              disabled={publishing}
+              disabled={busy}
             >
               {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
               {publishing ? t('pages.templateBuilder.publishing') : t('pages.criarSite.publishButton')}
             </Button>
           </div>
         </div>
+
+        {saveState !== 'idle' && (
+          <div
+            className={[
+              'mx-auto mb-2 max-w-md rounded-lg border px-3 py-2 text-center text-xs',
+              saveState === 'saving'
+                ? 'border-sky-300/60 bg-sky-50 text-sky-800'
+                : saveState === 'saved'
+                ? 'border-emerald-300/60 bg-emerald-50 text-emerald-800'
+                : 'border-destructive/30 bg-destructive/5 text-destructive',
+            ].join(' ')}
+          >
+            {saveState === 'saving' && t('pages.templateBuilder.saveStatusSaving')}
+            {saveState === 'saved' && t('pages.templateBuilder.saveStatusSaved')}
+            {saveState === 'failed' && (
+              saveError
+                ? t('pages.templateBuilder.saveStatusFailedWithReason', { reason: saveError })
+                : t('pages.templateBuilder.saveStatusFailed')
+            )}
+          </div>
+        )}
 
         {publishState !== 'idle' && (
           <div
@@ -335,7 +449,7 @@ export default function Template() {
           ref={editorRef}
           locale={activeLocale}
           whenReady={handleEditorReady}
-          initialComponents={getDefaultTemplateHtml(activeLocale)}
+          initialComponents={initialTemplateHtml}
           initialStyle={DEFAULT_TEMPLATE_CSS}
           className="h-full w-full overflow-hidden rounded-xl border border-[#f3c9ae] bg-white"
         />

@@ -26,6 +26,7 @@ import Configuracoes from "./pages/Configuracoes";
 import PreviewPost from "./pages/PreviewPost";
 import Editor from "./pages/Editor";
 import CriarSite from "./pages/CriarSite";
+import Novidade from "./pages/Novidade";
 import Template from "./pages/Template";
 import SitesPublicados from "./pages/SitesPublicados";
 import NotFound from "./pages/NotFound";
@@ -60,6 +61,8 @@ const App = () => (
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/criar-site" element={<CriarSite />} />
+            <Route path="/novidade" element={<Novidade />} />
+            <Route path="/novidade/workspace" element={<Novidade />} />
             <Route path="/marketing-ai" element={<MarketingAI />} />
             <Route path="/ai-studio" element={<AIStudio />} />
             <Route path="/analytics" element={<Analytics />} />

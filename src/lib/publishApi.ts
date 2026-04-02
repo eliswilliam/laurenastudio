@@ -56,8 +56,25 @@ export interface PublishEnqueueResponse {
   message: string;
 }
 
+export interface SaveTemplateBody {
+  userId: string;
+  projectId?: string | null;
+  files: { path: string; content: string }[];
+  slug?: string;
+}
+
+export interface SaveTemplateResponse {
+  projectId: string;
+  message: string;
+}
+
 export async function postPublish(body: PublishBody): Promise<PublishEnqueueResponse> {
   const { data } = await client.post<PublishEnqueueResponse>('/api/publish', body);
+  return data;
+}
+
+export async function postSaveTemplate(body: SaveTemplateBody): Promise<SaveTemplateResponse> {
+  const { data } = await client.post<SaveTemplateResponse>('/api/publish/save', body);
   return data;
 }
 

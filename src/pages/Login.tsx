@@ -13,6 +13,7 @@ import {
   redirectToFacebookLogin,
   resolveAvatarDisplayUrl,
 } from '@/lib/authApi';
+import { executeRecaptchaAction } from '@/lib/recaptcha';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -66,7 +67,8 @@ export default function Login() {
     if (!email || !senha) return;
     setCarregando(true);
     try {
-      const data = await apiLogin(email, senha);
+      const recaptchaToken = await executeRecaptchaAction('login');
+      const data = await apiLogin(email, senha, recaptchaToken);
       login(
         {
           id: data.user.id,

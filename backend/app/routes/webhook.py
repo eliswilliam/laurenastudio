@@ -19,7 +19,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.models.plan import Plan
 from app.models.subscription import Subscription
 from app.services import billing_service, stripe_service
 
@@ -131,6 +130,91 @@ def _schedule_old_subscription_if_upgrade(
         )
 
 
+async def _resolve_checkout_context(
+    session: dict,
+    db: AsyncSession,
+) -> tuple[str | None, str | None, str, str | None, str | None, dict]:
+    """
+    Resolve checkout context even when event metadata is partially missing.
+
+    Fallback order:
+      1) event payload metadata/client_reference_id
+      2) retrieve full Checkout Session from Stripe by session id
+      3) map customer -> local workspace
+      4) resolve plan/cycle from Stripe subscription price id
+    """
+    metadata = dict(session.get("metadata") or {})
+    workspace_id = metadata.get("workspace_id") or session.get("client_reference_id")
+    plan_name = metadata.get("plan_name")
+    billing_cycle = metadata.get("billing_cycle") or "monthly"
+    customer_id = session.get("customer")
+    stripe_subscription_id = session.get("subscription")
+
+    session_id = session.get("id")
+    if session_id and (not workspace_id or not plan_name or not stripe_subscription_id):
+        try:
+            full_session = stripe_service.retrieve_checkout_session(session_id)
+            full_sd = stripe_service.stripe_object_to_dict(full_session)
+            full_metadata = dict(full_sd.get("metadata") or {})
+            if full_metadata:
+                metadata = full_metadata
+            workspace_id = (
+                workspace_id
+                or full_metadata.get("workspace_id")
+                or full_sd.get("client_reference_id")
+            )
+            plan_name = plan_name or full_metadata.get("plan_name")
+            billing_cycle = full_metadata.get("billing_cycle") or billing_cycle
+            customer_id = customer_id or full_sd.get("customer")
+            stripe_subscription_id = stripe_subscription_id or full_sd.get("subscription")
+        except Exception as e:
+            logger.warning(
+                "Could not retrieve full checkout session id=%s for fallback context: %s",
+                session_id,
+                e,
+            )
+
+    if not workspace_id and customer_id:
+        try:
+            local_sub_result = await db.execute(
+                select(Subscription)
+                .where(Subscription.stripe_customer_id == customer_id)
+                .order_by(Subscription.created_at.desc())
+            )
+            local_sub = local_sub_result.scalars().first()
+            if local_sub:
+                workspace_id = local_sub.workspace_id
+        except Exception as e:
+            logger.warning(
+                "Could not resolve workspace by stripe customer id=%s: %s",
+                customer_id,
+                e,
+            )
+
+    if stripe_subscription_id and not plan_name:
+        try:
+            resolved_plan, resolved_cycle, _snapshot = (
+                stripe_service.resolve_plan_and_cycle_from_subscription(
+                    stripe_subscription_id,
+                    fallback_plan_name=None,
+                    fallback_cycle=billing_cycle if billing_cycle in {"monthly", "annual"} else "monthly",
+                )
+            )
+            plan_name = resolved_plan
+            billing_cycle = resolved_cycle
+        except Exception as e:
+            logger.warning(
+                "Could not resolve plan/cycle from Stripe subscription=%s in metadata fallback: %s",
+                stripe_subscription_id,
+                e,
+            )
+
+    if billing_cycle not in {"monthly", "annual"}:
+        billing_cycle = "monthly"
+
+    return workspace_id, plan_name, billing_cycle, customer_id, stripe_subscription_id, metadata
+
+
 async def _handle_checkout_completed(event: dict, db: AsyncSession) -> None:
     """
     checkout.session.completed
@@ -140,17 +224,22 @@ async def _handle_checkout_completed(event: dict, db: AsyncSession) -> None:
     """
     session = event["data"]["object"]
     payment_status = session.get("payment_status")
-    metadata = session.get("metadata", {})
-    workspace_id = metadata.get("workspace_id")
-    plan_name = metadata.get("plan_name")
-    billing_cycle = metadata.get("billing_cycle") or "monthly"
-    customer_id = session.get("customer")
-    stripe_subscription_id = session.get("subscription")
+    (
+        workspace_id,
+        plan_name,
+        billing_cycle,
+        customer_id,
+        stripe_subscription_id,
+        metadata,
+    ) = await _resolve_checkout_context(session, db)
 
     if not workspace_id or not plan_name:
         logger.warning(
-            "checkout.session.completed missing metadata: workspace_id=%s plan_name=%s",
-            workspace_id, plan_name,
+            "checkout.session.completed missing context after fallback: session_id=%s workspace_id=%s plan_name=%s client_reference_id=%s",
+            session.get("id"),
+            workspace_id,
+            plan_name,
+            session.get("client_reference_id"),
         )
         return
 
@@ -207,17 +296,22 @@ async def _handle_async_payment_succeeded(event: dict, db: AsyncSession) -> None
     Fired when a boleto payment is confirmed. Now we can activate.
     """
     session = event["data"]["object"]
-    metadata = session.get("metadata", {})
-    workspace_id = metadata.get("workspace_id")
-    plan_name = metadata.get("plan_name")
-    billing_cycle = metadata.get("billing_cycle") or "monthly"
-    customer_id = session.get("customer")
-    stripe_subscription_id = session.get("subscription")
+    (
+        workspace_id,
+        plan_name,
+        billing_cycle,
+        customer_id,
+        stripe_subscription_id,
+        metadata,
+    ) = await _resolve_checkout_context(session, db)
 
     if not workspace_id or not plan_name:
         logger.warning(
-            "async_payment_succeeded missing metadata: workspace_id=%s plan_name=%s",
-            workspace_id, plan_name,
+            "async_payment_succeeded missing context after fallback: session_id=%s workspace_id=%s plan_name=%s client_reference_id=%s",
+            session.get("id"),
+            workspace_id,
+            plan_name,
+            session.get("client_reference_id"),
         )
         return
 
@@ -372,8 +466,6 @@ async def _handle_subscription_updated(event: dict, db: AsyncSession) -> None:
                 e,
             )
 
-    snapshot = stripe_service.extract_subscription_snapshot(subscription)
-
     updated = False
     if isinstance(current_period_end_ts, int):
         local_sub.current_period_end = datetime.fromtimestamp(
@@ -382,41 +474,10 @@ async def _handle_subscription_updated(event: dict, db: AsyncSession) -> None:
         )
         updated = True
 
-    snapshot_cycle = snapshot.get("billing_cycle")
-    if snapshot_cycle in {"monthly", "annual"} and snapshot_cycle != local_sub.billing_cycle:
-        local_sub.billing_cycle = snapshot_cycle
-        updated = True
-
-    snapshot_cancel = bool(snapshot.get("cancel_at_period_end"))
-    if snapshot_cancel != bool(local_sub.cancel_at_period_end):
-        local_sub.cancel_at_period_end = snapshot_cancel
-        updated = True
-
-    snapshot_price = snapshot.get("unit_amount_brl")
-    if snapshot_price is not None:
-        snapshot_price = float(snapshot_price)
-    if snapshot_price != local_sub.current_price_brl:
-        local_sub.current_price_brl = snapshot_price
-        updated = True
-
-    snapshot_currency = snapshot.get("currency")
-    if snapshot_currency and snapshot_currency != local_sub.currency:
-        local_sub.currency = snapshot_currency
-        updated = True
-
-    snapshot_plan_name = snapshot.get("plan_name")
-    if snapshot_plan_name:
-        plan_result = await db.execute(select(Plan).where(Plan.name == snapshot_plan_name))
-        stripe_plan = plan_result.scalars().first()
-        if stripe_plan and stripe_plan.id != local_sub.plan_id:
-            local_sub.plan_id = stripe_plan.id
-            local_sub.next_plan_id = None
-            local_sub.next_billing_cycle = None
-            updated = True
-
+    cancel_at_period_end = bool(subscription.get("cancel_at_period_end"))
     if updated:
         await db.commit()
-    if not snapshot_cancel:
+    if not cancel_at_period_end:
         return
 
     logger.info(

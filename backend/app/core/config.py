@@ -171,6 +171,11 @@ class Settings(BaseSettings):
     # ── Session (required by Starlette SessionMiddleware for OAuth flow) ─────
     SESSION_SECRET_KEY: str = "CHANGE-ME-session-secret-use-openssl-rand-hex-32"
 
+    # ── reCAPTCHA v3 ─────────────────────────────────────────────────────────
+    RECAPTCHA_SECRET_KEY: str = ""
+    RECAPTCHA_ENABLED: bool = False
+    RECAPTCHA_LOGIN_THRESHOLD: float = 0.5
+
     # ── Frontend URL (used for post-OAuth redirect) ───────────────────────────
     FRONTEND_URL: str = "http://localhost:8080"
 

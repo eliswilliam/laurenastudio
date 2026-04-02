@@ -207,6 +207,7 @@ def create_checkout_session(
         "payment_method_types": ["card", "boleto"],
         "success_url": _success,
         "cancel_url": _cancel,
+        "client_reference_id": workspace_id,
         "metadata": metadata,
         "subscription_data": {
             "metadata": metadata,

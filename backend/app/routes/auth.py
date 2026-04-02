@@ -4,6 +4,9 @@ Authentication endpoints: register, login, forgot-password, verify-reset-code,
 reset-password, Google OAuth (GET /google  →  GET /google/callback).
 A `get_current_user` dependency is also exposed for protecting other routes.
 """
+import logging
+
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -33,6 +36,81 @@ from app.services.welcome_email_service import run_welcome_email_task
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 _bearer = HTTPBearer(auto_error=True)
+logger = logging.getLogger(__name__)
+
+
+async def _verify_recaptcha_v3(token: str | None, remote_ip: str | None, *, action: str) -> None:
+    if not settings.RECAPTCHA_ENABLED:
+        return
+
+    if not settings.RECAPTCHA_SECRET_KEY:
+        logger.error("RECAPTCHA_ENABLED=true but RECAPTCHA_SECRET_KEY is empty.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Security verification configuration is invalid.",
+        )
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Security verification is required.",
+        )
+
+    payload = {
+        "secret": settings.RECAPTCHA_SECRET_KEY,
+        "response": token,
+    }
+    if remote_ip:
+        payload["remoteip"] = remote_ip
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                "https://www.google.com/recaptcha/api/siteverify",
+                data=payload,
+            )
+            data = response.json()
+    except Exception as exc:
+        logger.warning("reCAPTCHA verification request failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Security verification is temporarily unavailable.",
+        )
+
+    if not data.get("success"):
+        logger.info("reCAPTCHA rejected token: errors=%s", data.get("error-codes"))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Security verification failed.",
+        )
+
+    received_action = str(data.get("action") or "")
+    if received_action != action:
+        logger.warning(
+            "reCAPTCHA action mismatch: expected=%s got=%s",
+            action,
+            received_action,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Security verification failed.",
+        )
+
+    try:
+        score = float(data.get("score", 0.0))
+    except (TypeError, ValueError):
+        score = 0.0
+
+    if score < settings.RECAPTCHA_LOGIN_THRESHOLD:
+        logger.info(
+            "reCAPTCHA low score for login: score=%.3f threshold=%.3f",
+            score,
+            settings.RECAPTCHA_LOGIN_THRESHOLD,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Security verification failed.",
+        )
 
 
 # ── JWT dependency ────────────────────────────────────────────────────────────
@@ -104,10 +182,14 @@ async def register(
     description="Authenticate with email/password and receive JWT tokens.",
 )
 async def login(
+    request: Request,
     payload: LoginRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> AuthResponse:
+    client_ip = request.client.host if request.client else None
+    await _verify_recaptcha_v3(payload.recaptcha_token, client_ip, action="login")
+
     resp = await auth_service.login_user(db, payload)
     background_tasks.add_task(run_welcome_email_task, resp.user.id)
     return resp

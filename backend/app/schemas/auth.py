@@ -30,6 +30,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    recaptcha_token: str | None = None
 
 
 class ForgotPasswordRequest(BaseModel):

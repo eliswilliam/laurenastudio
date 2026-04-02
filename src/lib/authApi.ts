@@ -75,9 +75,14 @@ export async function apiRegister(
 
 export async function apiLogin(
   email: string,
-  password: string
+  password: string,
+  recaptchaToken: string
 ): Promise<AuthResponse> {
-  const res = await api.post<AuthResponse>('/auth/login', { email, password });
+  const res = await api.post<AuthResponse>('/auth/login', {
+    email,
+    password,
+    recaptcha_token: recaptchaToken,
+  });
   return res.data;
 }
 

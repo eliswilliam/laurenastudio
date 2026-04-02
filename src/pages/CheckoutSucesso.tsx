@@ -28,6 +28,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/useAuthStore';
+import { apiVerifySession } from '@/lib/billingApi';
 import { PLAN_DISPLAY_NAMES } from '@/data/planos';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -78,10 +79,38 @@ export default function CheckoutSucesso() {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
 
-    // Poll local billing status (webhook-driven) instead of verifying with Stripe per reload.
+    // Poll local billing status and use verify-session fallback when session_id is available.
     const pollStatus = async (currentAttempt: number) => {
       if (cancelled) return;
       try {
+        if (sessionId) {
+          const verification = await apiVerifySession(sessionId);
+          if (cancelled) return;
+
+          if (verification.status === 'active') {
+            await fetchBillingStatus();
+            if (cancelled) return;
+            setState('success');
+            return;
+          }
+
+          if (verification.status === 'expired') {
+            setMessage(verification.message);
+            setState('error');
+            return;
+          }
+
+          if (verification.status === 'canceled') {
+            setMessage(verification.message);
+            setState('canceled');
+            return;
+          }
+
+          if (verification.status === 'pending' && verification.message) {
+            setMessage(verification.message);
+          }
+        }
+
         const isActive = await fetchBillingStatus();
         if (cancelled) return;
         if (isActive) {

@@ -27,6 +27,7 @@ import {
   apiCreateCheckout,
   apiCustomerPortal,
   apiBillingStatus,
+  apiVerifySession,
   type BillingStatusResponse,
 } from '@/lib/billingApi';
 import { PLANOS, PLAN_DISPLAY_NAMES } from '@/data/planos';
@@ -89,23 +90,57 @@ export default function Pagamento() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const status = params.get('status');
-    if (status === 'success') {
-      toast({
-        title: t('pages.payment.toastSuccessTitle'),
-        description: t('pages.payment.toastSuccessDesc'),
-      });
-      window.history.replaceState({}, '', '/pagamento');
-      loadBilling();
-    } else if (status === 'canceled') {
-      toast({
-        title: t('pages.payment.toastCanceledTitle'),
-        description: t('pages.payment.toastCanceledDesc'),
-        variant: 'destructive',
-      });
-      window.history.replaceState({}, '', '/pagamento');
-    }
+    const run = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const status = params.get('status');
+      if (status === 'success') {
+        const sessionId = params.get('session_id');
+        if (sessionId) {
+          try {
+            const verification = await apiVerifySession(sessionId);
+            if (verification.status === 'active') {
+              toast({
+                title: t('pages.payment.toastSuccessTitle'),
+                description: t('pages.payment.toastSuccessDesc'),
+              });
+            } else if (verification.status === 'pending') {
+              toast({
+                title: 'Pagamento pendente',
+                description: verification.message,
+              });
+            } else {
+              toast({
+                title: t('pages.payment.checkoutErrorTitle'),
+                description: verification.message,
+                variant: 'destructive',
+              });
+            }
+          } catch {
+            toast({
+              title: t('pages.payment.toastSuccessTitle'),
+              description: t('pages.payment.toastSuccessDesc'),
+            });
+          }
+        } else {
+          toast({
+            title: t('pages.payment.toastSuccessTitle'),
+            description: t('pages.payment.toastSuccessDesc'),
+          });
+        }
+
+        window.history.replaceState({}, '', '/pagamento');
+        await loadBilling();
+      } else if (status === 'canceled') {
+        toast({
+          title: t('pages.payment.toastCanceledTitle'),
+          description: t('pages.payment.toastCanceledDesc'),
+          variant: 'destructive',
+        });
+        window.history.replaceState({}, '', '/pagamento');
+      }
+    };
+
+    run();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; toasts need stable t()
   }, []);
 
@@ -182,7 +217,7 @@ export default function Pagamento() {
       const { url } = await apiCreateCheckout(
         planoId,
         targetCycle,
-        `${window.location.origin}/pagamento?status=success`,
+        `${window.location.origin}/pagamento?status=success&session_id={CHECKOUT_SESSION_ID}`,
         `${window.location.origin}/pagamento?status=canceled`,
       );
       window.location.href = url;

@@ -30,8 +30,6 @@ export function useNotifications() {
   const knownIds = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
     setLoading(true);
     try {
       const data = await fetchNotifications();
@@ -58,12 +56,10 @@ export function useNotifications() {
 
   useEffect(() => {
     if (!isAutenticado) return;
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
 
     let es: EventSource | null = null;
     try {
-      es = new EventSource(notificationsStreamUrl(token));
+      es = new EventSource(notificationsStreamUrl());
       es.onmessage = (ev) => {
         try {
           const n = JSON.parse(ev.data) as AppNotification;

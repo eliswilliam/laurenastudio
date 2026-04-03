@@ -23,8 +23,8 @@ export async function markAllNotificationsRead(): Promise<void> {
   await api.post('/notifications/read-all');
 }
 
-/** URL absoluta do stream SSE (EventSource não envia header Authorization). */
-export function notificationsStreamUrl(token: string): string {
+/** URL absoluta do stream SSE protegido por cookie HttpOnly. */
+export function notificationsStreamUrl(): string {
   const base = (api.defaults.baseURL || '/api/v1').replace(/\/$/, '');
-  return `${window.location.origin}${base}/notifications/stream?token=${encodeURIComponent(token)}`;
+  return `${window.location.origin}${base}/notifications/stream`;
 }

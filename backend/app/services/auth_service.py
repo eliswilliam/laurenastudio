@@ -2,7 +2,7 @@
 auth_service.py
 All business logic for authentication and user account management.
 """
-import random
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -198,7 +198,7 @@ async def forgot_password(db: AsyncSession, email: str) -> ForgotPasswordRespons
         old.used = True
 
     # Generate a random 6-digit code
-    code = str(random.randint(100000, 999999))
+    code = f"{secrets.randbelow(900000) + 100000:06d}"
     token = _make_token(user.id, code)
 
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=_RESET_CODE_EXPIRY_MINUTES)

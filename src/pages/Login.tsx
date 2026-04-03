@@ -77,8 +77,7 @@ export default function Login() {
           avatar: resolveAvatarDisplayUrl(data.user.avatar_url),
           plano: 'starter',
           criadoEm: data.user.created_at,
-        },
-        data.tokens.access_token
+        }
       );
       notify.success(t('pages.login.successTitle'), t('pages.login.successDesc'));
       const hasActivePlan = await fetchBillingStatus();

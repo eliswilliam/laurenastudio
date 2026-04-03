@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/.env — absolute path so local dev finds the file regardless of cwd.
@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # ── App ──────────────────────────────────────────────────────────────────
     APP_NAME: str = "Laurena Studio"
     APP_VERSION: str = "1.0.0"
+    APP_ENV: str = "development"
     DEBUG: bool = False
 
     # ── Database ─────────────────────────────────────────────────────────────
@@ -170,6 +171,9 @@ class Settings(BaseSettings):
 
     # ── Session (required by Starlette SessionMiddleware for OAuth flow) ─────
     SESSION_SECRET_KEY: str = "CHANGE-ME-session-secret-use-openssl-rand-hex-32"
+    AUTH_ACCESS_COOKIE_NAME: str = "ls_access_token"
+    AUTH_REFRESH_COOKIE_NAME: str = "ls_refresh_token"
+    AUTH_COOKIE_SAMESITE: str = "strict"
 
     # ── reCAPTCHA v3 ─────────────────────────────────────────────────────────
     RECAPTCHA_SECRET_KEY: str = ""
@@ -228,6 +232,27 @@ class Settings(BaseSettings):
         except (json.JSONDecodeError, TypeError):
             pass
         return [o.strip() for o in val.split(",") if o.strip()]
+
+    @model_validator(mode="after")
+    def _fail_fast_for_default_secrets(self) -> "Settings":
+        env = (self.APP_ENV or "").strip().lower()
+        is_dev_like = env in {"dev", "development", "local", "test", "testing"}
+        if self.DEBUG or is_dev_like:
+            return self
+
+        default_secrets = {
+            "SECRET_KEY": "CHANGE-ME-in-production-use-openssl-rand-hex-32",
+            "SESSION_SECRET_KEY": "CHANGE-ME-session-secret-use-openssl-rand-hex-32",
+        }
+        unsafe = [
+            key for key, default in default_secrets.items() if str(getattr(self, key, "")).strip() == default
+        ]
+        if unsafe:
+            names = ", ".join(unsafe)
+            raise ValueError(
+                f"Refusing to start in non-dev environment with default secrets: {names}."
+            )
+        return self
 
 
 settings = Settings()

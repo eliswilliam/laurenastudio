@@ -1,8 +1,8 @@
 /**
  * AuthCallback.tsx
  * Handles the post-Google-OAuth redirect from the FastAPI backend.
- * The backend redirects here with ?access_token=...&refresh_token=...
- * We store the token, fetch the user profile, and redirect to /dashboard.
+ * The backend sets HttpOnly auth cookies and redirects here.
+ * We fetch the user profile using the cookie session and redirect accordingly.
  */
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -20,7 +20,6 @@ export default function AuthCallback() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    const accessToken = searchParams.get('access_token');
     const error = searchParams.get('error');
 
     if (error) {
@@ -33,13 +32,6 @@ export default function AuthCallback() {
       return;
     }
 
-    if (!accessToken) {
-      navigate('/login');
-      return;
-    }
-
-    localStorage.setItem('auth_token', accessToken);
-
     apiMe()
       .then(async (user) => {
         login(
@@ -50,8 +42,7 @@ export default function AuthCallback() {
             avatar: resolveAvatarDisplayUrl(user.avatar_url),
             plano: 'starter',
             criadoEm: user.created_at,
-          },
-          accessToken
+          }
         );
         toast({
           title: t('pages.authCallback.successTitle'),
@@ -66,6 +57,8 @@ export default function AuthCallback() {
       })
       .catch(() => {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         toast({
           title: t('pages.authCallback.authErrorTitle'),
           description: t('pages.authCallback.authErrorDesc'),

@@ -10,6 +10,7 @@ class RegisterRequest(BaseModel):
     password: str
     account_name: str = "Minha conta"
     full_name: str | None = None
+    recaptcha_token: str | None = None
 
     @field_validator("full_name", mode="before")
     @classmethod

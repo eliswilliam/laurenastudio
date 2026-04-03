@@ -4,10 +4,13 @@ Authentication endpoints: register, login, forgot-password, verify-reset-code,
 reset-password, Google OAuth (GET /google  →  GET /google/callback).
 A `get_current_user` dependency is also exposed for protecting other routes.
 """
+from collections import deque
 import logging
+from threading import Lock
+from time import monotonic
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, Response, UploadFile, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
@@ -35,8 +38,79 @@ from app.services.welcome_email_service import run_welcome_email_task
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-_bearer = HTTPBearer(auto_error=True)
+_bearer = HTTPBearer(auto_error=False)
 logger = logging.getLogger(__name__)
+
+_RATE_LIMIT_WINDOW_SECONDS = 15 * 60
+_RATE_LIMIT_MAX_ATTEMPTS = 8
+_RATE_LIMIT_STORE: dict[str, deque[float]] = {}
+_RATE_LIMIT_LOCK = Lock()
+
+
+def _cookie_secure(request: Request) -> bool:
+    env = (settings.APP_ENV or "").strip().lower()
+    is_dev_like = settings.DEBUG or env in {"dev", "development", "local", "test", "testing"}
+    if is_dev_like:
+        return request.url.scheme == "https"
+    return True
+
+
+def _set_auth_cookies(response: Response, request: Request, access_token: str, refresh_token: str | None) -> None:
+    secure = _cookie_secure(request)
+    response.set_cookie(
+        key=settings.AUTH_ACCESS_COOKIE_NAME,
+        value=access_token,
+        httponly=True,
+        secure=secure,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+        path="/",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    if refresh_token:
+        response.set_cookie(
+            key=settings.AUTH_REFRESH_COOKIE_NAME,
+            value=refresh_token,
+            httponly=True,
+            secure=secure,
+            samesite=settings.AUTH_COOKIE_SAMESITE,
+            path="/",
+            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        )
+
+
+def _clear_auth_cookies(response: Response, request: Request) -> None:
+    secure = _cookie_secure(request)
+    response.delete_cookie(
+        key=settings.AUTH_ACCESS_COOKIE_NAME,
+        path="/",
+        secure=secure,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+    )
+    response.delete_cookie(
+        key=settings.AUTH_REFRESH_COOKIE_NAME,
+        path="/",
+        secure=secure,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+    )
+
+
+def _rate_limit_key(scope: str, identifier: str) -> str:
+    return f"{scope}:{identifier.strip().lower()}"
+
+
+def _enforce_rate_limit(scope: str, identifier: str) -> None:
+    now = monotonic()
+    limit_key = _rate_limit_key(scope, identifier)
+    with _RATE_LIMIT_LOCK:
+        bucket = _RATE_LIMIT_STORE.setdefault(limit_key, deque())
+        while bucket and now - bucket[0] > _RATE_LIMIT_WINDOW_SECONDS:
+            bucket.popleft()
+        if len(bucket) >= _RATE_LIMIT_MAX_ATTEMPTS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many attempts. Please wait a few minutes before trying again.",
+            )
+        bucket.append(now)
 
 
 async def _verify_recaptcha_v3(token: str | None, remote_ip: str | None, *, action: str) -> None:
@@ -103,7 +177,8 @@ async def _verify_recaptcha_v3(token: str | None, remote_ip: str | None, *, acti
 
     if score < settings.RECAPTCHA_LOGIN_THRESHOLD:
         logger.info(
-            "reCAPTCHA low score for login: score=%.3f threshold=%.3f",
+            "reCAPTCHA low score for %s: score=%.3f threshold=%.3f",
+            action,
             score,
             settings.RECAPTCHA_LOGIN_THRESHOLD,
         )
@@ -116,14 +191,26 @@ async def _verify_recaptcha_v3(token: str | None, remote_ip: str | None, *, acti
 # ── JWT dependency ────────────────────────────────────────────────────────────
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Extract and validate the JWT from the Authorization header.
+    Extract and validate the JWT from Authorization header or HttpOnly cookie.
     Returns the authenticated User ORM object.
     """
-    token = credentials.credentials
+    token = (
+        credentials.credentials
+        if credentials and credentials.credentials
+        else request.cookies.get(settings.AUTH_ACCESS_COOKIE_NAME)
+    )
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     try:
         payload = decode_token(token)
         user_id: str = payload.get("sub", "")
@@ -164,11 +251,17 @@ async def get_current_user(
     ),
 )
 async def register(
+    request: Request,
+    response: Response,
     payload: RegisterRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> AuthResponse:
+    client_ip = request.client.host if request.client else None
+    await _verify_recaptcha_v3(payload.recaptcha_token, client_ip, action="register")
+
     resp = await auth_service.register_user(db, payload)
+    _set_auth_cookies(response, request, resp.tokens.access_token, resp.tokens.refresh_token)
     background_tasks.add_task(run_welcome_email_task, resp.user.id)
     return resp
 
@@ -183,6 +276,7 @@ async def register(
 )
 async def login(
     request: Request,
+    response: Response,
     payload: LoginRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
@@ -191,8 +285,19 @@ async def login(
     await _verify_recaptcha_v3(payload.recaptcha_token, client_ip, action="login")
 
     resp = await auth_service.login_user(db, payload)
+    _set_auth_cookies(response, request, resp.tokens.access_token, resp.tokens.refresh_token)
     background_tasks.add_task(run_welcome_email_task, resp.user.id)
     return resp
+
+
+@router.post(
+    "/logout",
+    response_model=MessageResponse,
+    summary="Logout and clear auth cookies",
+)
+async def logout(request: Request, response: Response) -> MessageResponse:
+    _clear_auth_cookies(response, request)
+    return MessageResponse(message="Logged out.")
 
 
 # ── POST /auth/forgot-password ────────────────────────────────────────────────
@@ -207,9 +312,13 @@ async def login(
     ),
 )
 async def forgot_password(
+    request: Request,
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ) -> ForgotPasswordResponse:
+    client_ip = request.client.host if request.client else "unknown"
+    _enforce_rate_limit("forgot-password-ip", client_ip)
+    _enforce_rate_limit("forgot-password-email", payload.email)
     return await auth_service.forgot_password(db, payload.email)
 
 
@@ -236,9 +345,13 @@ async def verify_reset_code(
     description="Validates the code, hashes the new password, and invalidates the code.",
 )
 async def reset_password(
+    request: Request,
     payload: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
+    client_ip = request.client.host if request.client else "unknown"
+    _enforce_rate_limit("reset-password-ip", client_ip)
+    _enforce_rate_limit("reset-password-email", payload.email)
     return await auth_service.reset_password(db, payload)
 
 
@@ -314,14 +427,9 @@ async def google_callback(
         auth_resp = await auth_service.google_oauth_login(db, dict(user_info))
         background_tasks.add_task(run_welcome_email_task, auth_resp.user.id)
 
-        # Redirect to the React SPA callback route with tokens as query params
-        return RedirectResponse(
-            url=(
-                f"{settings.FRONTEND_URL}/auth/callback"
-                f"?access_token={auth_resp.tokens.access_token}"
-                f"&refresh_token={auth_resp.tokens.refresh_token or ''}"
-            )
-        )
+        response = RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback")
+        _set_auth_cookies(response, request, auth_resp.tokens.access_token, auth_resp.tokens.refresh_token)
+        return response
     except Exception as exc:
         import urllib.parse
         error_msg = urllib.parse.quote(str(exc))
@@ -367,13 +475,9 @@ async def facebook_callback(
         auth_resp = await auth_service.facebook_oauth_login(db, user_info)
         background_tasks.add_task(run_welcome_email_task, auth_resp.user.id)
 
-        return RedirectResponse(
-            url=(
-                f"{settings.FRONTEND_URL}/auth/callback"
-                f"?access_token={auth_resp.tokens.access_token}"
-                f"&refresh_token={auth_resp.tokens.refresh_token or ''}"
-            )
-        )
+        response = RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback")
+        _set_auth_cookies(response, request, auth_resp.tokens.access_token, auth_resp.tokens.refresh_token)
+        return response
     except Exception as exc:
         import urllib.parse
         error_msg = urllib.parse.quote(str(exc))

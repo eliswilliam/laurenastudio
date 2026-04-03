@@ -37,26 +37,16 @@ export type SnapshotItem = {
 };
 
 function authHeaders(): HeadersInit {
-  const token = localStorage.getItem("auth_token");
-  const headers: HeadersInit = {
+  return {
     "Content-Type": "application/json",
     Accept: "application/json",
   };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  return headers;
 }
 
 function authOnlyHeaders(): HeadersInit {
-  const token = localStorage.getItem("auth_token");
-  const headers: HeadersInit = {
+  return {
     Accept: "application/json",
   };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  return headers;
 }
 
 export async function streamGenerateCode(
@@ -69,6 +59,7 @@ export async function streamGenerateCode(
   const response = await fetch("/api/v1/generate-code", {
     method: "POST",
     headers: authHeaders(),
+    credentials: "include",
     body: JSON.stringify(body),
   });
 
@@ -136,6 +127,7 @@ export async function saveNovidadeChat(payload: {
   const response = await fetch("/api/v1/chat/db-save", {
     method: "POST",
     headers: authHeaders(),
+    credentials: "include",
     body: JSON.stringify(payload),
   });
 
@@ -157,6 +149,7 @@ export async function getNovidadeProject(projectId: string): Promise<{
   const response = await fetch(`/api/v1/chat/projects/${projectId}`, {
     method: "GET",
     headers: authHeaders(),
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -177,6 +170,7 @@ export async function getGitSnapshots(projectId: string): Promise<SnapshotItem[]
   const response = await fetch(`/api/v1/git/snapshots/${projectId}`, {
     method: "GET",
     headers: authHeaders(),
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -194,6 +188,7 @@ export async function uploadNovidadeImage(file: File): Promise<NovidadeAttachmen
   const response = await fetch("/api/v1/media/upload", {
     method: "POST",
     headers: authOnlyHeaders(),
+    credentials: "include",
     body: form,
   });
 

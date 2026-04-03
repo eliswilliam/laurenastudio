@@ -5,6 +5,7 @@ import type { JobStatus } from '@/lib/criarSiteChat';
 const api = axios.create({
   baseURL: '/api/v1',
   timeout: 120000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json; charset=utf-8',
     Accept: 'application/json; charset=utf-8',
@@ -92,24 +93,14 @@ function shouldRedirectOnUnauthorized(error: AxiosError): boolean {
   return !authPages.has(window.location.pathname);
 }
 
-// Interceptor de token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
 // Interceptor de resposta: detalhe FastAPI + 401 → login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (axios.isAxiosError(error) && shouldRedirectOnUnauthorized(error)) {
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       window.location.href = '/login';
     }
     return Promise.reject(new Error(formatApiError(error)));
@@ -147,6 +138,8 @@ export async function synthesizeSpeechWav(
 
   if (res.status === 401) {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     window.location.href = '/login';
     throw new Error('Sessão expirada');
   }

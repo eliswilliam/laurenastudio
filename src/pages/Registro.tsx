@@ -13,6 +13,7 @@ import {
   redirectToFacebookLogin,
   resolveAvatarDisplayUrl,
 } from '@/lib/authApi';
+import { executeRecaptchaAction } from '@/lib/recaptcha';
 import { useEffect } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -81,11 +82,13 @@ export default function Registro() {
     if (!email || !senha) return;
     setCarregando(true);
     try {
+      const recaptchaToken = await executeRecaptchaAction('register');
       const data = await apiRegister(
         email,
         senha,
         nome.trim() ? `Conta de ${nome.trim()}` : 'Minha conta',
-        nome.trim() || null
+        nome.trim() || null,
+        recaptchaToken
       );
       login(
         {
@@ -98,8 +101,7 @@ export default function Registro() {
           avatar: resolveAvatarDisplayUrl(data.user.avatar_url),
           plano: 'starter',
           criadoEm: data.user.created_at,
-        },
-        data.tokens.access_token
+        }
       );
       toast({
         title: t('pages.register.successTitle'),

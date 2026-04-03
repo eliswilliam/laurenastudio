@@ -10,33 +10,19 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import decode_token
 from app.db.session import AsyncSessionLocal, get_db
 from app.models.user_notification import UserNotification
 from app.routes.auth import get_current_user
-from app.schemas.notification import NotificationListResponse, NotificationRead
+from app.schemas.notification import NotificationListResponse
 from app.services import notification_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
-
-
-def _user_id_from_token(token: str) -> str:
-    try:
-        payload = decode_token(token)
-    except JWTError as e:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Token inválido ou expirado.") from e
-    uid = payload.get("sub", "")
-    ttype = payload.get("type", "")
-    if not uid or ttype != "access":
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Token inválido.")
-    return uid
 
 
 @router.get(
@@ -86,15 +72,14 @@ async def mark_all_read_route(
     summary="SSE stream of new notifications (polling)",
 )
 async def notification_stream(
-    token: str = Query(..., description="JWT access token"),
+    current_user=Depends(get_current_user),
 ):
     """
     Server-Sent Events: every ~2s polls for rows created after connection time.
-    Client: EventSource(`/api/v1/notifications/stream?token=...`).
-
-    Note: EventSource cannot send Authorization headers — token is passed in query.
+    Client: EventSource('/api/v1/notifications/stream').
+    Auth is resolved from secure HttpOnly cookie (or Authorization header fallback).
     """
-    user_id = _user_id_from_token(token)
+    user_id = current_user.id
     connected_at = datetime.now(timezone.utc)
     emitted: set[str] = set()
 

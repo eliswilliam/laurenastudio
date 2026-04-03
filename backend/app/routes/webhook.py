@@ -11,8 +11,11 @@ Events handled:
 
 NO JWT auth — Stripe authenticates via webhook signature (stripe-signature header).
 """
+from collections import deque
 import logging
 from datetime import datetime, timezone
+from threading import Lock
+from time import monotonic
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
@@ -25,6 +28,29 @@ from app.services import billing_service, stripe_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhook", tags=["Webhooks"])
+
+_EVENT_DEDUP_WINDOW_SECONDS = 24 * 60 * 60
+_EVENT_IDS: deque[tuple[str, float]] = deque()
+_EVENT_ID_SET: set[str] = set()
+_EVENT_LOCK = Lock()
+
+
+def _is_duplicate_event(event_id: str | None) -> bool:
+    if not event_id:
+        return False
+
+    now = monotonic()
+    with _EVENT_LOCK:
+        while _EVENT_IDS and (now - _EVENT_IDS[0][1]) > _EVENT_DEDUP_WINDOW_SECONDS:
+            old_id, _ = _EVENT_IDS.popleft()
+            _EVENT_ID_SET.discard(old_id)
+
+        if event_id in _EVENT_ID_SET:
+            return True
+
+        _EVENT_ID_SET.add(event_id)
+        _EVENT_IDS.append((event_id, now))
+        return False
 
 
 @router.post(
@@ -61,7 +87,13 @@ async def stripe_webhook(
     # StripeObject is not dict-like (.get raises) — normalize to plain dicts.
     ed = stripe_service.stripe_object_to_dict(event)
     event_type = ed["type"]
-    logger.info("Stripe webhook received: %s (id=%s)", event_type, ed.get("id"))
+    event_id = str(ed.get("id") or "")
+
+    if _is_duplicate_event(event_id):
+        logger.info("Stripe duplicate webhook ignored: type=%s id=%s", event_type, event_id)
+        return {"received": True, "duplicate": True}
+
+    logger.info("Stripe webhook received: type=%s id=%s", event_type, event_id)
 
     # 3. Dispatch by event type
     try:
@@ -87,9 +119,17 @@ async def stripe_webhook(
             logger.debug("Unhandled Stripe event type: %s", event_type)
 
     except Exception as e:
-        logger.error("Error processing Stripe event %s: %s", event_type, e, exc_info=True)
-        # Return 200 anyway so Stripe doesn't keep retrying on business-logic errors.
-        # Only signature failures should return 4xx.
+        logger.error(
+            "Stripe webhook processing failed: type=%s id=%s error=%s",
+            event_type,
+            event_id,
+            e,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Webhook processing failed. Retry later.",
+        )
 
     return {"received": True}
 

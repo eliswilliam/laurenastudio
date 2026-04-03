@@ -15,7 +15,7 @@ interface AuthState {
   planoNome: string | null;
   billingStatus: BillingStatusResponse | null;
   billingChecked: boolean; // true after first fetch attempt
-  login: (usuario: Usuario, token: string) => void;
+  login: (usuario: Usuario, token?: string | null) => void;
   logout: () => void;
   atualizarUsuario: (dados: Partial<Usuario>) => void;
   setCarregando: (carregando: boolean) => void;
@@ -34,12 +34,22 @@ export const useAuthStore = create<AuthState>()(
       planoNome: null,
       billingStatus: null,
       billingChecked: false,
-      login: (usuario, token) => {
-        localStorage.setItem('auth_token', token);
+      login: (usuario, token = null) => {
+        // Cookie HttpOnly now carries the server session token.
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         set({ usuario, token, isAutenticado: true, billingChecked: false, temPlanoAtivo: false, planoNome: null, billingStatus: null });
       },
       logout: () => {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        void fetch('/api/v1/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        }).catch(() => undefined);
         clearSessionOnLogout();
         set({
           usuario: null,
@@ -116,7 +126,6 @@ export const useAuthStore = create<AuthState>()(
       name: 'laurena-auth',
       partialize: (state) => ({
         usuario: state.usuario,
-        token: state.token,
         isAutenticado: state.isAutenticado,
         temPlanoAtivo: state.temPlanoAtivo,
         planoNome: state.planoNome,

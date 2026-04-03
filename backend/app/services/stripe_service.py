@@ -5,6 +5,7 @@ Stripe integration — checkout sessions, webhook handling, customer portal.
 Translates the Next.js tutorial patterns (create-checkout + webhook) into
 FastAPI-compatible async code using the official stripe-python SDK.
 """
+import hashlib
 import logging
 import stripe
 from datetime import datetime, timezone
@@ -218,7 +219,21 @@ def create_checkout_session(
     else:
         session_kwargs["customer_email"] = user_email
 
-    session = stripe.checkout.Session.create(**session_kwargs)
+    idempotency_source = "|".join(
+        [
+            workspace_id,
+            plan_name.lower().strip(),
+            billing_cycle,
+            change_mode,
+            previous_subscription_id or "none",
+        ]
+    )
+    idempotency_key = f"checkout-{hashlib.sha256(idempotency_source.encode('utf-8')).hexdigest()[:48]}"
+
+    session = stripe.checkout.Session.create(
+        **session_kwargs,
+        idempotency_key=idempotency_key,
+    )
     return session
 
 

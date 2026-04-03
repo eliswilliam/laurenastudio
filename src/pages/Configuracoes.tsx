@@ -32,7 +32,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 export default function Configuracoes() {
   const { toast } = useToast();
   const atualizarUsuario = useAuthStore((s) => s.atualizarUsuario);
-  const tokenStore = useAuthStore((s) => s.token);
 
   // ── State para dialogs/modals ─────────────────────────────────────────────
   const [carregandoDeletion, setCarregandoDeletion] = useState(false);
@@ -252,33 +251,7 @@ export default function Configuracoes() {
   const handleOpenDeleteDataPage = async () => {
     setCarregandoDeletion(true);
     try {
-      let token = localStorage.getItem('auth_token') || localStorage.getItem('access_token') || tokenStore;
-
-      // Fallback para sessões antigas: token salvo apenas no estado persistido do Zustand
-      if (!token) {
-        const persistedAuth = localStorage.getItem('laurena-auth');
-        if (persistedAuth) {
-          try {
-            const parsed = JSON.parse(persistedAuth);
-            token = parsed?.state?.token || null;
-          } catch {
-            token = null;
-          }
-        }
-      }
-      
-      // Valida token
-      if (!token) {
-        toast({
-          title: 'Você não está autenticado',
-          description: 'Por favor, faça login novamente.',
-          variant: 'destructive',
-        });
-        setCarregandoDeletion(false);
-        return;
-      }
-
-      const deleteUrl = `/api/v1/webhooks/delete-my-data?token=${encodeURIComponent(token)}`;
+      const deleteUrl = '/api/v1/webhooks/delete-my-data';
       const newWindow = window.open(deleteUrl, '_blank');
       
       if (!newWindow) {

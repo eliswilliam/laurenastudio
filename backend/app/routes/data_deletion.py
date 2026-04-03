@@ -14,17 +14,13 @@ import hashlib
 import base64
 import json
 from datetime import datetime, timezone
-from typing import Optional
 
-from fastapi import APIRouter, Request, Form, HTTPException, Depends, status
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Request, Form, HTTPException, Depends, Response, status
+from fastapi.responses import HTMLResponse
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
 
 from app.core.config import settings
-from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
@@ -32,6 +28,7 @@ from app.models.membership import Membership
 from app.models.subscription import Subscription
 from app.models.ai_generation import AIGeneration
 from app.models.media import Media
+from app.routes.auth import get_current_user
 
 try:
     from google.oauth2 import id_token
@@ -45,58 +42,6 @@ router = APIRouter(prefix="/webhooks", tags=["data-deletion"])
 # Config from .env
 META_APP_SECRET = settings.FACEBOOK_APP_SECRET if hasattr(settings, "FACEBOOK_APP_SECRET") else ""
 GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID if hasattr(settings, "GOOGLE_CLIENT_ID") else ""
-
-_bearer = HTTPBearer(auto_error=False)
-
-
-async def get_authenticated_user(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Extrai e valida JWT. Retorna User autenticado.
-    REQUER: Authorization: Bearer <token>
-    """
-    token_from_header = credentials.credentials if credentials else None
-    token_from_query = request.query_params.get("token")
-    token = token_from_header or token_from_query
-
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token JWT requerido",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    try:
-        payload = decode_token(token)
-        user_id: str = payload.get("sub", "")
-        token_type: str = payload.get("type", "")
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido ou expirado",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    if not user_id or token_type != "access":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalars().first()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuário não encontrado",
-        )
-
-    return user
 
 
 # ─── Utilitaire : Suppression complète d'un utilisateur ─────────────────────
@@ -263,12 +208,11 @@ async def delete_google_user(
 
 @router.get("/delete-my-data", response_class=HTMLResponse)
 async def delete_my_data_page(
-    request: Request,
-    current_user = Depends(get_authenticated_user),
+    current_user=Depends(get_current_user),
 ):
     """
     Página de confirmação para exclusão de dados.
-    REQUER: Authorization: Bearer <jwt_token>
+    REQUER: sessão autenticada (cookie HttpOnly ou Authorization header).
     
     Fluxo:
     1. Usuário autenticado acessa a página
@@ -278,11 +222,6 @@ async def delete_my_data_page(
     5. Desconexão automática
     6. Redirecionamento para home
     """
-    auth_header = request.headers.get("Authorization", "")
-    header_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else ""
-    query_token = request.query_params.get("token", "")
-    token = header_token or query_token
-
     provider = "Laurena"
     if getattr(current_user, "google_id", None):
         provider = "Google"
@@ -422,20 +361,7 @@ async def delete_my_data_page(
         </div>
 
         <script>
-            const TOKEN = "___EMBEDDED_TOKEN___";
             const PROVIDER_SERVER = "___EMBEDDED_PROVIDER___";
-
-            let token = TOKEN || localStorage.getItem('auth_token') || localStorage.getItem('access_token');
-
-            if (!token && (sessionStorage.getItem('auth_token') || sessionStorage.getItem('access_token'))) {
-                token = sessionStorage.getItem('auth_token') || sessionStorage.getItem('access_token');
-            }
-
-            if (!token) {
-                alert('Sessao expirada ou nao autenticado. Faca login novamente.');
-                window.location.href = '/login';
-                throw new Error('Sem autenticacao');
-            }
 
             function detectProvider() {
                 const user = localStorage.getItem('user');
@@ -467,9 +393,9 @@ async def delete_my_data_page(
                 try {
                     const res = await fetch('/api/v1/webhooks/request-deletion', {
                         method: 'POST',
+                        credentials: 'include',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + token,
                         },
                         body: JSON.stringify({}),
                     });
@@ -510,20 +436,20 @@ async def delete_my_data_page(
     </html>
     """
 
-    html_content = html_content.replace("___EMBEDDED_TOKEN___", token)
     html_content = html_content.replace("___EMBEDDED_PROVIDER___", provider)
     return html_content
 
 
 @router.post("/request-deletion")
 async def request_deletion(
+    response: Response,
     request: Request,
-    current_user = Depends(get_authenticated_user),
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Endpoint para deletar dados do usuário autenticado.
-    REQUER: Authorization: Bearer <jwt_token>
+    REQUER: sessão autenticada (cookie HttpOnly ou Authorization header).
     
     1. Extrai user_id do JWT
     2. Deleta todos os dados
@@ -544,6 +470,20 @@ async def request_deletion(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado"
         )
+
+    secure = request.url.scheme == "https" or settings.FRONTEND_URL.startswith("https://") or settings.BACKEND_URL.startswith("https://")
+    response.delete_cookie(
+        key=settings.AUTH_ACCESS_COOKIE_NAME,
+        path="/",
+        secure=secure,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+    )
+    response.delete_cookie(
+        key=settings.AUTH_REFRESH_COOKIE_NAME,
+        path="/",
+        secure=secure,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+    )
     
     return {
         "confirmation_code": social_id,

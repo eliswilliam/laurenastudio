@@ -60,7 +60,8 @@ export async function apiRegister(
   email: string,
   password: string,
   account_name = 'Minha conta',
-  full_name?: string | null
+  full_name?: string | null,
+  recaptchaToken?: string
 ): Promise<AuthResponse> {
   const res = await api.post<AuthResponse>('/auth/register', {
     email,
@@ -69,6 +70,7 @@ export async function apiRegister(
     ...(full_name != null && String(full_name).trim() !== ''
       ? { full_name: String(full_name).trim() }
       : {}),
+    ...(recaptchaToken ? { recaptcha_token: recaptchaToken } : {}),
   });
   return res.data;
 }

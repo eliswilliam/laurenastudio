@@ -1,0 +1,15 @@
+# Azure Web App — Single combined container image with nginx + uvicorn + supervisord
+# Exposes port 8080 (nginx proxy + direct API access)
+
+services:
+  app:
+    image: laurenastudio.azurecr.io/laurena-app:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

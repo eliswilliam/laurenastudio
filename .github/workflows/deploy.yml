@@ -1,0 +1,218 @@
+name: CI/CD Pipeline - Build, Test & Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: eliswilliam
+  COMBINED_IMAGE: laurena-app
+  WEBAPP_NAME: studiolaurena
+  RESOURCE_GROUP: studio
+jobs:
+  build-and-test:
+    name: "Build & Test Combined Docker Image"
+    runs-on: ubuntu-latest
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate image tag from commit SHA
+        id: meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tag=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "Image tag: $SHORT_SHA"
+
+      # Retire toute session Docker Hub invalide (sinon pulls des images publiques → 401).
+      # Cause fréquente : DOCKER_AUTH_CONFIG / login expiré sur runner auto-hébergé ou secret org.
+      - name: Clear Docker Hub auth for anonymous base image pulls
+        run: |
+          docker logout 2>/dev/null || true
+          docker logout registry-1.docker.io 2>/dev/null || true
+
+      - name: Build Combined image
+        run: |
+          docker build \
+            --tag ${{ env.COMBINED_IMAGE }}:${{ steps.meta.outputs.tag }} \
+            --tag ${{ env.COMBINED_IMAGE }}:latest \
+            --file Dockerfile.combined \
+            --build-arg VITE_RECAPTCHA_SITE_KEY=${{ secrets.VITE_RECAPTCHA_SITE_KEY }} \
+            .
+
+      - name: Start Combined container for test
+        run: |
+          docker run \
+            --detach \
+            --name test-app \
+            --env SKIP_ALEMBIC=1 \
+            --publish 8080:8080 \
+            ${{ env.COMBINED_IMAGE }}:${{ steps.meta.outputs.tag }}
+
+      - name: Health Check - Frontend (/)
+        run: |
+          MAX_RETRIES=15
+          RETRY_INTERVAL=3
+          SUCCESS=false
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i/$MAX_RETRIES..."
+            HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+              --max-time 10 \
+              http://localhost:8080/ || echo "000")
+
+            echo "Frontend HTTP Status: $HTTP_STATUS"
+
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+              echo "Frontend health check passed!"
+              SUCCESS=true
+              break
+            fi
+
+            echo "Waiting ${RETRY_INTERVAL}s..."
+            sleep $RETRY_INTERVAL
+          done
+
+          if [ "$SUCCESS" = false ]; then
+            echo "Frontend health check FAILED"
+            docker logs test-app
+            exit 1
+          fi
+
+      - name: Collect container logs
+        if: always()
+        run: |
+          echo "=== Container Logs ==="
+          docker logs test-app || true
+
+      - name: Stop and remove test container
+        if: always()
+        run: |
+          docker stop test-app || true
+          docker rm test-app || true
+
+      - name: Save Combined image
+        if: success()
+        run: |
+          docker save ${{ env.COMBINED_IMAGE }}:${{ steps.meta.outputs.tag }} \
+            | gzip > /tmp/app-image.tar.gz
+
+      - name: Upload Combined image artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-image
+          path: /tmp/app-image.tar.gz
+          retention-days: 1
+
+  deploy:
+    name: "Push to GHCR & Deploy"
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    environment: production
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      SCM_HOST: studiolaurena-g8eadbcrg8a9hyeq.scm.canadacentral-01.azurewebsites.net
+      APP_HOST: studiolaurena-g8eadbcrg8a9hyeq.canadacentral-01.azurewebsites.net
+      GHCR_CLEANUP_TOKEN: ${{ secrets.GHCR_CLEANUP_TOKEN }}
+
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/images
+
+      - name: Load Docker image
+        run: |
+          gunzip -c /tmp/images/app-image/app-image.tar.gz | docker load
+          echo "Image loaded successfully."
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and push image to GHCR
+        run: |
+          TAG=${{ needs.build-and-test.outputs.image-tag }}
+          IMAGE_PATH=${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.COMBINED_IMAGE }}
+          docker tag ${{ env.COMBINED_IMAGE }}:$TAG $IMAGE_PATH:$TAG
+          docker tag ${{ env.COMBINED_IMAGE }}:$TAG $IMAGE_PATH:latest
+          docker push $IMAGE_PATH:$TAG
+          docker push $IMAGE_PATH:latest
+
+      # Auto-cleanup des anciennes versions du package (garde les 5 derniers tags).
+      # Skipped si secret GHCR_CLEANUP_TOKEN absent. Pour activer :
+      # créer un PAT classique avec scope `delete:packages` puis ajouter
+      # comme secret repo nommé GHCR_CLEANUP_TOKEN.
+      - name: Cleanup old container versions (keep last 5)
+        if: ${{ env.GHCR_CLEANUP_TOKEN != '' }}
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ env.COMBINED_IMAGE }}
+          package-type: container
+          min-versions-to-keep: 5
+          delete-only-untagged-versions: false
+          token: ${{ env.GHCR_CLEANUP_TOKEN }}
+
+      - name: Restart App Service via SCM API
+        env:
+          SCM_USER: ${{ secrets.WEBAPP_DEPLOY_USER }}
+          SCM_PASS: ${{ secrets.WEBAPP_DEPLOY_PASSWORD }}
+        run: |
+          echo "Triggering container restart..."
+          HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            --max-time 60 \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"action":"push"}' \
+            -u "${SCM_USER}:${SCM_PASS}" \
+            "https://${{ env.SCM_HOST }}/docker/hook")
+          echo "SCM Response: $HTTP_CODE"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Could not trigger restart (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+
+      - name: Wait for container to stabilize
+        run: sleep 120
+
+      - name: Verify frontend
+        run: |
+          MAX_RETRIES=20
+          RETRY_INTERVAL=20
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Verification $i/$MAX_RETRIES..."
+            HTTP_STATUS=$(curl -4 --silent --output /dev/null --write-out "%{http_code}" \
+              --max-time 45 \
+              "https://${{ env.APP_HOST }}/" || echo "000")
+            echo "Frontend: $HTTP_STATUS"
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+              echo "Frontend responding!"
+              exit 0
+            fi
+            sleep $RETRY_INTERVAL
+          done
+          echo "ERROR: Frontend not responding"
+          exit 1
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          TAG=${{ needs.build-and-test.outputs.image-tag }}
+          echo "Commit: $TAG"
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.COMBINED_IMAGE }}:$TAG"
+          echo "URL: https://${{ env.APP_HOST }}"

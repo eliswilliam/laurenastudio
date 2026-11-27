@@ -1,0 +1,84 @@
+import { useEffect, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import AppSidebar from './AppSidebar';
+import AppTopbar from './AppTopbar';
+import MobileBottomNav from './MobileBottomNav';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useSidebarStore } from '@/store/useSidebarStore';
+import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/useTranslation';
+
+export default function AppLayout() {
+  const { t } = useTranslation();
+  const { isAutenticado, temPlanoAtivo, billingChecked, fetchBillingStatus } = useAuthStore();
+  const collapsed = useSidebarStore((s) => s.collapsed);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [ready, setReady] = useState(false);
+  const isNovidadeRoute = location.pathname.startsWith('/novidade');
+
+  useEffect(() => {
+    if (!isAutenticado) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    if (billingChecked) {
+      if (!temPlanoAtivo) {
+        navigate('/escolher-plano', { replace: true });
+        return;
+      }
+      setReady(true);
+      return;
+    }
+
+    fetchBillingStatus().then((isActive) => {
+      if (!isActive) {
+        navigate('/escolher-plano', { replace: true });
+      } else {
+        setReady(true);
+      }
+    });
+  }, [isAutenticado, temPlanoAtivo, billingChecked, fetchBillingStatus, navigate]);
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm">{t('appLayout.checkingSubscription')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isNovidadeRoute) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="min-h-screen">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <AppSidebar />
+
+      <div
+        className={cn(
+          'transition-all duration-300 flex flex-col min-h-screen',
+          collapsed ? 'md:ml-[64px]' : 'md:ml-[220px]'
+        )}
+      >
+        <AppTopbar />
+        <main className="flex-1 flex flex-col min-h-0 p-4 md:p-6 pb-24 md:pb-6">
+          <Outlet />
+        </main>
+      </div>
+
+      <MobileBottomNav />
+    </div>
+  );
+}

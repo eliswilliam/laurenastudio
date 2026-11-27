@@ -1,0 +1,431 @@
+{
+  "app": {
+    "title": "Laurena Studio",
+    "description": "Plateforme IA pour créateurs de contenu"
+  },
+  "seo": {
+    "defaultTitle": "Laurena Studio — Plateforme IA pour créateurs de contenu",
+    "description": "Créez des posts, images, vidéos et audio avec l'Intelligence Artificielle, planifiez sur tous les réseaux sociaux et analysez vos résultats. Tout en un seul endroit."
+  },
+  "seoPages": {
+    "about": {
+      "title": "À propos de Laurena Studio",
+      "description": "Découvrez l'équipe derrière Laurena Studio, la plateforme IA qui aide les créateurs à transformer leurs idées en contenus visuels et vidéo."
+    },
+    "authors": {
+      "title": "Auteurs — Équipe éditoriale Laurena Studio",
+      "description": "Découvrez les auteurs et experts de Laurena Studio sur la créativité, la croissance, le bien-être et la stratégie pour créateurs."
+    },
+    "contact": {
+      "title": "Contact — Parler à Laurena Studio",
+      "description": "Contactez Laurena Studio pour poser vos questions, envoyer des suggestions ou demander de l'aide pour votre flux créatif."
+    },
+    "creativity": {
+      "title": "Créativité — Articles & Inspiration",
+      "description": "Explorez des articles sur la créativité, l'innovation et l'expression artistique avec des insights pratiques pour créateurs."
+    },
+    "growth": {
+      "title": "Croissance — Stratégies pour Créateurs",
+      "description": "Lisez des contenus de croissance pour créateurs avec des stratégies concrètes, du mindset et des repères d'évolution digitale."
+    }
+  },
+  "errors": {
+    "INVALID_CREDENTIALS": "Email ou mot de passe incorrect. Vérifiez vos informations et réessayez.",
+    "EMAIL_ALREADY_EXISTS": "Cet email est déjà enregistré. Connectez-vous ou utilisez un autre email.",
+    "ACCOUNT_DEACTIVATED": "Compte désactivé. Veuillez contacter le support.",
+    "PASSWORD_TOO_SHORT": "Le nouveau mot de passe doit contenir au moins 8 caractères.",
+    "CURRENT_PASSWORD_REQUIRED": "Le mot de passe actuel est requis pour le modifier.",
+    "CURRENT_PASSWORD_WRONG": "Le mot de passe actuel est incorrect.",
+    "RESET_CODE_INVALID": "Code invalide ou expiré.",
+    "RESET_CODE_EXPIRED": "Le code a expiré. Veuillez en demander un nouveau.",
+    "RESET_EMAIL_SENT": "Si cet email est enregistré, vous recevrez un code de récupération.",
+    "PASSWORD_UPDATED": "Mot de passe mis à jour avec succès.",
+    "RESET_CODE_VALID": "Le code est valide.",
+    "AVATAR_INVALID_TYPE": "Utilisez JPG, PNG, GIF ou WebP.",
+    "AVATAR_TOO_LARGE": "L'image est trop grande (max. 5 Mo).",
+    "AVATAR_CONTENT_MISMATCH": "Le contenu du fichier ne correspond pas au type déclaré.",
+    "AVATAR_UPLOAD_FAILED": "Échec de l'envoi de l'avatar. Réessayez.",
+    "TOO_MANY_ATTEMPTS": "Trop de tentatives. Veuillez patienter quelques minutes.",
+    "RECAPTCHA_FAILED": "La vérification de sécurité a échoué. Réessayez.",
+    "RECAPTCHA_UNAVAILABLE": "La vérification de sécurité est temporairement indisponible.",
+    "RECAPTCHA_REQUIRED": "La vérification de sécurité est requise.",
+    "RECAPTCHA_CONFIG_INVALID": "Configuration de sécurité invalide. Contactez le support.",
+    "FILE_TYPE_NOT_ALLOWED": "Type de fichier non autorisé.",
+    "FILE_TOO_LARGE": "Le fichier dépasse la limite de 50 Mo.",
+    "FILE_CONTENT_MISMATCH": "Le contenu du fichier ne correspond pas au type déclaré.",
+    "SPEECH_SERVICE_UNAVAILABLE": "Le service de synthèse vocale est temporairement indisponible.",
+    "SPEECH_SYNTHESIS_FAILED": "Échec de la synthèse vocale. Réessayez dans un instant.",
+    "AI_GENERATION_FAILED": "Échec de la génération IA. Réessayez dans un instant.",
+    "IMAGE_REQUIRED_FOR_VIDEO": "Ajoutez une image de référence pour générer la vidéo.",
+    "AI_SERVICE_UNAVAILABLE": "Le service IA est temporairement indisponible.",
+    "IMAGE_GENERATION_FAILED": "Échec de la génération d'image. Réessayez dans un instant.",
+    "PROJECT_NOT_FOUND": "Projet introuvable.",
+    "NOTIFICATION_NOT_FOUND": "Notification introuvable.",
+    "NAME_ALREADY_USED": "Ce nom est déjà utilisé.",
+    "USER_NOT_FOUND": "Utilisateur introuvable."
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "criarSite": "Créer un site",
+    "novidade": "Novidade",
+    "template": "Template",
+    "sitePublished": "Site Publie",
+    "marketingAI": "Marketing IA",
+    "aiStudio": "IA Studio",
+    "analytics": "Analyses",
+    "adsAnalytics": "Analyses des annonces",
+    "midia": "Bibliothèque multimédia",
+    "pagamento": "Facturation",
+    "configuracoes": "Paramètres"
+  },
+  "auth": {
+    "login": "Connexion",
+    "register": "S'inscrire",
+    "logout": "Déconnexion",
+    "forgotPassword": "Mot de passe oublié",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe"
+  },
+  "common": {
+    "unlimited": "Illimité",
+    "or": "ou",
+    "user": "Utilisateur",
+    "retry": "Réessayer",
+    "back": "Retour",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès"
+  },
+  "hero": {
+    "title": "Créez des publications, images, vidéos et audio avec l'Intelligence Artificielle",
+    "subtitle": "Programmez sur tous les réseaux sociaux et suivez vos résultats. Tout en un seul endroit.",
+    "cta": "Commencer maintenant"
+  },
+  "sidebar": {
+    "collapse": "Réduire",
+    "moreOptions": "Plus d'options",
+    "more": "Plus"
+  },
+  "appLayout": {
+    "checkingSubscription": "Vérification de l'abonnement…"
+  },
+  "language": {
+    "switch": "Changer de langue"
+  },
+  "landing": {
+    "header": {
+      "features": "Fonctionnalités",
+      "howItWorks": "Comment ça marche",
+      "pricing": "Tarifs",
+      "login": "Connexion",
+      "startFree": "Commencer",
+      "toggleTheme": "Changer de thème",
+      "menu": "Menu",
+      "categoriesNavLabel": "Navigation principale",
+      "badges": {
+        "new": "Nouveau",
+        "sale": "30% OFF"
+      },
+      "navItems": {
+        "explore": "Découvrir",
+        "image": "Générer",
+        "video": "Clips",
+        "audio": "Sons",
+        "collab": "Studio",
+        "edit": "Affiner",
+        "character": "Personas IA",
+        "marketing": "UGC Marketing Hub",
+        "cinema": "FilmForge AI",
+        "originals": "Contenu exclusif",
+        "apps": "Intégrations",
+        "assist": "Co-Pilot Créa",
+        "community": "Galerie Users"
+      }
+    },
+    "hero": {
+      "titleBefore": "Créez des campagnes publicitaires et des sites avec",
+      "titleHighlight": "l'intelligence artificielle",
+      "subtitle": "Ici vous créez images, vidéos et audio pour vos campagnes, générez des textes et du contenu créatif, et construisez des sites complets sans coder. Le tout avec l'IA.",
+      "ctaPrimary": "Commencer gratuitement",
+      "ctaSecondary": "Accéder à la plateforme",
+      "live": "En direct"
+    },
+    "intro": {
+      "titleBefore": "De l'idée au résultat,",
+      "titleHighlight": "sans friction",
+      "subtitle": "Créez des campagnes complètes avec images, vidéos, audio et textes générés par l'IA, pensés pour les annonces qui convertissent. Mettez votre site en ligne en quelques minutes, sans écrire une ligne de code.",
+      "pillars": {
+        "campaigns": { "title": "Campagnes", "subtitle": "Images, vidéos et audio pour les annonces" },
+        "content": { "title": "Contenu", "subtitle": "Textes, images, vidéo et audio" },
+        "sites": { "title": "Sites", "subtitle": "Sans programmer" },
+        "ai": { "title": "IA", "subtitle": "Gemini et Minimax" }
+      }
+    },
+    "featuresSection": {
+      "badge": "Solutions intégrées",
+      "titleBefore": "Trois façons de créer avec",
+      "titleHighlight": "l'intelligence artificielle",
+      "subtitle": "Campagnes publicitaires, contenus pour les réseaux (image, vidéo, audio et texte) et sites complets sans coder — dans un flux unique avec des modèles d'IA de pointe.",
+      "explore": "Explorer sur la plateforme"
+    },
+    "features": {
+      "ads": {
+        "title": "Que vais-tu créer aujourd'hui ?",
+        "desc": "Créez des images et vidéos authentiques avec une texture naturelle et un style facile.",
+        "accent": "Performance"
+      },
+      "content": {
+        "title": "Marketing Studio",
+        "desc": "Transformez n'importe quel produit en vidéo publicitaire. Créez votre propre personnage — importez des photos sous plusieurs angles pour l'entraîner, puis utilisez le même personnage cohérent dans de nouvelles images et vidéos.",
+        "accent": "Créativité"
+      },
+      "site": {
+        "title": "Créer un site avec l'IA",
+        "desc": "Créez des sites complets sans programmer. Décrivez votre activité et l'IA assemble le site pour vous. Protection automatique par Cloudflare (HTTPS et réseau mondial).",
+        "accent": "Présence numérique"
+      }
+    },
+    "howItWorks": {
+      "badge": "Comment ça marche",
+      "titleBefore": "Simple en",
+      "titleHighlight": "trois étapes",
+      "subtitle": "Vous décrivez, l'IA crée, vous utilisez. Sans complication.",
+      "steps": {
+        "1": {
+          "title": "Décrivez ce dont vous avez besoin",
+          "desc": "Écrivez en quelques mots ce que vous voulez créer : une image publicitaire, une vidéo Instagram, un audio ou une légende de publication."
+        },
+        "2": {
+          "title": "L'IA génère le contenu",
+          "desc": "En quelques secondes vous recevez le contenu prêt — image, vidéo, audio ou texte, comme demandé."
+        },
+        "3": {
+          "title": "Utilisez où vous voulez",
+          "desc": "Téléchargez et utilisez dans vos campagnes, réseaux sociaux ou ailleurs."
+        }
+      }
+    },
+    "models": {
+      "badge": "Modèles d'IA",
+      "titleBefore": "Les plus puissants du marché,",
+      "titleHighlight": "dans votre compte",
+      "subtitle": "Laurena Studio intègre des modèles de référence pour chaque type de création : sites, contenu multimodal et vidéo — avec Google Gemini 3.1 Pro au cœur pour texte, images et audio haute performance.",
+      "footnote": "La disponibilité exacte de chaque modèle peut varier selon votre formule et les mises à jour. Nous privilégions toujours les versions les plus récentes et performantes.",
+      "claude": {
+        "name": "Claude Opus 4.6",
+        "use": "Sites avec IA",
+        "desc": "Le modèle phare d'Anthropic pour le raisonnement long, la structure des pages et la génération de sites complets de qualité professionnelle.",
+        "tag": "Anthropic"
+      },
+      "gemini": {
+        "name": "Google Gemini 3.1 Pro",
+        "use": "Texte, images et audio",
+        "desc": "Modèle multimodal de Google pour le copywriting, les visuels et les flux rapides — parmi les plus avancés pour le contenu créatif.",
+        "tag": "Google"
+      },
+      "minimax": {
+        "name": "Minimax",
+        "use": "Vidéo publicitaire",
+        "desc": "Génération vidéo au rendu cinématographique pour annonces, reels et campagnes — excellent pour le motion avec IA.",
+        "tag": "Google"
+      }
+    },
+    "plans": {
+      "badge": "Formules",
+      "title": "Investissez dans votre croissance",
+      "subtitle": "Des formules flexibles pour chaque étape. Résiliez quand vous voulez.",
+      "monthly": "Mensuel",
+      "annual": "Annuel",
+      "economyBadge": "Économisez 25 % sur la formule annuelle",
+      "resourcesTitle": "Fonctionnalités incluses",
+      "restrictionsTitle": "Restrictions",
+      "mostPopular": "Le plus populaire",
+      "planLabel": "Formule",
+      "perMonth": " / mois",
+      "billedYear": "Facturé R$ {{total}} / an",
+      "ctaSales": "Contacter les ventes",
+      "ctaSubscribe": "S'abonner {{name}}",
+      "ctaStart": "Commencer",
+      "starter": {
+        "recursos": [
+          "100 générations de texte IA",
+          "50 générations d'images",
+          "Tous vos projets au même endroit",
+          "5 générations vidéo par mois",
+          "3 publications de site par mois",
+          "10 générations audio par mois"
+        ]
+      },
+      "pro": {
+        "recursos": [
+          "300 générations de texte IA",
+          "100 générations d'images",
+          "Collaboration pour équipes en croissance",
+          "20 générations vidéo par mois",
+          "6 publications de site par mois",
+          "20 générations audio par mois",
+          "Support de base"
+        ]
+      },
+      "business": {
+        "recursos": [
+          "Génération de texte illimitée",
+          "Génération d'images illimitée",
+          "Générations audio illimitées",
+          "Équipes et projets à l'échelle illimitée",
+          "100 générations vidéo par mois",
+          "30 publications de site par mois",
+          "Financial AI : requêtes illimitées",
+          "Support premium"
+        ]
+      }
+    },
+    "finalCta": {
+      "quote": "Chaque image compte.",
+      "title": "Envie de créer campagnes et contenus avec l'IA ?",
+      "subtitle": "Créez votre compte et commencez maintenant. Sans carte bancaire.",
+      "primary": "Créer un compte gratuit",
+      "secondary": "J'ai déjà un compte"
+    },
+    "footer": {
+      "tagline": "Créez campagnes publicitaires et sites avec l'intelligence artificielle. Images, vidéos, audio, textes et sites complets sans programmer.",
+      "product": "Produit",
+      "platform": "Plateforme",
+      "legal": "Mentions légales",
+      "links": {
+        "features": "Fonctionnalités",
+        "pricing": "Tarifs",
+        "howItWorks": "Comment ça marche",
+        "login": "Connexion",
+        "register": "Créer un compte",
+        "dashboard": "Tableau de bord",
+        "privacy": "Confidentialité",
+        "terms": "Conditions générales",
+        "termsAi": "Conditions IA"
+      },
+      "copyright": "© 2026 Laurena Studio. Tous droits réservés.",
+      "bottomLine": "Créez campagnes, contenu multimédia (audio, vidéo, image) et sites avec l'IA"
+    },
+    "featured": {
+      "label": "À la une",
+      "tryModel": "Essayer le modèle",
+      "cards": {
+        "gptImage": { "badge": "Nouveau modèle", "cat": "IMAGE", "title": "GPT Image 2", "desc": "Visuels 4K avec lettrage net et textures maîtrisées", "prompt": "Portrait d'art contemporain, esthétique festival Holi, prise en moyen format." },
+        "veo3": { "badge": "4K", "cat": "VIDÉO", "title": "VEO 3 en 4K", "desc": "Rendu vidéo haute fidélité pensé pour des campagnes cinématiques", "prompt": "RPG AAA hyper-réaliste, col de montagne grec antique, hiver nuageux, boss Cyclope." },
+        "marketingApps": { "badge": "Nouveau", "cat": "MARKETING", "title": "Studio Campagnes Apps", "desc": "Orchestré par l'assistant créatif Laurena", "prompt": "Campagne complète — créatifs, copy, contenu social en un seul brief." },
+        "nanoBananaPro": { "badge": "1080p", "cat": "VIDÉO", "title": "Nano Banana Pro", "desc": "Détails plus nets et transitions de mouvement fluides", "prompt": "Photographie cinématographique de Tokyo, panneau 3D hyperréaliste au carrefour de Shibuya." }
+      }
+    },
+    "spotlight": {
+      "badge": "Nouveau", "cat": "MARKETING", "title": "Marketing Studio",
+      "headline": "Créez votre\nmoteur de campagne.",
+      "desc": "Planifiez, générez et publiez vos assets de marque depuis un seul espace.",
+      "cta": "Ouvrir l'espace"
+    },
+    "split": {
+      "eyebrow": "PLATEFORME IA · CRÉATION GÉNÉRATIVE",
+      "title": "Créez n'importe quoi.",
+      "highlight": "Avec l'IA générative.",
+      "sub": "Images 4K, vidéos cinéma, audios professionnels et sites — tout sur une plateforme alimentée par les meilleures IA du monde.",
+      "placeholder": "www.votresite.com",
+      "inputBtn": "Créer un site",
+      "altLink": "Ou créer un compte gratuit →"
+    },
+    "promo": {
+      "eyebrow": "PLANS ANNUELS · JUSQU'À 25% DE RÉDUCTION",
+      "title": "Le meilleur de l'IA générative",
+      "highlight": "avec 25% de réduction.",
+      "sub": "Accès complet à l'image, la vidéo, l'audio et la création de sites — avec les plans annuels.",
+      "primary": "Commencer gratuitement",
+      "secondary": "Voir les plans"
+    },
+    "originals": {
+      "eyebrow": "AI BUILDER · SITES COMPLETS",
+      "title": "De zéro à en ligne,",
+      "highlight": "en minutes.",
+      "sub": "Créez des sites complets avec des textes, images et mises en page générés automatiquement par l'IA. Sans code. Sans complication.",
+      "cta": "Créer mon site"
+    },
+    "tools": {
+      "label": "Outils",
+      "title": "Choisissez votre flux créatif",
+      "sub": "De l'idée aux assets prêts à publier : image, vidéo, audio, sites et campagnes.",
+      "image": { "label": "Créer une image", "desc": "GPT Image 2 · Gemini 2.5 Flash" },
+      "video": { "label": "Créer une vidéo", "desc": "VEO 3 · Minimax 3.1 pour campagnes courtes" },
+      "marketing": { "label": "Marketing Studio", "desc": "Brief, créatifs et variantes de canal dans un seul flux" },
+      "site": { "label": "Créer un site", "desc": "Sites complets avec IA générative" },
+      "audio": { "label": "Audio IA", "desc": "Azure AI Speech · 70+ langues" },
+      "agenda": { "label": "Planificateur", "desc": "Planifiez des posts sur plusieurs réseaux" },
+      "midia": { "label": "Bibliothèque", "desc": "Gérez tous vos médias générés" },
+      "analytics": { "label": "Analytiques", "desc": "Métriques et insights en temps réel" }
+    },
+    "engines": {
+      "label": "Moteurs IA",
+      "title": "Les meilleures IA,\nsur une seule plateforme",
+      "viewAll": "Voir tout",
+      "claude": { "use": "Contenu & copy", "name": "Claude Opus 4", "desc": "Raisonnement avancé et génération de contenu long avec contrôle du ton raffiné." },
+      "gemini": { "use": "Image & multimodal", "name": "Gemini 2.5 Flash", "desc": "Génération d'images 4K avec rendu texte quasi parfait et compréhension visuelle." },
+      "minimax": { "use": "Génération vidéo", "name": "Minimax / VEO 3", "desc": "Génération vidéo cinéma jusqu'à 4K via l'infrastructure Google Cloud." },
+      "azure": { "use": "Voix & audio", "name": "Azure AI Speech", "desc": "Synthèse vocale naturelle et expressive en 70+ langues avec qualité studio." }
+    },
+    "cinema": {
+      "eyebrow": "VEO 3 · MINIMAX 3.1 · 4K",
+      "title": "Vidéos cinéma\nen résolution 4K.",
+      "sub": "Générez des vidéos cinématographiques avec les modèles les plus avancés du monde, directement sur votre plateforme.",
+      "cta": "Créer une vidéo"
+    },
+      "marketingShowcase": {
+        "titleTop": "DU LIEN PRODUIT.",
+        "titleBottom": "À LA CAMPAGNE ACTIVE.",
+        "subtitle": "Créez annonces, démos et variations sociales dans un seul flux",
+        "cta": "Ouvrir Campaign Studio",
+        "inputPlaceholder": "Collez l'URL de votre produit",
+        "linkProduct": "URL produit",
+        "linkApp": "Connecter votre app",
+        "viewAll": "Voir Campaign Studio"
+      },
+    "pricingSection": {
+      "label": "Plans",
+      "title": "Prix juste. Accès complet.",
+      "sub": "Tous les plans incluent l'accès aux IA pour image, vidéo, audio et création de sites.",
+      "economy": "Économisez 25%",
+      "popular": "Le plus populaire",
+      "billedAnnually": "facturé annuellement",
+      "ctaSales": "Parler à l'équipe",
+      "ctaSubscribe": "S'abonner {{name}}",
+      "ctaStart": "Commencer gratuitement"
+    },
+    "ctaSection": {
+      "title": "De l'idée à la création, en quelques minutes.",
+      "sub": "Rejoignez des milliers de créateurs qui utilisent Laurena Studio pour générer des images, vidéos, audios et sites avec l'IA.",
+      "primary": "Créer un compte gratuit",
+      "secondary": "Voir les plans"
+    },
+    "footerSection": {
+      "brand": "Plateforme de création IA générative — image, vidéo, audio et sites.",
+      "product": "Produit",
+      "platform": "Plateforme",
+      "legal": "Mentions légales",
+      "copyright": "© {{year}} Laurena Studio. Tous droits réservés."
+    }
+  },
+  "billing": {
+    "choosePlan": {
+      "badge": "Presque terminé",
+      "title": "Choisissez votre formule pour commencer",
+      "subtitle": "Pour accéder au tableau de bord, choisissez la formule qui vous convient. Résiliez à tout moment."
+    },
+    "stripeFooter": "Paiement sécurisé via Stripe. Résiliez quand vous voulez, sans pénalité.",
+    "checkoutErrorTitle": "Erreur de paiement",
+    "checkoutErrorDescription": "Impossible de démarrer le paiement."
+  }
+}

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{SITE_TITLE}}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ===========================
+       CSS VARIABLES — THEME
+    =========================== */
+    :root {
+      --color-bg:        #0d0d0d;
+      --color-surface:   #161616;
+      --color-border:    #2a2a2a;
+      --color-accent:    #e8c97e;
+      --color-accent2:   #c0392b;
+      --color-text:      #f0ece4;
+      --color-muted:     #888;
+      --font-display:    'Playfair Display', serif;
+      --font-body:       'DM Sans', sans-serif;
+      --radius:          4px;
+      --transition:      0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ===========================
+       RESET & BASE
+    =========================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ===========================
+       NOISE TEXTURE OVERLAY
+    =========================== */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ===========================
+       NAVBAR
+    =========================== */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.5rem 4rem;
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    nav.scrolled {
+      background: rgba(13,13,13,0.92);
+      backdrop-filter: blur(12px);
+      border-color: var(--color-border);
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--color-accent);
+    }
+    .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+    .nav-links a {
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      transition: color var(--transition);
+    }
+    .nav-links a:hover { color: var(--color-text); }
+    .nav-cta {
+      border: 1px solid var(--color-accent);
+      padding: 0.5rem 1.4rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      transition: background var(--transition), color var(--transition);
+      border-radius: var(--radius);
+    }
+    .nav-cta:hover { background: var(--color-accent); color: #000; }
+
+    /* ===========================
+       HERO
+    =========================== */
+    #hero {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 8rem 4rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-bg-circle {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.12;
+      pointer-events: none;
+    }
+    .hero-bg-circle:nth-child(1) {
+      width: 600px; height: 600px;
+      background: var(--color-accent);
+      top: -200px; left: -200px;
+    }
+    .hero-bg-circle:nth-child(2) {
+      width: 400px; height: 400px;
+      background: var(--color-accent2);
+      bottom: -100px; right: -100px;
+    }
+    .hero-inner {
+      max-width: 900px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      border: 1px solid var(--color-accent);
+      padding: 0.3rem 1rem;
+      border-radius: 999px;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.8s ease both;
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.8s 0.15s ease both;
+    }
+    .hero-title span { color: var(--color-accent); }
+    .hero-subtitle {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--color-muted);
+      max-width: 580px;
+      margin: 0 auto 3rem;
+      animation: fadeUp 0.8s 0.3s ease both;
+    }
+    .hero-actions {
+      display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+      animation: fadeUp 0.8s 0.45s ease both;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.85rem 2rem;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-radius: var(--radius);
+      transition: all var(--transition);
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--color-accent);
+      color: #000;
+    }
+    .btn-primary:hover { background: #f0d898; transform: translateY(-2px); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+    }
+    .btn-ghost:hover { border-color: var(--color-text); }
+
+    /* ===========================
+       SECTION COMMON
+    =========================== */
+    section { padding: 7rem 4rem; }
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: 1rem;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+    .section-desc {
+      color: var(--color-muted);
+      max-width: 540px;
+      font-size: 1rem;
+    }
+
+    /* ===========================
+       FEATURES
+    =========================== */
+    #features { background: var(--color-surface); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5px;
+      margin-top: 4rem;
+      border: 1.5px solid var(--color-border);
+    }
+    .feature-card {
+      background: var(--color-bg);
+      padding: 2.5rem;
+      border: 1px solid transparent;
+      transition: border-color var(--transition), background var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(232,201,126,0.05), transparent 60%);
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-card:hover { border-color: var(--color-border); }
+    .feature-icon {
+      width: 44px; height: 44px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      display: grid; place-items: center;
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+      color: var(--color-accent);
+    }
+    .feature-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    .feature-card p { color: var(--color-muted); font-size: 0.9rem; line-height: 1.7; }
+
+    /* ===========================
+       STATS
+    =========================== */
+    #stats {
+      display: flex; gap: 0;
+      padding: 0;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .stat-item {
+      flex: 1;
+      padding: 4rem;
+      text-align: center;
+      border-right: 1px solid var(--color-border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-number {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 900;
+      color: var(--color-accent);
+      letter-spacing: -0.04em;
+      display: block;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-top: 0.5rem;
+    }
+
+    /* ===========================
+       TESTIMONIALS
+    =========================== */
+    #testimonials { background: var(--color-surface); }
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 4rem;
+    }
+    .testimonial-card {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      padding: 2rem;
+      border-radius: var(--radius);
+      position: relative;
+    }
+    .testimonial-quote {
+      font-size: 2rem;
+      color: var(--color-accent);
+      line-height: 1;
+      margin-bottom: 1rem;
+      font-family: var(--font-display);
+    }
+    .testimonial-text {
+      color: var(--color-muted);
+      font-size: 0.95rem;
+      line-height: 1.75;
+      margin-bottom: 1.5rem;
+    }
+    .testimonial-author {
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .author-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--color-border);
+      display: grid; place-items: center;
+      font-size: 1rem;
+    }
+    .author-name { font-weight: 500; font-size: 0.9rem; }
+    .author-role { font-size: 0.75rem; color: var(--color-muted); }
+
+    /* ===========================
+       CTA SECTION
+    =========================== */
+    #cta {
+      text-align: center;
+      background: linear-gradient(135deg, #111 0%, #1a1500 100%);
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+    #cta .section-title { color: var(--color-text); }
+    #cta .section-desc { margin: 0 auto 2.5rem; }
+    .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    /* ===========================
+       FOOTER
+    =========================== */
+    footer {
+      padding: 4rem;
+      border-top: 1px solid var(--color-border);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 2rem;
+    }
+    .footer-logo {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: var(--color-accent);
+      margin-bottom: 0.5rem;
+    }
+    .footer-copy { color: var(--color-muted); font-size: 0.8rem; }
+    .footer-links { display: flex; gap: 2rem; list-style: none; }
+    .footer-links a {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      transition: color var(--transition);
+    }
+    .footer-links a:hover { color: var(--color-text); }
+
+    /* ===========================
+       ANIMATIONS
+    =========================== */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===========================
+       RESPONSIVE
+    =========================== */
+    @media (max-width: 768px) {
+      nav { padding: 1.2rem 1.5rem; }
+      .nav-links { display: none; }
+      section { padding: 5rem 1.5rem; }
+      #hero { padding: 7rem 1.5rem 3rem; }
+      #stats { flex-direction: column; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--color-border); padding: 2.5rem; }
+      footer { grid-template-columns: 1fr; text-align: center; }
+      .footer-links { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav id="navbar">
+    <div class="nav-logo">{{LOGO_TEXT}}</div>
+    <ul class="nav-links">
+      <li><a href="#features">{{NAV_LINK_1}}</a></li>
+      <li><a href="#testimonials">{{NAV_LINK_2}}</a></li>
+      <li><a href="#cta">{{NAV_LINK_3}}</a></li>
+    </ul>
+    <a href="#cta" class="nav-cta">{{NAV_CTA}}</a>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-bg-circle"></div>
+    <div class="hero-bg-circle"></div>
+    <div class="hero-inner">
+      <span class="hero-eyebrow">{{HERO_EYEBROW}}</span>
+      <h1 class="hero-title">{{HERO_TITLE_LINE1}} <span>{{HERO_TITLE_ACCENT}}</span> {{HERO_TITLE_LINE2}}</h1>
+      <p class="hero-subtitle">{{HERO_SUBTITLE}}</p>
+      <div class="hero-actions">
+        <a href="#cta" class="btn btn-primary">{{HERO_BTN_PRIMARY}}</a>
+        <a href="#features" class="btn btn-ghost">{{HERO_BTN_SECONDARY}}</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-label">{{FEATURES_LABEL}}</div>
+    <h2 class="section-title">{{FEATURES_TITLE}}</h2>
+    <p class="section-desc">{{FEATURES_DESC}}</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">{{FEATURE_1_ICON}}</div>
+        <h3>{{FEATURE_1_TITLE}}</h3>
+        <p>{{FEATURE_1_DESC}}</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">{{FEATURE_2_ICON}}</div>
+        <h3>{{FEATURE_2_TITLE}}</h3>
+        <p>{{FEATURE_2_DESC}}</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">{{FEATURE_3_ICON}}</div>
+        <h3>{{FEATURE_3_TITLE}}</h3>
+        <p>{{FEATURE_3_DESC}}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div id="stats">
+    <div class="stat-item">
+      <span class="stat-number">{{STAT_1_NUMBER}}</span>
+      <span class="stat-label">{{STAT_1_LABEL}}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">{{STAT_2_NUMBER}}</span>
+      <span class="stat-label">{{STAT_2_LABEL}}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">{{STAT_3_NUMBER}}</span>
+      <span class="stat-label">{{STAT_3_LABEL}}</span>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <section id="testimonials">
+    <div class="section-label">{{TESTIMONIALS_LABEL}}</div>
+    <h2 class="section-title">{{TESTIMONIALS_TITLE}}</h2>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"</div>
+        <p class="testimonial-text">{{TESTIMONIAL_1_TEXT}}</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">{{TESTIMONIAL_1_AVATAR}}</div>
+          <div>
+            <div class="author-name">{{TESTIMONIAL_1_NAME}}</div>
+            <div class="author-role">{{TESTIMONIAL_1_ROLE}}</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"</div>
+        <p class="testimonial-text">{{TESTIMONIAL_2_TEXT}}</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">{{TESTIMONIAL_2_AVATAR}}</div>
+          <div>
+            <div class="author-name">{{TESTIMONIAL_2_NAME}}</div>
+            <div class="author-role">{{TESTIMONIAL_2_ROLE}}</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"</div>
+        <p class="testimonial-text">{{TESTIMONIAL_3_TEXT}}</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">{{TESTIMONIAL_3_AVATAR}}</div>
+          <div>
+            <div class="author-name">{{TESTIMONIAL_3_NAME}}</div>
+            <div class="author-role">{{TESTIMONIAL_3_ROLE}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="cta">
+    <div class="section-label">{{CTA_LABEL}}</div>
+    <h2 class="section-title">{{CTA_TITLE}}</h2>
+    <p class="section-desc">{{CTA_DESC}}</p>
+    <div class="cta-actions">
+      <a href="#" class="btn btn-primary">{{CTA_BTN_PRIMARY}}</a>
+      <a href="#" class="btn btn-ghost">{{CTA_BTN_SECONDARY}}</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>
+      <div class="footer-logo">{{LOGO_TEXT}}</div>
+      <div class="footer-copy">{{FOOTER_COPY}}</div>
+    </div>
+    <ul class="footer-links">
+      <li><a href="#">{{FOOTER_LINK_1}}</a></li>
+      <li><a href="#">{{FOOTER_LINK_2}}</a></li>
+      <li><a href="#">{{FOOTER_LINK_3}}</a></li>
+    </ul>
+  </footer>
+
+  <script>
+    // Navbar scroll effect
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 40);
+    });
+  </script>
+
+</body>
+</html>

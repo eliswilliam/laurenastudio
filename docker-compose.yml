@@ -1,0 +1,127 @@
+services:
+  # ── Redis (ARQ job queue) ────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: always
+    # SECURITY: Redis est sur le réseau interne uniquement, pas exposé à l'hôte
+    # Pour accéder localement : docker exec -it <container> redis-cli -a $REDIS_PASSWORD
+    expose:
+      - "6379"
+    command: >
+      sh -c "redis-server --requirepass $${REDIS_PASSWORD:-changeme_redis_local}"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme_redis_local}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - internal
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_db_local}
+      POSTGRES_DB: ${POSTGRES_DB:-laurenadb}
+    # SECURITY: DB non exposée à l'hôte, uniquement accessible depuis le réseau interne
+    expose:
+      - "5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: always
+    ports:
+      # SECURITY: lié à 127.0.0.1 uniquement (pas 0.0.0.0)
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme_db_local}@db:5432/${POSTGRES_DB:-laurenadb}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme_redis_local}@redis:6379/0
+      BACKEND_URL: http://localhost:8000
+      FRONTEND_URL: http://localhost:8080
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
+      # Logs visibles tout de suite pendant les requêtes longues (ex. POST /api/publish)
+      PYTHONUNBUFFERED: "1"
+      # Windows + bind mount: évite les erreurs watchfiles/IO sur /app avec --reload
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./backend:/app
+      - ${APPDATA}/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── ARQ worker (site generate + publish jobs) ───────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: always
+    env_file:
+      - backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme_db_local}@db:5432/${POSTGRES_DB:-laurenadb}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme_redis_local}@redis:6379/0
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./backend:/app
+      - ${APPDATA}/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
+    command: arq app.workers.arq_worker.WorkerSettings
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── Frontend (Vite / React) ─────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: always
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+    environment:
+      VITE_BACKEND_TARGET: http://api:8000
+      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+    depends_on:
+      - api
+    networks:
+      - internal
+
+volumes:
+  db_data:
+
+networks:
+  # Réseau bridge interne — les conteneurs communiquent entre eux
+  # mais Redis et PostgreSQL ne sont PAS accessibles depuis l'hôte
+  internal:
+    driver: bridge

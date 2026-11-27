@@ -1,0 +1,431 @@
+{
+  "app": {
+    "title": "Laurena Studio",
+    "description": "Plataforma de IA para criadores de conteúdo"
+  },
+  "seo": {
+    "defaultTitle": "Laurena Studio — Plataforma de IA para criadores de conteúdo",
+    "description": "Crie posts, imagens, vídeos e áudio com Inteligência Artificial, agende em todas as redes sociais e acompanhe seus resultados. Tudo em um só lugar."
+  },
+  "seoPages": {
+    "about": {
+      "title": "Sobre a Laurena Studio",
+      "description": "Conheça a equipe da Laurena Studio, a plataforma de IA que ajuda criadores a transformar ideias em posts, imagens e vídeos."
+    },
+    "authors": {
+      "title": "Autores — Equipe Editorial Laurena Studio",
+      "description": "Conheça os autores e especialistas da Laurena Studio sobre criatividade, crescimento, bem-estar e estratégia para criadores."
+    },
+    "contact": {
+      "title": "Contato — Fale com a Laurena Studio",
+      "description": "Entre em contato com a Laurena Studio para tirar dúvidas, enviar sugestões ou solicitar suporte para seu fluxo de criação."
+    },
+    "creativity": {
+      "title": "Criatividade — Artigos & Inspiração",
+      "description": "Explore artigos sobre criatividade, inovação e expressão artística com insights práticos para criadores."
+    },
+    "growth": {
+      "title": "Crescimento — Estratégias para Criadores",
+      "description": "Leia conteúdos de crescimento para criadores com estratégias práticas, mentalidade e evolução digital."
+    }
+  },
+  "errors": {
+    "INVALID_CREDENTIALS": "E-mail ou senha incorretos. Verifique os dados e tente novamente.",
+    "EMAIL_ALREADY_EXISTS": "Este e-mail já está cadastrado. Faça login ou use outro e-mail.",
+    "ACCOUNT_DEACTIVATED": "Conta desativada. Entre em contacto com o suporte.",
+    "PASSWORD_TOO_SHORT": "A nova senha deve ter pelo menos 8 caracteres.",
+    "CURRENT_PASSWORD_REQUIRED": "A senha atual é obrigatória para alterar a senha.",
+    "CURRENT_PASSWORD_WRONG": "Senha atual incorreta.",
+    "RESET_CODE_INVALID": "Código inválido ou expirado.",
+    "RESET_CODE_EXPIRED": "Código expirado. Solicite um novo código.",
+    "RESET_EMAIL_SENT": "Se este e-mail estiver cadastrado, você receberá um código de recuperação.",
+    "PASSWORD_UPDATED": "Senha atualizada com sucesso.",
+    "RESET_CODE_VALID": "Código válido.",
+    "AVATAR_INVALID_TYPE": "Use JPG, PNG, GIF ou WebP.",
+    "AVATAR_TOO_LARGE": "Imagem demasiado grande (máx. 5 MB).",
+    "AVATAR_CONTENT_MISMATCH": "Conteúdo do arquivo incompatível com o tipo declarado.",
+    "AVATAR_UPLOAD_FAILED": "Falha ao enviar o avatar. Tente novamente.",
+    "TOO_MANY_ATTEMPTS": "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
+    "RECAPTCHA_FAILED": "Verificação de segurança falhou. Tente novamente.",
+    "RECAPTCHA_UNAVAILABLE": "Verificação de segurança temporariamente indisponível.",
+    "RECAPTCHA_REQUIRED": "Verificação de segurança necessária.",
+    "RECAPTCHA_CONFIG_INVALID": "Configuração de segurança inválida. Contacte o suporte.",
+    "FILE_TYPE_NOT_ALLOWED": "Tipo de ficheiro não permitido.",
+    "FILE_TOO_LARGE": "Ficheiro excede o limite de 50 MB.",
+    "FILE_CONTENT_MISMATCH": "Conteúdo do ficheiro incompatível com o tipo declarado.",
+    "SPEECH_SERVICE_UNAVAILABLE": "Serviço de síntese de voz temporariamente indisponível.",
+    "SPEECH_SYNTHESIS_FAILED": "Falha na síntese de voz. Tente novamente em instantes.",
+    "AI_GENERATION_FAILED": "Falha na geração com IA. Tente novamente em instantes.",
+    "IMAGE_REQUIRED_FOR_VIDEO": "Adicione uma imagem de referência para gerar o vídeo.",
+    "AI_SERVICE_UNAVAILABLE": "Serviço de IA temporariamente indisponível.",
+    "IMAGE_GENERATION_FAILED": "Falha na geração de imagem. Tente novamente em instantes.",
+    "PROJECT_NOT_FOUND": "Projeto não encontrado.",
+    "NOTIFICATION_NOT_FOUND": "Notificação não encontrada.",
+    "NAME_ALREADY_USED": "Este nome já está a ser utilizado.",
+    "USER_NOT_FOUND": "Utilizador não encontrado."
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "criarSite": "Criar Site",
+    "novidade": "Novidade",
+    "template": "Template",
+    "sitePublished": "Site Publicado",
+    "marketingAI": "Marketing IA",
+    "aiStudio": "IA Studio",
+    "analytics": "Análises",
+    "adsAnalytics": "Análises de Anúncios",
+    "midia": "Biblioteca de Mídia",
+    "pagamento": "Pagamento",
+    "configuracoes": "Configurações"
+  },
+  "auth": {
+    "login": "Entrar",
+    "register": "Registrar",
+    "logout": "Sair",
+    "forgotPassword": "Esqueci minha senha",
+    "resetPassword": "Redefinir senha",
+    "email": "E-mail",
+    "password": "Senha",
+    "confirmPassword": "Confirmar senha"
+  },
+  "common": {
+    "unlimited": "Ilimitado",
+    "or": "ou",
+    "user": "Usuário",
+    "retry": "Tentar novamente",
+    "back": "Voltar",
+    "active": "Ativa",
+    "inactive": "Inativo",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso"
+  },
+  "hero": {
+    "title": "Crie posts, imagens, vídeos e áudio com Inteligência Artificial",
+    "subtitle": "Agende em todas as redes sociais e acompanhe seus resultados. Tudo em um só lugar.",
+    "cta": "Comece agora"
+  },
+  "sidebar": {
+    "collapse": "Recolher",
+    "moreOptions": "Mais opções",
+    "more": "Mais"
+  },
+  "appLayout": {
+    "checkingSubscription": "Verificando assinatura…"
+  },
+  "language": {
+    "switch": "Alterar idioma"
+  },
+  "landing": {
+    "header": {
+      "features": "Funcionalidades",
+      "howItWorks": "Como funciona",
+      "pricing": "Planos",
+      "login": "Entrar",
+      "startFree": "Começar",
+      "toggleTheme": "Alternar tema",
+      "menu": "Menu",
+      "categoriesNavLabel": "Navegação principal",
+      "badges": {
+        "new": "Novo",
+        "sale": "30% OFF"
+      },
+      "navItems": {
+        "explore": "Descobrir",
+        "image": "Criar",
+        "video": "Motion",
+        "audio": "Tracks",
+        "collab": "Team",
+        "edit": "Polish",
+        "character": "Personas AI",
+        "marketing": "UGC Marketing Hub",
+        "cinema": "FilmForge AI",
+        "originals": "Conteúdo exclusivo",
+        "apps": "Integrações",
+        "assist": "Co-Pilot Criativo",
+        "community": "Galeria Users"
+      }
+    },
+    "hero": {
+      "titleBefore": "Crie campanhas publicitárias e sites com",
+      "titleHighlight": "inteligência artificial",
+      "subtitle": "Aqui você cria imagens, vídeos e áudio para suas campanhas de anúncios, gera textos e conteúdo criativo e cria sites completos sem programar. Tudo com IA.",
+      "ctaPrimary": "Começar gratuitamente",
+      "ctaSecondary": "Entrar na plataforma",
+      "live": "Ao vivo"
+    },
+    "intro": {
+      "titleBefore": "Da ideia ao resultado,",
+      "titleHighlight": "sem atrito",
+      "subtitle": "Crie campanhas completas com imagens, vídeos, áudio e textos gerados por IA, tudo pensado para anúncios que convertem. Faça o deploy do seu site na web em poucos minutos, sem escrever uma linha de código.",
+      "pillars": {
+        "campaigns": { "title": "Campanhas", "subtitle": "Imagens, vídeos e áudio para anúncios" },
+        "content": { "title": "Conteúdo", "subtitle": "Textos, imagens, vídeo e áudio" },
+        "sites": { "title": "Sites", "subtitle": "Sem programar" },
+        "ai": { "title": "IA", "subtitle": "Gemini e Minimax" }
+      }
+    },
+    "featuresSection": {
+      "badge": "Soluções integradas",
+      "titleBefore": "Três formas de criar com",
+      "titleHighlight": "inteligência artificial",
+      "subtitle": "Campanhas publicitárias, conteúdos para redes sociais (imagem, vídeo, áudio e texto) e sites completos sem programar, num fluxo único com modelos de IA de última geração.",
+      "explore": "Explorar na plataforma"
+    },
+    "features": {
+      "ads": {
+        "title": "O que você vai criar hoje?",
+        "desc": "Crie imagens e vídeos autênticos com textura natural e estilo sem esforço.",
+        "accent": "Performance"
+      },
+      "content": {
+        "title": "Marketing Studio",
+        "desc": "Transforme qualquer produto em um vídeo de anúncio. Crie seu próprio personagem — envie fotos de múltiplos ângulos para treiná-lo e use o mesmo personagem consistente em novas imagens e vídeos.",
+        "accent": "Criatividade"
+      },
+      "site": {
+        "title": "Criar site com IA",
+        "desc": "Crie sites completos sem programar. Descreva seu negócio e a IA monta o site para você. O site criado será protegido automaticamente pela Cloudflare (HTTPS e rede global).",
+        "accent": "Presença digital"
+      }
+    },
+    "howItWorks": {
+      "badge": "Como funciona",
+      "titleBefore": "É simples em",
+      "titleHighlight": "três passos",
+      "subtitle": "Você descreve, a IA cria e você usa. Sem complicação.",
+      "steps": {
+        "1": {
+          "title": "Descreva o que precisa",
+          "desc": "Escreva em poucas palavras o que quer criar: uma imagem para anúncio, um vídeo para Instagram, um áudio ou um texto para post."
+        },
+        "2": {
+          "title": "A IA gera o conteúdo",
+          "desc": "Em segundos você recebe o material pronto. Imagem, vídeo, áudio ou texto, conforme pediu."
+        },
+        "3": {
+          "title": "Use onde quiser",
+          "desc": "Baixe e use em suas campanhas de anúncio, redes sociais ou onde precisar."
+        }
+      }
+    },
+    "models": {
+      "badge": "Modelos de IA",
+      "titleBefore": "Os mais potentes do mercado,",
+      "titleHighlight": "na sua conta",
+      "subtitle": "A Laurena Studio integra modelos de referência para cada tipo de criação: sites, conteúdo multimodal e vídeo, com o Google Gemini 3.1 Pro no núcleo para texto, imagens e áudio de alto desempenho.",
+      "footnote": "A disponibilidade exata de cada modelo pode variar conforme o seu plano e atualizações da plataforma. Sempre priorizamos as versões mais recentes e capazes.",
+      "claude": {
+        "name": "Claude Opus 4.6",
+        "use": "Sites com IA",
+        "desc": "Modelo topo de linha da Anthropic para raciocínio longo, estrutura de páginas e geração de sites completos com qualidade profissional.",
+        "tag": "Anthropic"
+      },
+      "gemini": {
+        "name": "Google Gemini 3.1 Pro",
+        "use": "Texto, imagens e áudio",
+        "desc": "Multimodal da Google para copy, criativos visuais e fluxos rápidos, entre os mais avançados do mercado para conteúdo criativo.",
+        "tag": "Google"
+      },
+      "minimax": {
+        "name": "Minimax",
+        "use": "Vídeo publicitário",
+        "desc": "Geração de vídeo com estética cinematográfica para anúncios, reels e campanhas, referência em desempenho para motion com IA.",
+        "tag": "Google"
+      }
+    },
+    "plans": {
+      "badge": "Planos",
+      "title": "Invista no seu crescimento",
+      "subtitle": "Planos flexíveis para cada fase da sua jornada. Cancele quando quiser.",
+      "monthly": "Mensal",
+      "annual": "Anual",
+      "economyBadge": "Economize 25% no plano anual",
+      "resourcesTitle": "Recursos incluídos",
+      "restrictionsTitle": "Restrições",
+      "mostPopular": "Mais popular",
+      "planLabel": "Plano",
+      "perMonth": " / mês",
+      "billedYear": "Cobrado R$ {{total}} / ano",
+      "ctaSales": "Falar com vendas",
+      "ctaSubscribe": "Assinar {{name}}",
+      "ctaStart": "Começar",
+      "starter": {
+        "recursos": [
+          "100 Requisções premium",
+          "50 gerações de imagem",
+          "Todos os seus projetos num só lugar",
+          "5 gerações de vídeo por mês",
+          "3 publicações de site por mês",
+          "10 gerações de áudio por mês"
+        ]
+      },
+      "pro": {
+        "recursos": [
+          "300 Requisções premium",
+          "100 gerações de imagem",
+          "Colaboração para equipas em crescimento",
+          "20 gerações de vídeo por mês",
+          "6 publicações de site por mês",
+          "20 gerações de áudio por mês",
+          "Suporte básico"
+        ]
+      },
+      "business": {
+        "recursos": [
+          "Geração de texto ilimitada",
+          "Geração de imagem ilimitada",
+          "Gerações de áudio ilimitadas",
+          "Equipas e projetos à escala ilimitada",
+          "100 gerações de vídeo por mês",
+          "30 publicações de site por mês",
+          "Financial AI: requisições ilimitadas",
+          "Suporte premium"
+        ]
+      }
+    },
+    "finalCta": {
+      "quote": "Cada frame importa.",
+      "title": "Quer criar campanhas e conteúdos com IA?",
+      "subtitle": "Crie sua conta e comece agora. Sem cartão de crédito.",
+      "primary": "Criar conta grátis",
+      "secondary": "Já tenho uma conta"
+    },
+    "footer": {
+      "tagline": "Crie campanhas publicitárias e sites com inteligência artificial. Imagens, vídeos, áudio, textos e sites completos sem programar.",
+      "product": "Produto",
+      "platform": "Plataforma",
+      "legal": "Legal",
+      "links": {
+        "features": "Funcionalidades",
+        "pricing": "Planos e Preços",
+        "howItWorks": "Como funciona",
+        "login": "Entrar",
+        "register": "Criar conta",
+        "dashboard": "Dashboard",
+        "privacy": "Privacidade",
+        "terms": "Termos Gerais",
+        "termsAi": "Termos de IA"
+      },
+      "copyright": "© 2026 Laurena Studio. Todos os direitos reservados.",
+      "bottomLine": "Crie campanhas, conteúdo multimídia (áudio, vídeo, imagem) e sites com IA"
+    },
+    "featured": {
+      "label": "Em destaque",
+      "tryModel": "Testar modelo",
+      "cards": {
+        "gptImage": { "badge": "Novo Modelo", "cat": "IMAGEM", "title": "GPT Image 2", "desc": "Visuais 4K com texto nítido e controle de textura", "prompt": "Retrato artístico contemporâneo, estética festival Holi, câmera de médio formato." },
+        "veo3": { "badge": "4K", "cat": "VÍDEO", "title": "VEO 3 em 4K", "desc": "Renderização de vídeo de alta fidelidade para campanhas com estética cinema", "prompt": "RPG AAA hiper-realista, passagem de montanha grega antiga, inverno nublado, chefe Ciclope." },
+        "marketingApps": { "badge": "Novo", "cat": "MARKETING", "title": "Studio de Campanhas para Apps", "desc": "Orquestrado pelo assistente criativo da Laurena", "prompt": "Campanha completa — criativos, copy, conteúdo social em um único briefing." },
+        "nanoBananaPro": { "badge": "1080p", "cat": "VÍDEO", "title": "Nano Banana Pro", "desc": "Detalhes mais limpos e transições de movimento mais fluidas", "prompt": "Fotografia cinematográfica de Tóquio, outdoor 3D hiper-real no cruzamento de Shibuya." }
+      }
+    },
+    "spotlight": {
+      "badge": "Novo", "cat": "MARKETING", "title": "Marketing Studio",
+      "headline": "Monte seu\nmotor de campanhas.",
+      "desc": "Planeje, gere e publique ativos da sua marca em um único workspace.",
+      "cta": "Abrir workspace"
+    },
+    "split": {
+      "eyebrow": "PLATAFORMA AI · CRIAÇÃO GENERATIVA",
+      "title": "Crie qualquer coisa.",
+      "highlight": "Com IA generativa.",
+      "sub": "Imagens 4K, vídeos cinema, áudios profissionais e sites — tudo numa plataforma alimentada pelas melhores IAs do mundo.",
+      "placeholder": "www.seusite.com.br",
+      "inputBtn": "Criar Site",
+      "altLink": "Ou criar conta grátis →"
+    },
+    "promo": {
+      "eyebrow": "PLANOS ANUAIS · ATÉ 25% OFF",
+      "title": "O melhor da IA generativa",
+      "highlight": "com 25% de desconto.",
+      "sub": "Acesso completo a imagem, vídeo, áudio e criação de sites — nos planos anuais.",
+      "primary": "Começar grátis",
+      "secondary": "Ver planos"
+    },
+    "originals": {
+      "eyebrow": "AI BUILDER · SITES COMPLETOS",
+      "title": "Do zero ao ar,",
+      "highlight": "em minutos.",
+      "sub": "Crie sites completos com textos, imagens e layout gerados automaticamente pela IA. Sem código. Sem complicação.",
+      "cta": "Criar meu site"
+    },
+    "tools": {
+      "label": "Ferramentas",
+      "title": "Escolha seu fluxo criativo",
+      "sub": "Da ideia ao material pronto para publicar: imagem, vídeo, áudio, sites e campanhas.",
+      "image": { "label": "Criar Imagem", "desc": "GPT Image 2 · Gemini 2.5 Flash" },
+      "video": { "label": "Criar Vídeo", "desc": "VEO 3 · Minimax 3.1 para campanhas curtas" },
+      "marketing": { "label": "Marketing Studio", "desc": "Briefing, criativos e variações por canal em um único fluxo" },
+      "site": { "label": "Criar Site", "desc": "Sites completos com IA generativa" },
+      "audio": { "label": "Áudio AI", "desc": "Azure AI Speech · 70+ línguas" },
+      "agenda": { "label": "Agendador", "desc": "Agende posts em múltiplas redes" },
+      "midia": { "label": "Biblioteca", "desc": "Gerencie toda a sua mídia gerada" },
+      "analytics": { "label": "Analytics", "desc": "Métricas e insights em tempo real" }
+    },
+    "engines": {
+      "label": "Motores de IA",
+      "title": "As melhores IAs,\nnuma só plataforma",
+      "viewAll": "Ver todas",
+      "claude": { "use": "Conteúdo & copy", "name": "Claude Opus 4", "desc": "Raciocínio avançado e geração de conteúdo longo com controle de tom refinado." },
+      "gemini": { "use": "Imagem & multimodal", "name": "Gemini 2.5 Flash", "desc": "Geração de imagens 4K com renderização de texto quase perfeita e compreensão visual." },
+      "minimax": { "use": "Geração de vídeo", "name": "Minimax / VEO 3", "desc": "Geração de vídeo cinematográfico até 4K via infraestrutura Google Cloud." },
+      "azure": { "use": "Voz & áudio", "name": "Azure AI Speech", "desc": "Síntese de voz natural e expressiva em 70+ idiomas com qualidade de estúdio." }
+    },
+    "cinema": {
+      "eyebrow": "VEO 3 · MINIMAX 3.1 · 4K",
+      "title": "Vídeos cinema\nem resolução 4K.",
+      "sub": "Gere vídeos cinematográficos com os modelos mais avançados do mundo, direto na sua plataforma.",
+      "cta": "Criar vídeo"
+    },
+      "marketingShowcase": {
+        "titleTop": "DO LINK DO PRODUTO.",
+        "titleBottom": "À CAMPANHA NO AR.",
+        "subtitle": "Crie anúncios, demos e variações sociais em um único fluxo",
+        "cta": "Abrir Campaign Studio",
+        "inputPlaceholder": "Cole a URL do seu produto",
+        "linkProduct": "URL do produto",
+        "linkApp": "Conecte seu app",
+        "viewAll": "Ver Campaign Studio"
+      },
+    "pricingSection": {
+      "label": "Planos",
+      "title": "Preço justo. Acesso completo.",
+      "sub": "Todos os planos incluem acesso às IAs de imagem, vídeo, áudio e criação de sites.",
+      "economy": "Economize 25%",
+      "popular": "Mais popular",
+      "billedAnnually": "cobrado anualmente",
+      "ctaSales": "Falar com vendas",
+      "ctaSubscribe": "Assinar {{name}}",
+      "ctaStart": "Começar grátis"
+    },
+    "ctaSection": {
+      "title": "Da ideia à criação, em minutos.",
+      "sub": "Junte-se a milhares de criadores que usam Laurena Studio para gerar imagens, vídeos, áudios e sites com IA.",
+      "primary": "Criar conta grátis",
+      "secondary": "Ver planos"
+    },
+    "footerSection": {
+      "brand": "Plataforma de criação com IA generativa — imagem, vídeo, áudio e sites.",
+      "product": "Produto",
+      "platform": "Plataforma",
+      "legal": "Legal",
+      "copyright": "© {{year}} Laurena Studio. Todos os direitos reservados."
+    }
+  },
+  "billing": {
+    "choosePlan": {
+      "badge": "Falta pouco",
+      "title": "Escolha seu plano para começar",
+      "subtitle": "Para acessar o painel, escolha o plano ideal para você. Cancele a qualquer momento."
+    },
+    "stripeFooter": "Pagamento seguro via Stripe. Cancele quando quiser sem multa.",
+    "checkoutErrorTitle": "Erro no checkout",
+    "checkoutErrorDescription": "Não foi possível iniciar o pagamento."
+  }
+}

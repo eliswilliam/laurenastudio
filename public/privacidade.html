@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade -  Laurena Studio</title>
+  <meta name="description" content="Política de privacidade e proteção de dados do Laurena Studio. Conheça como protegemos seus dados." />
+  <!-- Open Graph Tags for Social Sharing -->
+  <meta property="og:title" content="Política de Privacidade -  Laurena Studio" />
+  <meta property="og:description" content="Política de privacidade e proteção de dados do Laurena Studio. Conheça como protegemos seus dados." />
+  <meta property="og:image" content="https://laurenastudio.pro/android-chrome-512x512.png" />
+  <meta property="og:url" content="https://laurenastudio.pro/privacidade.html" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Política de Privacidade -  Laurena Studio" />
+  <meta name="twitter:description" content="Política de privacidade e proteção de dados do Laurena Studio. Conheça como protegemos seus dados." />
+  <script>
+    (function () {
+      var locale = (navigator.language || "pt-BR").toLowerCase();
+      var lang = locale.indexOf("fr") === 0 ? "fr"
+        : locale.indexOf("es") === 0 ? "es"
+        : locale.indexOf("en") === 0 ? "en"
+        : "pt";
+
+      var seoByLang = {
+        pt: {
+          title: "Politica de Privacidade - Laurena Studio",
+          description: "Politica de privacidade e protecao de dados do Laurena Studio. Conheca como protegemos seus dados."
+        },
+        en: {
+          title: "Privacy Policy - Laurena Studio",
+          description: "Privacy and data protection policy for Laurena Studio. Learn how we protect your data."
+        },
+        fr: {
+          title: "Politique de Confidentialite - Laurena Studio",
+          description: "Politique de confidentialite et de protection des donnees de Laurena Studio."
+        },
+        es: {
+          title: "Politica de Privacidad - Laurena Studio",
+          description: "Politica de privacidad y proteccion de datos de Laurena Studio."
+        }
+      };
+
+      var seo = seoByLang[lang] || seoByLang.pt;
+      document.documentElement.lang = lang === "pt" ? "pt-BR" : lang;
+      document.title = seo.title;
+
+      function setMeta(selector, content) {
+        var el = document.querySelector(selector);
+        if (el) el.setAttribute("content", content);
+      }
+
+      setMeta('meta[name="description"]', seo.description);
+      setMeta('meta[property="og:title"]', seo.title);
+      setMeta('meta[property="og:description"]', seo.description);
+      setMeta('meta[name="twitter:title"]', seo.title);
+      setMeta('meta[name="twitter:description"]', seo.description);
+    })();
+  </script>
+  <link rel="icon" href="./android-chrome-192x192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Playfair+Display:ital@1&family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --terracotta: #C15F3C;
+      --terracotta-light: #f0e4dd;
+      --terracotta-dark: #9a3f20;
+      --pampas: #F4F3EE;
+      --cloudy: #B1ADA1;
+      --warm-brown: #2a1a10;
+      --white: #FFFFFF;
+      --border: #d4cfc6;
+      --text-muted: #7a7168;
+      --radius: 12px;
+      /* Privacy page accent -  warm amber */
+      --privacy-hero-from: #9B6E3A;
+      --privacy-hero-to: #3d1e06;
+    }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background-color: var(--pampas);
+      color: var(--warm-brown);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand img { width: 32px; height: 32px; border-radius: 8px; }
+    .brand-name {
+      font-family: 'Bagel Fat One', cursive;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      color: var(--terracotta);
+    }
+
+    /* ── LEGAL NAV STRIP ── */
+    .legal-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+    .legal-nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .legal-nav-inner::-webkit-scrollbar { display: none; }
+    .legal-nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.1rem;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .legal-nav a:hover { color: var(--terracotta); }
+    .legal-nav a.active {
+      color: var(--terracotta);
+      border-bottom-color: var(--terracotta);
+      font-weight: 600;
+    }
+    .legal-nav .icon { font-size: 1rem; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #C15F3C 0%, #9a3f20 100%);
+      color: var(--white);
+      padding: 3.5rem 1.5rem;
+      text-align: center;
+    }
+    .hero h1 {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+    .hero p { font-size: 1rem; color: rgba(255,255,255,0.88); max-width: 640px; margin: 0 auto; }
+    .hero .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.32);
+      border-radius: 99px;
+      padding: 0.3rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .content-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+      display: flex;
+      gap: 2.5rem;
+      align-items: flex-start;
+    }
+
+    /* ── SIDEBAR TOC ── */
+    .toc {
+      width: 240px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 96px;
+    }
+    .toc-inner {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .toc h3 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .toc ol { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; counter-reset: toc; }
+    .toc li { counter-increment: toc; }
+    .toc a {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      line-height: 1.4;
+      padding: 0.3rem 0.5rem;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .toc a::before { content: counter(toc) "."; font-size: 0.7rem; color: var(--terracotta); font-weight: 700; flex-shrink: 0; }
+    .toc a:hover { background: var(--terracotta-light); color: var(--terracotta-dark); }
+
+    /* ── ARTICLE ── */
+    .article { flex: 1; min-width: 0; }
+
+    .meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .meta-bar .tag {
+      background: var(--terracotta-light);
+      color: var(--terracotta-dark);
+      border-radius: 99px;
+      padding: 0.2rem 0.75rem;
+      font-weight: 600;
+    }
+
+    section { margin-bottom: 2.5rem; }
+    section:last-child { margin-bottom: 0; }
+
+    .section-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem 2rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--warm-brown);
+      margin-bottom: 1rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 2px solid var(--terracotta-light);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2 .section-num {
+      width: 1.6rem; height: 1.6rem;
+      background: var(--terracotta);
+      color: var(--white);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--terracotta-dark);
+      margin: 1.25rem 0 0.6rem;
+    }
+    p { color: var(--text-muted); margin-bottom: 0.75rem; font-size: 0.935rem; }
+    p:last-child { margin-bottom: 0; }
+
+    ul, ol.content-list {
+      padding-left: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.935rem;
+    }
+    li { margin-bottom: 0.5rem; }
+    ul li::marker { color: var(--terracotta); }
+
+    .highlight-box {
+      background: var(--terracotta-light);
+      border-left: 3px solid var(--terracotta);
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      color: var(--terracotta-dark);
+      font-weight: 500;
+    }
+
+    .info-box {
+      background: #f0f7ff;
+      border-left: 3px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      color: #1e40af;
+    }
+
+    /* ── DATA TABLE ── */
+    .data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+    .data-table th {
+      background: var(--terracotta);
+      color: var(--white);
+      padding: 0.6rem 0.9rem;
+      text-align: left;
+      font-weight: 600;
+    }
+    .data-table th:first-child { border-radius: 8px 0 0 0; }
+    .data-table th:last-child { border-radius: 0 8px 0 0; }
+    .data-table td {
+      padding: 0.65rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:nth-child(even) td { background: var(--pampas); }
+
+    .contact-card {
+      background: var(--pampas);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-top: 0.5rem;
+    }
+    .contact-card p { color: var(--warm-brown); font-size: 0.9rem; margin-bottom: 0.3rem; }
+    .contact-card a { color: var(--terracotta); text-decoration: none; font-weight: 500; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: linear-gradient(135deg, #C15F3C 0%, #9a3f20 100%);
+      color: rgba(255,255,255,0.9);
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.25rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.82rem;
+    }
+    .footer-links a { color: rgba(255,255,255,0.8); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: #fff; }
+    .footer-sep { color: rgba(255,255,255,0.4); }
+    footer p { font-size: 0.78rem; color: rgba(255,255,255,0.65); margin-top: 0.5rem; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .toc { display: none; }
+      .section-card { padding: 1.25rem; }
+      h2 { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ TOP BAR ══ -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="brand">
+        <img src="./android-chrome-192x192.png" alt="Laurena Studio" />
+        <span class="brand-name">LAURENA</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ══ LEGAL NAV STRIP ══ -->
+  <nav class="legal-nav">
+    <div class="legal-nav-inner">
+      <a href="./privacidade.html" class="active">Privacidade</a>
+      <a href="./termos.html">Termos Gerais</a>
+      <a href="./termos-ia.html">Termos de IA</a>
+      <a href="/">← Voltar ao site</a>
+    </div>
+  </nav>
+
+  <!-- ══ HERO ══ -->
+  <div class="hero">
+    <span class="badge">Política de Privacidade · Brasil</span>
+    <h1>Central de Privacidade</h1>
+    <p>Queremos que você saiba quais informações coletamos, como as usamos e compartilhamos, e como você controla seus dados na Laurena Studio.</p>
+  </div>
+
+  <!-- ══ LAYOUT ══ -->
+  <div class="content-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside class="toc">
+      <div class="toc-inner">
+        <h3>Índice</h3>
+        <ol>
+          <li><a href="#o-que-e">O que é esta Política</a></li>
+          <li><a href="#quais-informacoes">Quais informações coletamos</a></li>
+          <li><a href="#como-usamos">Como usamos suas informações</a></li>
+          <li><a href="#compartilhamento">Compartilhamento com terceiros</a></li>
+          <li><a href="#ia-laurena">Laurena AI e seus dados</a></li>
+          <li><a href="#retencao">Retenção das informações</a></li>
+          <li><a href="#transferencia">Transferência internacional</a></li>
+          <li><a href="#seus-direitos">Seus direitos (LGPD)</a></li>
+          <li><a href="#seguranca">Segurança dos dados</a></li>
+          <li><a href="#cookies">Cookies e rastreamento</a></li>
+          <li><a href="#menores">Menores de idade</a></li>
+          <li><a href="#solicitacoes-legais">Solicitações legais</a></li>
+          <li><a href="#alteracoes">Alterações desta Política</a></li>
+          <li><a href="#excluir-dados">Excluir meus dados</a></li>
+          <li><a href="#contato">Contato e DPO</a></li>
+        </ol>
+      </div>
+    </aside>
+
+    <!-- ARTICLE -->
+    <article class="article">
+
+      <div class="meta-bar">
+        <span><span class="tag">Política de Privacidade -  Brasil</span></span>
+        <span>Em vigor: 12 de março de 2026</span>
+      </div>
+
+      <!-- 1 -->
+      <section id="o-que-e">
+        <div class="section-card">
+          <h2><span class="section-num">1</span>O que é esta Política de Privacidade e o que ela aborda</h2>
+          <p>
+            Nós, da <strong>Laurena Inova Simples (I.S.)</strong>, queremos que você saiba quais informações coletamos e como as usamos e compartilhamos. Por isso, recomendamos a leitura desta Política de Privacidade. Isso facilita o uso da plataforma Laurena Studio da maneira certa para você.
+          </p>
+          <p>
+            Nesta Política, explicamos como coletamos, usamos, compartilhamos, retemos e transferimos informações. Explicamos também quais são seus direitos. Cada seção desta Política apresenta exemplos úteis em uma linguagem simples para que nossas práticas sejam fáceis de entender.
+          </p>
+          <p>
+            Esta Política se aplica a todos os produtos e serviços da Laurena Studio, incluindo a plataforma web, o AI Studio, o Agendador, a Biblioteca de Mídia, OS recursos de Analytics, e quaisquer outros recursos disponibilizados por nós.
+          </p>
+          <div class="highlight-box">
+            Para nós, é importante que você saiba como controlar sua privacidade. Por isso, mostramos nas configurações da plataforma onde você pode gerenciar e personalizar suas informações.
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section id="quais-informacoes">
+        <div class="section-card">
+          <h2><span class="section-num">2</span>Quais informações coletamos</h2>
+          <p>
+            As informações que coletamos e tratamos sobre você dependem do seu uso da plataforma. Por exemplo, coletamos informações diferentes se você usa o AI Studio para criar posts ou o Agendador para publicar conteúdo. Quando você usa nossos serviços, coletamos algumas informações sobre você.
+          </p>
+          <h3>Informações que você nos fornece</h3>
+          <ul>
+            <li><strong>Informações de conta:</strong> nome, endereço de e-mail, senha, foto de perfil e outras informações fornecidas no cadastro.</li>
+            <li><strong>Conteúdo criado:</strong> posts, textos, imagens, vídeos, áudios, roteiros, legendas e qualquer conteúdo que você cria ou carrega na plataforma.</li>
+            <li><strong>Interações com a Laurena AI:</strong> comandos, perguntas e outros conteúdos que você fornece à IA, bem como os resultados gerados.</li>
+            <li><strong>Informações de pagamento:</strong> dados de cobrança e transações realizadas (processados por terceiros certificados PCI-DSS; não armazenamos dados de cartão).</li>
+            <li><strong>Comunicações conosco:</strong> mensagens enviadas ao suporte, feedbacks e avaliações.</li>
+          </ul>
+          <h3>Informações coletadas automaticamente</h3>
+          <ul>
+            <li><strong>Dados de dispositivo:</strong> tipo de dispositivo, sistema operacional, identificadores únicos, configurações de idioma e fuso horário.</li>
+            <li><strong>Dados de uso:</strong> páginas acessadas, funcionalidades usadas, horário, frequência e duração das sessões, ações realizadas na plataforma.</li>
+            <li><strong>Dados de rede:</strong> endereço IP, tipo de conexão, provedor de internet.</li>
+            <li><strong>Cookies e tecnologias semelhantes:</strong> conforme descrito na seção de Cookies desta Política.</li>
+            <li><strong>Dados de localização:</strong> localização aproximada derivada do endereço IP (não coletamos localização precisa via GPS sem seu consentimento explícito).</li>
+          </ul>
+          <h3>Informações de terceiros</h3>
+          <ul>
+            <li>Quando você usa login via Google ou Facebook, recebemos informações básicas de perfil conforme as permissões que você autorizar.</li>
+            <li>Dados de desempenho de conteúdo e campanhas provenientes de integrações com redes sociais (Instagram, Facebook, etc.) que você conectar à sua conta.</li>
+          </ul>
+          <div class="info-box">
+            <strong>E se as informações não identificam você?</strong> Em alguns casos, agregamos ou anonimizamos informações para que deixem de identificar qualquer pessoa. Usamos essas informações para melhorar nossos serviços sem tentar reidentificar os usuários.
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section id="como-usamos">
+        <div class="section-card">
+          <h2><span class="section-num">3</span>Como usamos suas informações</h2>
+          <p>
+            Usamos suas informações para proporcionar uma experiência personalizada e de alto valor para criadores de conteúdo, junto com as outras finalidades detalhadas abaixo. Para algumas finalidades, recorremos a tratamento automático por nossos sistemas. Em alguns casos, também realizamos análise manual para acessar e melhorar nossos serviços.
+          </p>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Finalidade</th>
+                <th>Como usamos</th>
+                <th>Base legal (LGPD)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Prestar o serviço</strong></td>
+                <td>Criar e manter sua conta; fornecer as funcionalidades contratadas (AI Studio, Agendador, Analytics, etc.); autenticar seu acesso.</td>
+                <td>Execução de contrato</td>
+              </tr>
+              <tr>
+                <td><strong>Personalização</strong></td>
+                <td>Adaptar a experiência da plataforma às suas preferências de nicho, estilo de conteúdo e hábitos de uso.</td>
+                <td>Interesse legítimo / Consentimento</td>
+              </tr>
+              <tr>
+                <td><strong>IA Generativa</strong></td>
+                <td>Usar seus comandos e interações para gerar saídas de IA e, com base em interesse legítimo, melhorar nossos modelos de IA.</td>
+                <td>Execução de contrato / Interesse legítimo</td>
+              </tr>
+              <tr>
+                <td><strong>Segurança e integridade</strong></td>
+                <td>Detectar e prevenir fraudes, abusos, acessos não autorizados e violações de nossos Termos.</td>
+                <td>Interesse legítimo / Obrigação legal</td>
+              </tr>
+              <tr>
+                <td><strong>Análises e métricas</strong></td>
+                <td>Gerar relatórios agregados sobre desempenho de conteúdo, campanhas e uso da plataforma.</td>
+                <td>Execução de contrato / Interesse legítimo</td>
+              </tr>
+              <tr>
+                <td><strong>Comunicação</strong></td>
+                <td>Enviar notificações da plataforma, atualizações de produto, alertas de serviço e, com sua autorização, comunicações de marketing.</td>
+                <td>Execução de contrato / Consentimento</td>
+              </tr>
+              <tr>
+                <td><strong>Pesquisa e inovação</strong></td>
+                <td>Desenvolver e testar novos recursos, funcionalidades e melhorias da plataforma.</td>
+                <td>Interesse legítimo</td>
+              </tr>
+              <tr>
+                <td><strong>Cumprimento legal</strong></td>
+                <td>Cumprir obrigações legais, responder a solicitações de autoridades competentes e defender nossos interesses legítimos.</td>
+                <td>Obrigação legal / Interesse legítimo</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top:1rem;">
+            <strong>Não usamos suas informações para vender anúncios de terceiros.</strong> A Laurena Studio não é uma plataforma de publicidade. Seus dados são usados exclusivamente para prestar e melhorar os serviços de criação de conteúdo.
+          </p>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section id="compartilhamento">
+        <div class="section-card">
+          <h2><span class="section-num">4</span>Como compartilhamos informações com terceiros</h2>
+          <div class="highlight-box">
+            Não vendemos suas informações pessoais para ninguém e jamais o faremos.
+          </div>
+          <p>Compartilhamos informações apenas nas seguintes situações:</p>
+          <h3>Fornecedores e prestadores de serviço</h3>
+          <p>
+            Compartilhamos dados com parceiros que nos ajudam a operar a plataforma, incluindo: provedores de infraestrutura em nuvem (hospedagem), processadores de pagamento certificados, provedores de modelos de IA, serviços de e-mail e notificações, e ferramentas de análise e monitoramento. Todos os parceiros são contratualmente obrigados a usar suas informações apenas para os fins que especificamos e a protegê-las de acordo com padrões de segurança adequados.
+          </p>
+          <h3>Integrações que você autoriza</h3>
+          <p>
+            Quando você conecta redes sociais (Instagram, Facebook, etc.) ou outros serviços de terceiros à sua conta Laurena Studio, compartilhamos as informações necessárias para realizar essa integração, conforme as permissões que você conceder. Você pode revogar essas integrações a qualquer momento nas configurações da conta.
+          </p>
+          <h3>Solicitações legais e obrigações</h3>
+          <p>
+            Podemos divulgar informações quando exigido por lei, por ordem judicial, por órgão regulador competente (incluindo a ANPD), ou quando necessário para exercer ou defender nossos direitos legítimos.
+          </p>
+          <h3>Transferência de negócio</h3>
+          <p>
+            Em caso de fusão, aquisição ou venda de ativos, suas informações poderão ser transferidas ao novo responsável, unicamente conforme permitido pela legislação aplicável e com aviso prévio a você.
+          </p>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section id="ia-laurena">
+        <div class="section-card">
+          <h2><span class="section-num">5</span>Laurena AI e seus dados</h2>
+          <p>
+            Usamos suas interações com a <strong>Laurena AI</strong> -  incluindo comandos, saídas e feedbacks -  com base em interesse legítimo para desenvolver e melhorar nossos modelos de IA generativa para criação de conteúdo.
+          </p>
+          <p>
+            Seus comandos e interações com a IA são processados para gerar as respostas que você solicitou. Metadados relacionados (como tipo de conteúdo solicitado, nicho, estilo) podem ser usados de forma anonimizada ou agregada para aprimorar os modelos.
+          </p>
+          <div class="highlight-box">
+            Não usamos conteúdo privado de mensagens entre usuários para treinar modelos de IA, a menos que você decida explicitamente compartilhá-lo.
+          </div>
+          <p>
+            Não tratamos dados de IA de usuários menores de 18 anos para fins de treinamento de modelos.
+          </p>
+          <p>
+            Você tem o direito de se opor ao uso de suas informações para fins de desenvolvimento e melhoria de modelos de IA generativa. Se você exercer esse direito e a objeção for atendida, deixaremos de usar suas informações para essa finalidade. Entre em contato pelo e-mail <a href="mailto:laurenastudio75@gmail.com" style="color:var(--terracotta);">laurenastudio75@gmail.com</a>.
+          </p>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section id="retencao">
+        <div class="section-card">
+          <h2><span class="section-num">6</span>Por quanto tempo mantemos suas informações</h2>
+          <p>Mantemos as informações pelo tempo necessário para oferecer nossos serviços, cumprir obrigações legais e proteger nossos interesses ou os de outras pessoas. Para decidir por quanto tempo retemos cada categoria de dado, consideramos:</p>
+          <ul>
+            <li><strong>Necessidade operacional:</strong> dados da conta são mantidos enquanto a conta estiver ativa.</li>
+            <li><strong>Obrigações legais:</strong> determinadas informações (como registros financeiros) precisam ser mantidas por períodos definidos por lei (ex.: 5 anos para fins fiscais).</li>
+            <li><strong>Tipo de conteúdo:</strong> conteúdo gerado pela IA pode ser retido por períodos menores que o conteúdo criado manualmente.</li>
+            <li><strong>Prevenção de danos:</strong> em alguns casos, mantemos informações para evitar fraudes ou abusos mesmo após o encerramento da conta.</li>
+          </ul>
+          <p>Após o encerramento da conta e o período de retenção aplicável, excluímos ou anonimizamos suas informações pessoais de forma permanente.</p>
+        </div>
+      </section>
+
+      <!-- 7 -->
+      <section id="transferencia">
+        <div class="section-card">
+          <h2><span class="section-num">7</span>Transferência internacional de dados</h2>
+          <p>
+            A Laurena Studio pode transferir suas informações para servidores localizados fora do Brasil -  por exemplo, ao utilizar provedores de nuvem internacionais ou modelos de IA hospedados no exterior. Essas transferências são necessárias para operar e melhorar nossos serviços.
+          </p>
+          <p>
+            Adotamos mecanismos apropriados para as transferências internacionais, incluindo cláusulas contratuais padrão e avaliações de adequação de proteção de dados, em conformidade com os requisitos da <strong>LGPD (Art. 33)</strong>. Além disso, aplicamos criptografia das informações em trânsito em redes públicas para protegê-las contra acesso não autorizado.
+          </p>
+          <p>
+            Para obter mais informações sobre as transferências internacionais ou solicitar uma cópia das salvaguardas aplicáveis, entre em contato em <a href="mailto:laurenastudio75@gmail.com" style="color:var(--terracotta);">laurenastudio75@gmail.com</a>.
+          </p>
+        </div>
+      </section>
+
+      <!-- 8 -->
+      <section id="seus-direitos">
+        <div class="section-card">
+          <h2><span class="section-num">8</span>Seus direitos como titular de dados (LGPD)</h2>
+          <p>
+            De acordo com a <strong>Lei Geral de Proteção de Dados (LGPD -  Lei nº 13.709/2018)</strong>, você, como titular de dados pessoais, tem os seguintes direitos:
+          </p>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Direito</th>
+                <th>O que significa</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Confirmação e Acesso</strong></td>
+                <td>Confirmar se tratamos seus dados e obter uma cópia deles em formato acessível.</td>
+              </tr>
+              <tr>
+                <td><strong>Retificação</strong></td>
+                <td>Corrigir dados incompletos, inexatos ou desatualizados.</td>
+              </tr>
+              <tr>
+                <td><strong>Anonimização, Bloqueio ou Eliminação</strong></td>
+                <td>Solicitar a anonimização, o bloqueio ou a exclusão de dados desnecessários ou tratados em desconformidade com a LGPD.</td>
+              </tr>
+              <tr>
+                <td><strong>Portabilidade</strong></td>
+                <td>Solicitar a transferência dos seus dados para outro fornecedor de serviço ou produto, em formato estruturado.</td>
+              </tr>
+              <tr>
+                <td><strong>Informação sobre compartilhamento</strong></td>
+                <td>Saber com quais entidades públicas e privadas compartilhamos seus dados.</td>
+              </tr>
+              <tr>
+                <td><strong>Revogação do consentimento</strong></td>
+                <td>Revogar o consentimento dado para determinados tratamentos a qualquer momento.</td>
+              </tr>
+              <tr>
+                <td><strong>Oposição</strong></td>
+                <td>Opor-se a tratamentos realizados com base em interesse legítimo quando houver descumprimento da LGPD.</td>
+              </tr>
+              <tr>
+                <td><strong>Revisão de decisões automatizadas</strong></td>
+                <td>Solicitar revisão humana de decisões tomadas unicamente com base em tratamento automatizado.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top:1rem;">
+            Para exercer qualquer um desses direitos, entre em contato conosco em <a href="mailto:laurenastudio75@gmail.com" style="color:var(--terracotta);">laurenastudio75@gmail.com</a> ou acesse as <strong>Configurações &gt; Privacidade</strong> na plataforma. Responderemos em até <strong>15 dias úteis</strong>.
+          </p>
+          <p>
+            Você também tem o direito de apresentar reclamação diretamente à <strong>Autoridade Nacional de Proteção de Dados (ANPD)</strong> pelo portal <a href="https://www.gov.br/anpd" target="_blank" rel="noopener noreferrer" style="color:var(--terracotta);">gov.br/anpd</a>.
+          </p>
+        </div>
+      </section>
+
+      <!-- 9 -->
+      <section id="seguranca">
+        <div class="section-card">
+          <h2><span class="section-num">9</span>Segurança dos dados</h2>
+          <p>
+            A Laurena Studio adota medidas técnicas e organizacionais adequadas para proteger suas informações pessoais contra acesso não autorizado, perda, alteração ou divulgação. Nossas práticas de segurança incluem:
+          </p>
+          <ul>
+            <li>Criptografia em trânsito (TLS/HTTPS) em todas as comunicações.</li>
+            <li>Criptografia em repouso para dados sensíveis armazenados.</li>
+            <li>Controles de acesso baseados em funções (RBAC) para colaboradores internos.</li>
+            <li>Monitoramento contínuo e resposta a incidentes de segurança.</li>
+            <li>Auditorias de segurança periódicas e testes de penetração.</li>
+            <li>Processamento de pagamentos exclusivamente via parceiros certificados PCI-DSS.</li>
+          </ul>
+          <p>
+            Em caso de incidente de segurança que possa afetar seus dados, notificaremos você e a ANPD conforme exigido pela LGPD, dentro dos prazos aplicáveis.
+          </p>
+          <div class="info-box">
+            <strong>Sua responsabilidade:</strong> você é responsável por manter a confidencialidade de sua senha e credenciais de acesso. Em caso de acesso não autorizado, notifique-nos imediatamente.
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 -->
+      <section id="cookies">
+        <div class="section-card">
+          <h2><span class="section-num">10</span>Cookies e tecnologias de rastreamento</h2>
+          <p>
+            A Laurena Studio usa cookies e tecnologias semelhantes (like pixels, local storage, session storage) para operar e melhorar nossos serviços. Os tipos de cookies que usamos incluem:
+          </p>
+          <ul>
+            <li><strong>Cookies essenciais:</strong> necessários para o funcionamento básico da plataforma (autenticação, segurança, preferências de sessão). Não podem ser desativados.</li>
+            <li><strong>Cookies de desempenho:</strong> coletam informações sobre como você usa a plataforma para nos ajudar a identificar problemas e melhorar a experiência. Podem ser desativados.</li>
+            <li><strong>Cookies de funcionalidade:</strong> lembram suas preferências (idioma, configurações de exibição) para personalizar sua experiência. Podem ser desativados.</li>
+            <li><strong>Cookies analíticos:</strong> usados para análises agregadas de uso da plataforma. Podem ser desativados.</li>
+          </ul>
+          <p>
+            Você pode gerenciar suas preferências de cookies nas configurações do seu navegador ou nas configurações de privacidade da plataforma. A desativação de cookies pode afetar algumas funcionalidades.
+          </p>
+        </div>
+      </section>
+
+      <!-- 11 -->
+      <section id="menores">
+        <div class="section-card">
+          <h2><span class="section-num">11</span>Menores de idade</h2>
+          <p>
+            A Laurena Studio não é destinada a crianças menores de <strong>13 anos</strong>. Não coletamos conscientemente informações pessoais de crianças menores dessa idade. Se descobrirmos que coletamos inadvertidamente dados de uma criança menor de 13 anos, excluiremos essas informações imediatamente.
+          </p>
+          <p>
+            Usuários com idade entre 13 e 18 anos devem obter consentimento de um responsável legal para usar a plataforma, conforme exigido pela LGPD e pelo Estatuto da Criança e do Adolescente (ECA).
+          </p>
+          <p>
+            <strong>Dados de menores de 18 anos não são utilizados para treinamento de modelos de IA</strong> da Laurena Studio.
+          </p>
+        </div>
+      </section>
+
+      <!-- 12 -->
+      <section id="solicitacoes-legais">
+        <div class="section-card">
+          <h2><span class="section-num">12</span>Solicitações legais e prevenção de danos</h2>
+          <p>
+            Podemos acessar, preservar e compartilhar suas informações em resposta a solicitações legais formais (como ordens judiciais, mandados de busca e intimações) de autoridades competentes, quando exigido por lei aplicável, ou quando necessário para:
+          </p>
+          <ul>
+            <li>Cumprir obrigações legais e regulatórias.</li>
+            <li>Prevenir fraudes, abuso, atividades ilegais ou ameaças à segurança.</li>
+            <li>Proteger os direitos, a propriedade ou a segurança da Laurena Studio, de nossos usuários ou do público.</li>
+            <li>Defender our posição em processo judicial ou administrativo.</li>
+          </ul>
+          <p>
+            Analisamos cuidadosamente cada solicitação legal antes de responder. Quando legalmente permitido, notificamos os usuários sobre solicitações que nos pareçam excessivas ou inadequadas.
+          </p>
+        </div>
+      </section>
+
+      <!-- 13 -->
+      <section id="alteracoes">
+        <div class="section-card">
+          <h2><span class="section-num">13</span>Alterações desta Política</h2>
+          <p>
+            Podemos atualizar esta Política de Privacidade periodicamente para refletir mudanças em nossas práticas, em nossos serviços ou nas leis aplicáveis. Quando fizermos alterações materiais, enviaremos uma notificação por e-mail ou pela plataforma com pelo menos <strong>30 dias de antecedência</strong> antes que as alterações entrem em vigor.
+          </p>
+          <p>
+            O uso continuado da plataforma após a data de entrada em vigor das alterações constitui aceitação da Política atualizada. Caso não concorde com as novas condições, você pode encerrar sua conta antes da entrada em vigor das mudanças.
+          </p>
+          <p>
+            A data da versão atual está indicada no topo desta página.
+          </p>
+        </div>
+      </section>
+
+      <!-- 14 -->
+      <section id="excluir-dados">
+        <div class="section-card">
+          <h2><span class="section-num">14</span>Excluir meus dados</h2>
+          <p>
+            Conforme a LGPD, você tem o direito de solicitar a exclusão completa de seus dados pessoais. Quando você submete uma solicitação de exclusão, nós:
+          </p>
+          <ul>
+            <li>Deletaremos todos os dados pessoais associados à sua conta.</li>
+            <li>Removeremos você de todos os sistemas e deletaremos dados armazenados em cache.</li>
+            <li>Preservaremos apenas dados exigidos por lei (ex.: para fins legais ou fiscais).</li>
+            <li>Confirmaremos a exclusão em até 30 dias.</li>
+          </ul>
+          <p style="margin-top: 1rem;">
+            <strong>Para solicitar a exclusão de seus dados, clique no botão abaixo:</strong>
+          </p>
+          <div style="margin-top: 1.5rem; text-align: center;">
+            <a href="/api/v1/webhooks/deletion-status?id=meta-check" target="_blank" rel="noopener noreferrer" style="
+              display: inline-block;
+              background: var(--terracotta);
+              color: white;
+              padding: 0.9rem 2rem;
+              border-radius: 8px;
+              text-decoration: none;
+              font-weight: 600;
+              font-size: 0.95rem;
+              transition: background 0.2s, transform 0.15s;
+              border: 2px solid var(--terracotta);
+              cursor: pointer;
+            " onmouseover="this.style.background='var(--terracotta-dark)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='var(--terracotta)'; this.style.transform='translateY(0)';">
+              Acessar Central de Exclusão de Dados
+            </a>
+          </div>
+          <p style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+            <strong>Nota importante:</strong> A exclusão de dados é permanente e não pode ser desfeita. Seus posts, comentários, configurações e toda a atividade será removida.
+          </p>
+        </div>
+      </section>
+        <div class="section-card">
+          <h2><span class="section-num">15</span>Contato -  Encarregado de Proteção de Dados (DPO)</h2>
+          <p>
+            Se você tiver dúvidas sobre esta Política de Privacidade, quiser exercer seus direitos como titular de dados ou tiver reclamações ou solicitações relacionadas às suas informações, entre em contato com nosso Encarregado de Proteção de Dados (DPO):
+          </p>
+          <div class="contact-card">
+            <p><strong>Laurena Inova Simples (I.S.)</strong></p>
+            <p>CNPJ: 65.223.699/0001-02</p>
+            <p>Av. das Nações Unidas, Chácara Itaim</p>
+            <p>São Paulo, SP, CEP 04533-085</p>
+            <p>E-mail DPO: <a href="mailto:laurenastudio75@gmail.com">laurenastudio75@gmail.com</a></p>
+          </div>
+          <p style="margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted);">
+            Você também pode exercer seus direitos diretamente pela <strong>Autoridade Nacional de Proteção de Dados (ANPD)</strong> em <a href="https://www.gov.br/anpd" target="_blank" rel="noopener noreferrer" style="color:var(--terracotta);">gov.br/anpd</a>. Atendimento de segunda a sexta-feira, das 9h às 18h (Brasília). Respondemos em até 15 dias úteis.
+          </p>
+        </div>
+      </section>
+
+    </article>
+  </div>
+
+  <!-- ══ FOOTER ══ -->
+  <footer>
+    <div class="footer-links">
+      <a href="./privacidade.html">Privacidade</a>
+      <span class="footer-sep">·</span>
+      <a href="./termos.html">Termos Gerais</a>
+      <span class="footer-sep">·</span>
+      <a href="./termos-ia.html">Termos de IA</a>
+      <span class="footer-sep">·</span>
+      <a href="mailto:laurenastudio75@gmail.com">Contato</a>
+    </div>
+    <p>© 2026 Laurena Inova Simples (I.S.) · CNPJ 65.223.699/0001-02 · São Paulo, SP · Todos os direitos reservados.</p>
+    <p style="margin-top:0.25rem;">Português (Brasil)</p>
+  </footer>
+
+</body>
+</html>

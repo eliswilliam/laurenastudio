@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Termos Gerais de Uso - Laurena Studio</title>
+  <meta name="description" content="Termos gerais de uso do Laurena Studio. Leia nossos termos e condições de serviço." />
+  <!-- Open Graph Tags for Social Sharing -->
+  <meta property="og:title" content="Termos Gerais de Uso - Laurena Studio" />
+  <meta property="og:description" content="Termos gerais de uso do Laurena Studio. Leia nossos termos e condições de serviço." />
+  <meta property="og:image" content="https://laurenastudio.pro/android-chrome-512x512.png" />
+  <meta property="og:url" content="https://laurenastudio.pro/termos.html" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Termos Gerais de Uso - Laurena Studio" />
+  <meta name="twitter:description" content="Termos gerais de uso do Laurena Studio. Leia nossos termos e condições de serviço." />
+  <script>
+    (function () {
+      var locale = (navigator.language || "pt-BR").toLowerCase();
+      var lang = locale.indexOf("fr") === 0 ? "fr"
+        : locale.indexOf("es") === 0 ? "es"
+        : locale.indexOf("en") === 0 ? "en"
+        : "pt";
+
+      var seoByLang = {
+        pt: {
+          title: "Termos Gerais de Uso - Laurena Studio",
+          description: "Termos gerais de uso do Laurena Studio. Leia nossos termos e condições de serviço."
+        },
+        en: {
+          title: "General Terms of Use - Laurena Studio",
+          description: "General terms of use for Laurena Studio. Read our service terms and conditions."
+        },
+        fr: {
+          title: "Conditions Generales d'Utilisation - Laurena Studio",
+          description: "Conditions generales d'utilisation de Laurena Studio. Consultez nos termes de service."
+        },
+        es: {
+          title: "Terminos Generales de Uso - Laurena Studio",
+          description: "Terminos generales de uso de Laurena Studio. Lee nuestros terminos y condiciones del servicio."
+        }
+      };
+
+      var seo = seoByLang[lang] || seoByLang.pt;
+      document.documentElement.lang = lang === "pt" ? "pt-BR" : lang;
+      document.title = seo.title;
+
+      function setMeta(selector, content) {
+        var el = document.querySelector(selector);
+        if (el) el.setAttribute("content", content);
+      }
+
+      setMeta('meta[name="description"]', seo.description);
+      setMeta('meta[property="og:title"]', seo.title);
+      setMeta('meta[property="og:description"]', seo.description);
+      setMeta('meta[name="twitter:title"]', seo.title);
+      setMeta('meta[name="twitter:description"]', seo.description);
+    })();
+  </script>
+  <link rel="icon" href="./android-chrome-192x192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Playfair+Display:ital@1&family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --terracotta: #C15F3C;
+      --terracotta-light: #f0e4dd;
+      --terracotta-dark: #9a3f20;
+      --pampas: #F4F3EE;
+      --cloudy: #B1ADA1;
+      --warm-brown: #2a1a10;
+      --warm-grey-light: #e8e5df;
+      --white: #FFFFFF;
+      --border: #d4cfc6;
+      --text-muted: #7a7168;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background-color: var(--pampas);
+      color: var(--warm-brown);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand img { width: 32px; height: 32px; border-radius: 8px; }
+    .brand-name {
+      font-family: 'Bagel Fat One', cursive;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      color: var(--terracotta);
+    }
+    .topbar nav { display: flex; gap: 1.5rem; }
+    .topbar nav a {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .topbar nav a:hover, .topbar nav a.active { color: var(--terracotta); }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #C15F3C 0%, #9a3f20 100%);
+      color: var(--white);
+      padding: 3.5rem 1.5rem;
+      text-align: center;
+    }
+    .hero h1 {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+    .hero p { font-size: 1rem; color: rgba(255,255,255,0.88); max-width: 620px; margin: 0 auto; }
+    .hero .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 99px;
+      padding: 0.3rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+
+    /* ── MAIN LAYvOUT ── */
+    .content-wrapper {
+      max-width: 1100px;
+      margin: 2.5rem auto 0;
+      padding: 0 1.5rem 4rem;
+      display: flex;
+      gap: 2.5rem;
+      align-items: flex-start;
+    }
+
+    /* ── SIDEBAR TOC ── */
+    .toc {
+      width: 240px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 72px;
+    }
+    .toc-inner {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .toc h3 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .toc ol { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; counter-reset: toc; }
+    .toc li { counter-increment: toc; }
+    .toc a {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      line-height: 1.4;
+      padding: 0.3rem 0.5rem;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .toc a::before { content: counter(toc) "."; font-size: 0.7rem; color: var(--terracotta); font-weight: 700; flex-shrink: 0; }
+    .toc a:hover { background: var(--terracotta-light); color: var(--terracotta-dark); }
+
+    /* ── ARTICLE ── */
+    .article { flex: 1; min-width: 0; }
+
+    .meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .meta-bar .tag {
+      background: var(--terracotta-light);
+      color: var(--terracotta-dark);
+      border-radius: 99px;
+      padding: 0.2rem 0.75rem;
+      font-weight: 600;
+    }
+
+    section { margin-bottom: 2.5rem; }
+    section:last-child { margin-bottom: 0; }
+
+    .section-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem 2rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--warm-brown);
+      margin-bottom: 1rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 2px solid var(--terracotta-light);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2 .section-num {
+      width: 1.6rem; height: 1.6rem;
+      background: var(--terracotta);
+      color: var(--white);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--terracotta-dark);
+      margin: 1.25rem 0 0.6rem;
+    }
+    p { color: var(--text-muted); margin-bottom: 0.75rem; font-size: 0.935rem; }
+    p:last-child { margin-bottom: 0; }
+
+    ul, ol {
+      padding-left: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.935rem;
+    }
+    li { margin-bottom: 0.5rem; }
+    li::marker { color: var(--terracotta); }
+
+    .highlight-box {
+      background: var(--terracotta-light);
+      border-left: 3px solid var(--terracotta);
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      color: var(--terracotta-dark);
+      font-weight: 500;
+    }
+
+    .info-box {
+      background: #f0f7ff;
+      border-left: 3px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      color: #1e40af;
+    }
+
+    .contact-card {
+      background: var(--pampas);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-top: 0.5rem;
+    }
+    .contact-card p { color: var(--warm-brown); font-size: 0.9rem; margin-bottom: 0.3rem; }
+    .contact-card a { color: var(--terracotta); text-decoration: none; font-weight: 500; }
+
+    /* ── PLANS TABLE ── */
+    .plans-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.88rem; }
+    .plans-table th {
+      background: var(--terracotta);
+      color: var(--white);
+      padding: 0.6rem 0.9rem;
+      text-align: left;
+      font-weight: 600;
+    }
+    .plans-table th:first-child { border-radius: 8px 0 0 0; }
+    .plans-table th:last-child { border-radius: 0 8px 0 0; }
+    .plans-table td {
+      padding: 0.6rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .plans-table tr:last-child td { border-bottom: none; }
+    .plans-table tr:nth-child(even) td { background: var(--pampas); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: linear-gradient(135deg, #C15F3C 0%, #9a3f20 100%);
+      color: rgba(255,255,255,0.9);
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.25rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.82rem;
+    }
+    .footer-links a { color: rgba(255,255,255,0.8); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: #fff; }
+    .footer-sep { color: rgba(255,255,255,0.4); }
+    footer p { font-size: 0.78rem; color: rgba(255,255,255,0.65); margin-top: 0.5rem; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .toc { display: none; }
+      .section-card { padding: 1.25rem 1.25rem; }
+      h2 { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ TOP BAR ══ -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="brand">
+        <img src="./android-chrome-192x192.png" alt="Laurena Studio" />
+        <span class="brand-name">LAURENA</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ══ LEGAL NAV STRIP ══ -->
+  <style>
+    .legal-nav { background: var(--white); border-bottom: 1px solid var(--border); }
+    .legal-nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+    .legal-nav-inner::-webkit-scrollbar { display: none; }
+    .legal-nav a { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.65rem 1.1rem; font-size: 0.82rem; font-weight: 500; color: var(--text-muted); text-decoration: none; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }
+    .legal-nav a:hover { color: var(--terracotta); }
+    .legal-nav a.active { color: var(--terracotta); border-bottom-color: var(--terracotta); font-weight: 600; }
+  </style>
+  <nav class="legal-nav">
+    <div class="legal-nav-inner">
+      <a href="./privacidade.html">Privacidade</a>
+      <a href="./termos.html" class="active">Termos Gerais</a>
+      <a href="./termos-ia.html">Termos de IA</a>
+      <a href="/">← Voltar ao site</a>
+    </div>
+  </nav>
+
+  <!-- ══ HERO ══ -->
+  <div class="hero">
+    <span class="badge">Brasil</span>
+    <h1>Termos Gerais de Uso</h1>
+    <p>Estes são os termos que regem o uso da plataforma Laurena Studio - a solução de IA para criadores de conteúdo e times de marketing.</p>
+  </div>
+
+  <!-- ══ LAYOUT ══ -->
+  <div class="content-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside class="toc">
+      <div class="toc-inner">
+        <h3>Índice</h3>
+        <ol>
+          <li><a href="#aceitacao">Aceitação dos Termos</a></li>
+          <li><a href="#servicos">Descrição da Plataforma</a></li>
+          <li><a href="#conta">Criação de Conta</a></li>
+          <li><a href="#planos">Planos e Pagamentos</a></li>
+          <li><a href="#planos-parte-b">Parte B: Cancelamento e reembolso (Brasil)</a></li>
+          <li><a href="#conteudo">Conteúdo do Usuário</a></li>
+          <li><a href="#proibicoes">Usos Proibidos</a></li>
+          <li><a href="#propriedade">Propriedade Intelectual</a></li>
+          <li><a href="#privacidade">Privacidade e LGPD</a></li>
+          <li><a href="#disponibilidade">Disponibilidade e SLA</a></li>
+          <li><a href="#limitacao">Limitação de Responsabilidade</a></li>
+          <li><a href="#rescisao">Rescisão</a></li>
+          <li><a href="#modificacoes">Modificações dos Termos</a></li>
+          <li><a href="#legislacao">Legislação Aplicável</a></li>
+          <li><a href="#contato">Contato</a></li>
+        </ol>
+      </div>
+    </aside>
+
+    <!-- ARTICLE -->
+    <article class="article">
+
+      <div class="meta-bar">
+        <span><span class="tag">Termos Gerais de Uso</span></span>
+        <span>Data de entrada em vigor: 12 de março de 2026</span>
+      </div>
+
+      <!-- 1 -->
+      <section id="aceitacao">
+        <div class="section-card">
+          <h2><span class="section-num">1</span>Aceitação dos Termos</h2>
+          <p>
+            Bem-vindo(a) à <strong>Laurena Studio</strong> - a plataforma de IA para criadores de conteúdo e times de marketing. Ao acessar ou usar qualquer recurso da plataforma, você concorda em cumprir e estar vinculado(a) a estes Termos Gerais de Uso ("Termos"), à nossa <a href="./privacidade.html" style="color:var(--terracotta);font-weight:500;">Política de Privacidade</a> e, quando aplicável, aos <a href="./termos-ia.html" style="color:var(--terracotta);font-weight:500;">Termos de Serviço de IA</a>.
+          </p>
+          <p>
+            Estes Termos constituem um contrato legalmente vinculativo entre você ("Usuário") e a <strong>Laurena Inova Simples (I.S.)</strong>, inscrita no CNPJ <strong>65.223.699/0001-02</strong>, com sede na Av. das Nações Unidas, Chácara Itaim, São Paulo, SP, CEP 04533-085.
+          </p>
+          <div class="highlight-box">
+            Se você não concordar com qualquer parte destes Termos, não acesse nem use a plataforma. O uso continuado após alterações dos Termos constitui aceitação das novas condições.
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section id="servicos">
+        <div class="section-card">
+          <h2><span class="section-num">2</span>Descrição da Plataforma</h2>
+          <p>A Laurena Studio é uma plataforma SaaS (Software como Serviço) que oferece aos criadores de conteúdo e times de marketing ferramentas baseadas em Inteligência Artificial, incluindo:</p>
+          <ul>
+            <li><strong>AI Studio:</strong> criação e edição de conteúdo escrito com IA generativa (posts, legendas, artigos, roteiros).</li>
+            <li><strong>Agendador:</strong> programação e publicação de conteúdo em múltiplas plataformas sociais.</li>
+            <li><strong>Biblioteca de Mídia:</strong> armazenamento, organização e gestão de imagens, vídeos e arquivos de mídia.</li>
+            <li><strong>Analytics & Ads:</strong> análise de desempenho de conteúdo e campanhas publicitárias.</li>
+            <li><strong>Criatividade & Growth:</strong> ferramentas de brainstorming, geração de ideias e estratégias de crescimento com IA.</li>
+            <li><strong>Dashboard:</strong> visão consolidada de todos os projetos, métricas e workspaces.</li>
+          </ul>
+          <p>Nos reservamos o direito de modificar, suspender ou descontinuar qualquer funcionalidade a qualquer momento, com aviso prévio razoável.</p>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section id="conta">
+        <div class="section-card">
+          <h2><span class="section-num">3</span>Criação de Conta e Responsabilidades</h2>
+          <h3>Elegibilidade</h3>
+          <p>Para criar uma conta, você deve ter pelo menos <strong>13 anos de idade</strong>. Caso seja menor de 18 anos, o uso da plataforma está condicionado ao consentimento de um responsável legal, conforme a LGPD e o ECA.</p>
+          <h3>Informações da Conta</h3>
+          <p>Você se compromete a fornecer informações verdadeiras, precisas e completas durante o cadastro e a mantê-las atualizadas. A Laurena Studio reserva-se o direito de suspender contas com informações falsas ou desatualizadas.</p>
+          <h3>Segurança da Conta</h3>
+          <p>Você é responsável por manter a confidencialidade das suas credenciais de acesso. Notifique-nos imediatamente em caso de uso não autorizado da sua conta pelo e-mail <a href="mailto:laurenastudio75@gmail.com" style="color:var(--terracotta);">laurenastudio75@gmail.com</a>.</p>
+          <h3>Login Social</h3>
+          <p>Ao usar autenticação via Google ou Facebook, você concorda também com os termos desses provedores. A Laurena Studio não é responsável por problemas oriundos desses serviços externos.</p>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section id="planos">
+        <div class="section-card">
+          <h2><span class="section-num">4</span>Planos, Assinaturas e Pagamentos</h2>
+          <h3>Planos Disponíveis</h3>
+          <p>A Laurena Studio oferece diferentes planos de assinatura com funcionalidades e limites distintos de uso de IA, workspaces, armazenamento de mídia e volume de publicações. Confira os planos atuais na página de preços da plataforma.</p>
+
+          <table class="plans-table">
+            <thead>
+              <tr>
+                <th>Aspecto</th>
+                <th>Regra</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Cobrança</td>
+                <td>Mensal ou anual, conforme o plano escolhido</td>
+              </tr>
+              <tr>
+                <td>Renovação</td>
+                <td>Automática ao término de cada período</td>
+              </tr>
+              <tr>
+                <td>Cancelamento</td>
+                <td>A qualquer momento; acesso mantido até fim do período já pago - sem suspensão antecipada</td>
+              </tr>
+              <tr>
+                <td>Reembolso</td>
+                <td><strong>Apenas para consumidores residentes habituais no Brasil</strong>, nas condições da <a href="#planos-parte-b">Parte B</a> abaixo (incluindo prazo de 7 dias quando aplicável). <strong>Para residentes em qualquer outro país ou território:</strong> não há direito a reembolso nos termos destes Termos; o pagamento não será devolvido, salvo exigência legal imperativa do seu país de residência.</td>
+              </tr>
+              <tr>
+                <td>Preço</td>
+                <td>Pode ser atualizado com aviso prévio de 30 dias</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Processamento de Pagamentos (Stripe)</h3>
+          <p>
+            Os pagamentos são processados exclusivamente pelo <strong>Stripe</strong> (Stripe, Inc.), plataforma certificada PCI-DSS nível 1. A Laurena Studio não armazena dados de cartão de crédito ou débito. Ao concluir uma compra, você também aceita os <a href="https://stripe.com/br/ssa" target="_blank" rel="noopener noreferrer" style="color:var(--terracotta);font-weight:500;">Termos de Serviço do Stripe</a>. A cobrança aparecerá no seu extrato identificada como <strong>LAURENA STUDIO</strong> ou <strong>LAURENA INOVA</strong>.
+          </p>
+          <h3 id="planos-parte-b">Parte B: Consumidores do Brasil</h3>
+          <p>A presente Parte B aplica-se <strong>exclusivamente</strong> a você caso seja <strong>consumidor residente habitual</strong> no <strong>Brasil</strong>. Se sua residência habitual não estiver no Brasil, esta Parte B <strong>não</strong> lhe confere direito a reembolso pela Laurena Studio, nos termos gerais destes Termos.</p>
+          <p><strong>Como identificamos o enquadramento na Parte B:</strong> para efeitos operacionais e de aplicação destes Termos, a Laurena Studio poderá considerar, entre outros indícios, a <strong>moeda da transação</strong> e o <strong>país de faturamento</strong> (dados de cobrança fornecidos no checkout, por exemplo via Stripe) para determinar se sua assinatura se enquadra na Parte B. Você declara que esses dados refletem, em condições normais, o país em que está situado o consumidor ou o sujeito da relação contratual.</p>
+
+          <h4 style="margin-top:1.25rem;font-size:1.05rem;">Direitos de cancelamento do Serviço de Assinatura (Seção 6 do adendo, Parte B)</h4>
+
+          <p><strong>(a) Direito de cancelamento.</strong> Se você se enquadra na Parte B, tem o direito legal de cancelar seu Serviço de Assinatura dentro de <strong>7 (sete) dias</strong> após a contratação do Serviço de Assinatura, sem necessidade de apresentar justificativa.</p>
+
+          <p><strong>(b) Como cancelar.</strong> Para exercer o direito de cancelamento, você deve nos informar sua decisão por meio de uma <strong>declaração clara</strong> antes do término do período de cancelamento, entrando em contato pelo e-mail <a href="mailto:laurenastudio75@gmail.com" style="color:var(--terracotta);font-weight:500;">laurenastudio75@gmail.com</a>. Confirmaremos o recebimento do seu cancelamento quando possível.</p>
+
+          <p><strong>(c) Reembolso (somente Parte B).</strong> Se você cancelar nos termos do item (a) acima e for consumidor abrangido pela Parte B, <strong>reembolsaremos</strong> todos os pagamentos recebidos de você referentes ao Serviço de Assinatura cancelado, sem demora injustificada e, no prazo máximo de <strong>14 (quatorze) dias</strong> após a data em que formos informados da sua decisão de cancelar, utilizando o mesmo meio de pagamento da transação inicial; você não deverá arcar com taxa em decorrência desse reembolso. Se você tiver utilizado o Serviço de Assinatura dentro do período inicial de 7 dias, reservamo-nos o direito de reter um valor <strong>proporcional</strong> com base nos serviços prestados até o momento em que fomos notificados do cancelamento ou até você deixar de usar o Serviço, o que ocorrer por último.</p>
+
+          <p><strong>(d) Sem reinicialização.</strong> O período de cancelamento de 7 dias <strong>não será reiniciado</strong> caso você mude de plano de assinatura ou cancele e depois reative a assinatura, tendo em vista que já teve oportunidade de testar o Serviço.</p>
+
+          <div class="highlight-box" style="margin-top:1rem;">
+            <strong>Após o 7º dia (apenas quem se enquadra na Parte B):</strong> quando aplicável à sua jurisdição, após o prazo de 7 dias não há, em regra, direito a reembolso por serviço digital já contratado nos termos acima. O cancelamento pode ser feito a qualquer momento no painel da conta; o acesso permanece ativo até o fim do período pago e <strong>não haverá reembolso proporcional ou parcial automático</strong> após esse período inicial de Parte B. A renovação automática deixa de ocorrer no ciclo seguinte.
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section id="conteudo">
+        <div class="section-card">
+          <h2><span class="section-num">5</span>Conteúdo do Usuário</h2>
+          <h3>Sua Propriedade</h3>
+          <p>Você mantém todos os direitos de propriedade intelectual sobre o conteúdo que cria e faz upload na plataforma ("Conteúdo do Usuário"). A Laurena Studio não reivindica propriedade sobre seu conteúdo.</p>
+          <h3>Licença que Você nos Concede</h3>
+          <p>
+            Ao fazer upload ou criar conteúdo na plataforma, você concede à Laurena Studio uma licença não exclusiva, mundial, isenta de royalties e sublicenciável para hospedar, armazenar, processar e exibir esse conteúdo <strong>exclusivamente para fins de prestação dos serviços contratados</strong>.
+          </p>
+          <h3>Suas Responsabilidades</h3>
+          <p>Você declara e garante que:</p>
+          <ul>
+            <li>Possui todos os direitos necessários sobre o conteúdo que carrega na plataforma.</li>
+            <li>O conteúdo não viola direitos de terceiros (direitos autorais, marcas registradas, privacidade, etc.).</li>
+            <li>O conteúdo não é ilegal, difamatório, obsceno ou prejudicial.</li>
+          </ul>
+          <h3>Indenização</h3>
+          <p>
+            Você concorda em indenizar, defender e isentar de responsabilidade a Laurena Inova Simples (I.S.), seus diretores, funcionários, colaboradores, agentes e parceiros contra quaisquer reclamações, danos, custos e despesas (incluindo honorários advocatícios razoáveis) decorrentes de: (i) seu Conteúdo do Usuário; (ii) violação destes Termos por você; (iii) violação de direitos de terceiros por meio do conteúdo por você publicado, gerado ou compartilhado na plataforma.
+          </p>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section id="proibicoes">
+        <div class="section-card">
+          <h2><span class="section-num">6</span>Usos Proibidos</h2>
+          <p>É expressamente proibido usar a Laurena Studio para:</p>
+          <ul>
+            <li>Violar qualquer lei ou regulamento aplicável.</li>
+            <li>Publicar conteúdo falso, enganoso, difamatório ou que promova desinformação.</li>
+            <li>Assediar, ameaçar, intimidar ou prejudicar outros usuários ou terceiros.</li>
+            <li>Transmitir vírus, malware, ransomware ou qualquer código malicioso.</li>
+            <li>Realizar scraping automatizado, engenharia reversa ou acesso não autorizado à plataforma.</li>
+            <li>Criar contas fraudulentas ou se passar por outra pessoa ou entidade.</li>
+            <li>Usar a plataforma para enviar spam, comunicações não solicitadas ou publicidade não autorizada.</li>
+            <li>Explorar vulnerabilidades de segurança ou realizar ataques à infraestrutura.</li>
+            <li>Revender, sublicenciar ou ceder o acesso à plataforma sem autorização prévia por escrito.</li>
+          </ul>
+          <p>O descumprimento destas proibições pode resultar em suspensão imediata da conta e, quando cabível, responsabilização civil e criminal.</p>
+        </div>
+      </section>
+
+      <!-- 7 -->
+      <section id="propriedade">
+        <div class="section-card">
+          <h2><span class="section-num">7</span>Propriedade Intelectual da Plataforma</h2>
+          <p>
+            Todo o conteúdo, design, código-fonte, logotipos, marcas, interfaces, algoritmos e demais elementos que compõem a Laurena Studio são de propriedade exclusiva da Laurena Inova Simples (I.S.) ou de seus licenciadores, protegidos pela Lei de Direitos Autorais (Lei nº 9.610/1998) e pela legislação de propriedade intelectual aplicável.
+          </p>
+          <p>
+            Nada nestes Termos transfere a você qualquer direito de propriedade sobre a plataforma. O acesso à plataforma é concedido como uma licença de uso limitada, não exclusiva e intransferível, estritamente para os fins previstos nestes Termos.
+          </p>
+          <div class="highlight-box">
+            O nome "Laurena Studio", o logotipo e demais marcas são marcas registradas ou em processo de registro. O uso não autorizado é estritamente proibido.
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 -->
+      <section id="privacidade">
+        <div class="section-card">
+          <h2><span class="section-num">8</span>Privacidade e LGPD</h2>
+          <p>
+            O tratamento de dados pessoais realizado pela Laurena Studio está descrito em detalhe em nossa <a href="./privacidade.html" style="color:var(--terracotta);font-weight:500;">Política de Privacidade</a>, em conformidade com a Lei Geral de Proteção de Dados - <strong>LGPD (Lei nº 13.709/2018)</strong>.
+          </p>
+          <p>Como titular de dados, você tem os seguintes direitos:</p>
+          <ul>
+            <li>Confirmação de existência de tratamento e acesso aos dados.</li>
+            <li>Correção de dados incompletos, inexatos ou desatualizados.</li>
+            <li>Anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desconformidade.</li>
+            <li>Portabilidade dos dados a outro fornecedor de serviço ou produto.</li>
+            <li>Informação sobre o compartilhamento de dados com terceiros.</li>
+            <li>Revogação do consentimento a qualquer momento.</li>
+          </ul>
+          <p>Para exercer esses direitos, entre em contato com nossa equipe de privacidade em <a href="mailto:laurenastudio75@gmail.com" style="color:var(--terracotta);">laurenastudio75@gmail.com</a>.</p>
+        </div>
+      </section>
+
+      <!-- 9 -->
+      <section id="disponibilidade">
+        <div class="section-card">
+          <h2><span class="section-num">9</span>Disponibilidade e Nível de Serviço</h2>
+          <p>
+            A Laurena Studio empreende esforços comercialmente razoáveis para manter a plataforma disponível. No entanto, <strong>não garantimos disponibilidade ininterrupta</strong>. Manutenções programadas serão comunicadas com antecedência razoável.
+          </p>
+          <p>Em caso de indisponibilidade não planejada que exceda padrões razoáveis, você pode contatar o suporte; eventuais compensações são concedidas exclusivamente a critério da Laurena Studio, sem criação de obrigação legal.</p>
+          <p>Não nos responsabilizamos por indisponibilidades causadas por: (i) falhas de provedores de internet ou de infraestrutura de terceiros; (ii) ataques cibernéticos; (iii) força maior; (iv) uso fora das condições previstas.</p>
+        </div>
+      </section>
+
+      <!-- 10 -->
+      <section id="limitacao">
+        <div class="section-card">
+          <h2><span class="section-num">10</span>Limitação de Responsabilidade</h2>
+          <p>
+            Nos limites permitidos pela legislação brasileira e sem prejuízo dos direitos do consumidor previstos no CDC, a Laurena Studio não será responsável por:
+          </p>
+          <ul>
+            <li>Perdas de lucros, receitas, dados ou oportunidades de negócio decorrentes do uso ou incapacidade de uso da plataforma.</li>
+            <li>Conteúdo gerado pela IA que seja impreciso, incompleto ou inadequado para um fim específico.</li>
+            <li>Danos causados por terceiros que acessem sua conta em virtude de negligência do próprio usuário na guarda de credenciais.</li>
+            <li>Perdas decorrentes de decisões tomadas com base em análises ou recomendações geradas pela plataforma sem verificação humana adequada.</li>
+          </ul>
+          <div class="highlight-box">
+            Nossa responsabilidade total, em qualquer hipótese, estará limitada ao valor pago pelo Usuário à Laurena Studio nos 3 (três) meses anteriores ao evento gerador do dano, respeitados os direitos indisponíveis do consumidor.
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 -->
+      <section id="rescisao">
+        <div class="section-card">
+          <h2><span class="section-num">11</span>Rescisão</h2>
+          <h3>Por você</h3>
+          <p>Você pode cancelar sua conta a qualquer momento nas configurações da plataforma ou entrando em contato com o suporte. Após o cancelamento, seu acesso será mantido até o fim do período pago, e seus dados serão tratados conforme nossa Política de Privacidade.</p>
+          <h3>Por nós</h3>
+          <p>Podemos suspender ou encerrar sua conta imediatamente, com ou sem aviso prévio, em caso de:</p>
+          <ul>
+            <li>Violação destes Termos ou de políticas aplicáveis.</li>
+            <li>Atividades fraudulentas, ilegais ou que coloquem em risco a plataforma ou outros usuários.</li>
+            <li>Determinação legal ou judicial.</li>
+            <li>Inadimplência continuada.</li>
+          </ul>
+          <h3>Efeitos da Rescisão</h3>
+          <p>Com a rescisão, sua licença de uso é revogada imediatamente. Você deve exportar seus dados antes do encerramento; após o prazo informado, os dados poderão ser excluídos conforme nossa Política de Privacidade.</p>
+        </div>
+      </section>
+
+      <!-- 12 -->
+      <section id="modificacoes">
+        <div class="section-card">
+          <h2><span class="section-num">12</span>Modificações dos Termos</h2>
+          <p>
+            A Laurena Studio reserva-se o direito de atualizar estes Termos a qualquer momento. Alterações materiais serão comunicadas com pelo menos <strong>30 dias de antecedência</strong> por e-mail ou notificação na plataforma.
+          </p>
+          <p>
+            O uso continuado da plataforma após a data de entrada em vigor das alterações constitui aceitação dos novos Termos. Caso não concorde com as alterações, você deve cancelar sua conta antes da data de vigência.
+          </p>
+        </div>
+      </section>
+
+      <!-- 13 -->
+      <section id="legislacao">
+        <div class="section-card">
+          <h2><span class="section-num">13</span>Legislação Aplicável e Foro</h2>
+          <p>
+            Estes Termos são regidos e interpretados de acordo com as leis da República Federativa do Brasil, em especial o Código Civil (Lei nº 10.406/2002), o Código de Defesa do Consumidor (Lei nº 8.078/1990), a LGPD (Lei nº 13.709/2018) e o Marco Civil da Internet (Lei nº 12.965/2014).
+          </p>
+          <p>
+            Fica eleito o foro da <strong>Comarca de São Paulo (SP)</strong> para dirimir quaisquer controvérsias oriundas destes Termos, com renúncia a qualquer outro, por mais privilegiado que seja, exceto quando a legislação consumerista determinar foro diferente em benefício do consumidor.
+          </p>
+          <p>
+            Antes de qualquer medida judicial, as partes comprometem-se a tentar solução amigável, via e-mail ou pela plataforma <a href="https://consumidor.gov.br" target="_blank" rel="noopener noreferrer" style="color:var(--terracotta);">consumidor.gov.br</a>, em prazo de até 30 dias.
+          </p>
+        </div>
+      </section>
+
+      <!-- 14 -->
+      <section id="contato">
+        <div class="section-card">
+          <h2><span class="section-num">14</span>Como Falar Conosco</h2>
+          <p>Para dúvidas, solicitações, exercício de direitos ou notificações legais relacionadas a estes Termos, entre em contato:</p>
+          <div class="contact-card">
+            <p><strong>Laurena Inova Simples (I.S.)</strong></p>
+            <p>CNPJ: 65.223.699/0001-02</p>
+            <p>Av. das Nações Unidas, Chácara Itaim</p>
+            <p>São Paulo, SP, CEP 04533-085</p>
+            <p>E-mail: <a href="mailto:laurenastudio75@gmail.com">laurenastudio75@gmail.com</a></p>
+          </div>
+          <p style="margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted);">
+            Atendimento de segunda a sexta-feira, das 9h às 18h (horário de Brasília). Respondemos em até 5 dias úteis.
+          </p>
+        </div>
+      </section>
+
+    </article>
+  </div>
+
+  <!-- ══ FOOTER ══ -->
+  <footer>
+    <div class="footer-links">
+      <a href="./privacidade.html">Privacidade</a>
+      <span class="footer-sep">·</span>
+      <a href="./termos.html">Termos Gerais</a>
+      <span class="footer-sep">·</span>
+      <a href="./termos-ia.html">Termos de IA</a>
+      <span class="footer-sep">·</span>
+      <a href="mailto:laurenastudio75@gmail.com">Contato</a>
+    </div>
+    <p>© 2026 Laurena Inova Simples (I.S.) · CNPJ 65.223.699/0001-02 · São Paulo, SP · Todos os direitos reservados.</p>
+    <p style="margin-top:0.25rem;">Português (Brasil)</p>
+  </footer>
+
+</body>
+</html>

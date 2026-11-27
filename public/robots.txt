@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# App authentifiée (pas d'intérêt SEO, route protégée)
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /editor
+Disallow: /ai-studio
+Disallow: /marketing-ai
+Disallow: /analytics
+Disallow: /ads-analytics
+Disallow: /midia
+Disallow: /pagamento
+Disallow: /configuracoes
+Disallow: /preview-post
+
+# Flux d'authentification et de paiement
+Disallow: /auth/
+Disallow: /checkout/
+Disallow: /api/
+
+Sitemap: https://laurenastudio.pro/sitemap.xml
